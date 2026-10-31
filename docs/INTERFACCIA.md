@@ -1,0 +1,273 @@
+# Interfaccia — Amy Core
+
+L'interfaccia locale di Amy è **un'applicazione macOS nativa**: `Amy Core.app`,
+scritta in Swift con AppKit e WebKit. Finestra propria, icona nel Dock, menu con
+scorciatoie, schermo intero nativo. Non è un mockup: ogni pannello legge dati
+reali dal backend tramite le API HTTP locali e dichiara esplicitamente ciò che non
+è disponibile.
+
+La stessa interfaccia è anche servita come **console web locale** dal comando
+`python3 -m amy serve`: è il canale di fallback e di debug (per esempio da un
+terminale o da un browser remoto sulla stessa macchina). Backend e frontend sono
+identici in entrambi i casi.
+
+Identità visiva: **Amy Core**. Sfondo nero/notte, firma ciano e blu elettrico,
+nucleo centrale con anelli e archi originali disegnati in SVG e CSS. Nessuna risorsa
+esterna, nessun font remoto, nessuna CDN, nessuna immagine di terze parti.
+
+## 1. Avvio
+
+### Applicazione (canale principale)
+
+```bash
+# Compila (solo tool di sistema: swiftc, iconutil, codesign)
+./apps/AmyCore/build.sh
+
+# Prova
+open "apps/AmyCore/dist/Amy Core.app"
+
+# Installa per l'utente
+mkdir -p ~/Applications && cp -R "apps/AmyCore/dist/Amy Core.app" ~/Applications/
+```
+
+L'app:
+
+1. cerca il repository di Amy Brain (percorso salvato in `~/.amy/app.json`, altrimenti
+   chiesto una volta con un selettore di cartelle);
+2. avvia il backend Python come processo figlio, legato solo a `127.0.0.1`, sulla
+   prima porta libera da 8765 in su;
+3. mostra la dashboard in una `WKWebView` nativa;
+4. scrive un heartbeat ogni 2 secondi: se l'app muove, il backend si chiude da
+   solo entro pochi secondi (nessun processo orfano);
+5. alla chiusura della finestra ferma il backend e cancella i file di stato.
+
+Menu dell'app: Informazioni, Apri cartella configurazione, Apri log, Ricarica
+dashboard (`⌘R`), Schermo intero (`⌘F`), Modifica (copia/incolla), Finestra. Il
+pulsante «Schermo intero» della UI usa la Fullscreen API del web, il menu usa lo
+schermo intero nativo della finestra.
+
+Requisiti: macOS 12 o superiore e **Xcode Command Line Tools** (gratuite, già
+presenti su questo computer). Non serve installare nulla.
+
+### Console web (canale alternativo)
+
+```bash
+python3 -m amy serve --open-browser
+```
+
+- indirizzo predefinito: `http://127.0.0.1:8765`
+- host e porta: `--host` / `--port` (il bind non locale richiede
+  `ui.allow_remote=true`)
+- nessuna autenticazione: l'esposizione in rete resta volutamente sconsigliata
+
+La dashboard funziona anche senza Ollama: in quel caso il nucleo mostra lo stato
+`offline` e la chat usa il fallback locale se configurato.
+
+## 2. Struttura
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ topbar: marchio · pillole di stato · azioni                  │
+├───────────────┬────────────────────────┬─────────────────────┤
+│ chat          │        Amy Core        │ pannello dati       │
+│ messaggi      │ anelli, stato, attività│ motore IA, sistema, │
+│ composer      │ provider, CTA          │ voce, robot, memoria│
+│               │                        │ attività, strumenti │
+├───────────────┴────────────────────────┴─────────────────────┤
+│ footer: percorso configurazione · stato sintetico            │
+└──────────────────────────────────────────────────────────────┘
+```
+
+- **Chat** (sinistra): cronologia reale della sessione, invio con `Invio`,
+  `Shift+Invio` per andare a capo, pulsante microfono solo se il backend dichiara
+  STT e registratore disponibili, «Nuova sessione», «Stop voce».
+- **Amy Core** (centro): stato visivo e testuale, attività reale, disponibilità del
+  provider, pulsante «Nuova interazione».
+- **Pannello dati** (destra): motore IA, sistema locale, voce, robot, memoria,
+  attività recenti e catalogo strumenti. È scrollabile in modo indipendente.
+
+Finestre e modali: conferma di rischio, impostazioni, toast. Il layout è fluido e
+regge il ridimensionamento della finestra; sotto 1080 px il pannello dati passa sotto
+la chat, sotto 760 px tutto diventa una colonna.
+
+## 3. Palette e token
+
+I colori sono definiti una sola volta in `style.css` come variabili CSS.
+
+| Token | Valore | Uso |
+| --- | --- | --- |
+| `--bg-0` / `--bg-1` | `#03060d` / `#060b16` | sfondo notte |
+| `--panel` | `rgba(10, 18, 33, 0.84)` | pannelli |
+| `--text` | `#e9f3ff` | testo principale |
+| `--muted` / `--dim` | `#96adc6` / `#6b829c` | testo secondario |
+| `--cyan` | `#3fe3ff` | firma, focus, stato attivo |
+| `--cyan-2` / `--blue` | `#26c7ff` / `#2f7bff` | archi e gradienti |
+| `--ok` | `#45e3a4` | disponibile |
+| `--warn` | `#ffc46b` | attenzione, conferma, simulato |
+| `--bad` | `#ff6478` | errore, E-stop, non disponibile |
+
+Ambra e rosso non sono decorativi: indicano condizioni che richiedono attenzione.
+Lo stato non è mai comunicato solo dal colore: c'è sempre un'etichetta testuale.
+
+## 4. Stati del nucleo
+
+Il nucleo ha otto stati. Sono derivati **solo** da segnali reali del backend, mai da
+timer casuali o animazioni finte.
+
+| Stato | Quando appare | Segnale reale |
+| --- | --- | --- |
+| `idle` | nessuna operazione in corso | stato applicativo stabile |
+| `listening` | registrazione dal microfono in corso | richiesta `/api/voice/listen` attiva |
+| `processing` | richiesta chat o conferma in corso | richiesta HTTP in corso |
+| `speaking` | sintesi vocale in corso | `voice.speaking` reale (TTS) |
+| `executing` | uno strumento è in esecuzione | attività con `status = "in_corso"` |
+| `waiting_confirmation` | c'è una conferma pendente | pending reale o `pending_confirmations > 0` |
+| `error` | errore restituito o E-stop attivo | risposta di errore, errore di rete, `estop_latched` |
+| `offline` | nessun motore IA disponibile | provider primario e fallback non disponibili |
+
+Ordine di priorità: conferma → errore → E-stop → esecuzione → ascolto → elaborazione
+→ sintesi → offline → pronta. Una conferma pendente non viene mai coperta da uno
+stato meno importante.
+
+Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
+`#coreHint`) e aggiorna `aria-label` sul contenitore `#amyCore`.
+
+## 5. Dati reali, dati assenti
+
+- Il pannello **Sistema** usa `collect_system_info()` (`amy/core/system_info.py`):
+  versione macOS, architettura, versione Python, numero di CPU, carico medio e spazio
+  disco, tutti letti con la libreria standard. Nessuna telemetria. Il nome del
+  sistema viene composto da `os_name` e `os`, senza prefissi inventati.
+- Il pannello **Motore IA** legge `provider.status()`: provider, modello, endpoint,
+  fallback e disponibilità effettiva. Se Ollama risponde ma il modello configurato
+  non è installato, la UI lo dichiara come «modello mancante» invece di mostrare
+  «disponibile».
+- Il pannello **Voce** legge `voice.status()`: TTS, STT, registratore, wake word e
+  `speaking` reale.
+- Il pannello **Robot** legge `robot.status()`. Con il simulatore etichetta i valori
+  come simulati/stimati; per MQTT mostra lo stato ricevuto e ricorda che il movimento
+  fisico non è verificato.
+- Batteria, temperatura, stato del Raspberry Pi e movimento fisico **non** vengono
+  inventati: se il backend non li fornisce, la UI mostra `Non disponibile` o
+  `Non collegato`.
+- I campi non configurati mostrano `Non configurato`, non zero.
+
+## 6. Funzioni reali
+
+- Invio messaggi a `/api/chat` con sessione corrente e cronologia da
+  `/api/transcript`.
+- Conferme in due fasi: `/api/pending` e `/api/confirm`, con dettagli su rischio,
+  argomenti, conseguenze e annullamento.
+- Nuova sessione: `/api/new_session`.
+- Voce: `/api/speak`, `/api/voice/listen`, `/api/voice/stop`.
+- Robot: `/api/robot/estop` e `/api/robot/stop`.
+- Aggiornamento stato da `/api/state`, polling base ogni 5 s e più frequente
+  (1 s) durante un turno, un'attività, l'ascolto o la sintesi.
+- Errori di rete e del backend mostrati in chat, nel footer e nello stato `error`
+  per 8 secondi.
+
+## 7. Funzioni assenti per scelta
+
+- Nessun pulsante per interrompere la generazione della risposta: il backend non
+  espone questa operazione. «Stop voce» interrompe solo la sintesi.
+- Nessuna registrazione in background: il microfono parte solo premendo il pulsante.
+- Nessun dato remoto, nessuna telemetria, nessuna sincronizzazione cloud.
+- Nessuna modifica della configurazione dalla UI: il file va modificato a mano.
+- Nessun secondo programma a schermo intero: si usa il Fullscreen API del browser,
+  più il controllo nativo di macOS.
+
+## 8. Accessibilità
+
+- Skip link verso la chat, landmark semantici, etichette `aria-label`.
+- `:focus-visible` sempre visibile su pulsanti, input, link e summary.
+- `role="log"` e `aria-live` sulla cronologia; `role="status"` sullo stato.
+- Modali con `role="dialog"`, `aria-modal`, focus trap, `Esc` per annullare o
+  chiudere, ritorno del focus all'elemento precedente.
+- Stato comunicato da testo e icona, non solo dal colore.
+- Rispetto di `prefers-reduced-motion` e interruttore «Movimento» con preferenza
+  salvata in `localStorage`.
+- Tastiera: `Invio` invia, `Shift+Invio` va a capo, `Tab` attraversa i controlli.
+
+## 9. Sicurezza e CSP
+
+Il server invia una Content-Security-Policy restrittiva. Di conseguenza il frontend:
+
+- non usa `style` inline né scritture `.style` da JavaScript;
+- non usa `innerHTML`, `document.write` o `eval`;
+- non carica risorse esterne: solo `/static/style.css` e `/static/app.js`;
+- inserisce il testo del modello con `textContent` e nodi DOM, mai come HTML;
+- non legge database o chiavi API: parla solo con le API locali.
+
+L'E-stop della dashboard è etichettato **E-STOP SOFTWARE** e il pannello ricorda che
+non sostituisce l'E-stop fisico in serie al bus dei servi. La conferma di rischio non
+viene mai aggirata dalla UI.
+
+## 10. File coinvolti
+
+| File | Ruolo |
+| --- | --- |
+| `apps/AmyCore/Sources/AmyCoreApp.swift` | app nativa: finestra, WebView, backend, heartbeat, menu |
+| `apps/AmyCore/Tools/make_icon.swift` | generatore dell'icona (CoreGraphics, nessuna risorsa esterna) |
+| `apps/AmyCore/build.sh` | build del bundle `.app` con tool di sistema e firma ad-hoc |
+| `apps/AmyCore/selftest.py` | self-test end-to-end dell'app (solo libreria standard) |
+| `apps/AmyCore/Resources/Info.plist` | metadati del bundle e ATS locale |
+| `amy/ui/static/index.html` | struttura delle tre aree, SVG del nucleo, modali |
+| `amy/ui/static/style.css` | token, layout, stati, animazioni, responsive, reduced motion |
+| `amy/ui/static/app.js` | stato, polling, chat, conferme, pannelli, accessibilità, fullscreen |
+| `amy/ui/server.py` | server HTTP locale, API, header di sicurezza, watchdog heartbeat |
+| `amy/core/system_info.py` | informazioni locali di sistema |
+| `amy/core/assistant.py` | `status()` con `system`, chat e conferme |
+| `amy/voice/service.py` | stato voce con `speaking` reale |
+| `amy/voice/tts.py` | TTS macOS con elenco voci in cache |
+
+## 11. Verifica
+
+Test automatici:
+
+```bash
+python3 -m compileall -q amy tests
+python3 -m unittest tests.test_ui_static tests.test_system_info tests.test_voice_service -v
+python3 -m unittest discover -s tests -t . -v
+
+# Self-test dell'app nativa
+./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
+```
+
+Copertura specifica dell'interfaccia:
+
+- `tests/test_ui_static.py`: file, endpoint attesi, nessuna risorsa esterna, nessun
+  `innerHTML`, nessuno stile inline, otto stati nel JS e nel CSS, derivazione da
+  segnali reali, tre aree, accessibilità, reduced motion, fullscreen, responsive,
+  dati assenti dichiarati, E-stop etichettato come software.
+- `tests/test_system_info.py`: campi reali, disco, nessun segreto.
+- `tests/test_voice_service.py`: `speaking` riflette il TTS reale.
+- `tests/test_tts_cache.py`: l'elenco delle voci è calcolato una sola volta.
+- `tests/test_server.py`: `/api/state` include `system` e `voice.speaking`.
+- `tests/test_server_watchdog.py`: il backend si chiude se il heartbeat del
+  genitore sparisce o invecchia (nessun processo orfano).
+- `tests/test_native_app.py`: sorgenti, bundle, sole dipendenze di sistema, nessuna
+  risorsa esterna, backend legato al loopback, heartbeat presente.
+
+Il **self-test dell'app** (`apps/AmyCore/selftest.py`) avvia l'app reale, aspetta
+che la WebView monti la dashboard, invia un messaggio dal DOM (`requestSubmit` sul
+form della chat), verifica che la risposta compaia in chat e controlla che il backend
+venga chiuso. Esito del 31 ottobre 2026: self-test superato.
+
+Esito del 31 ottobre 2026: **168 test, tutti superati**. La verifica **visiva a
+mano** nella finestra (ridimensionamento, schermo intero, navigazione da tastiera,
+movimento ridotto, aspetto dei pannelli) non è stata eseguita: non viene dichiarata
+come eseguita.
+
+## 12. Licenze e costo
+
+L'interfaccia è codice originale del progetto (licenza MIT del repository). Non usa
+librerie frontend, font, icone o servizi esterni: quindi non introduce dipendenze a
+pagamento. Usa solo API native del browser (Fullscreen, `matchMedia`, `fetch`,
+`localStorage`) e la libreria standard Python lato server.
+
+L'app nativa usa **solo framework di sistema macOS** (AppKit, WebKit, Foundation,
+Darwin) e gli strumenti di `Xcode Command Line Tools` (`swiftc`, `iconutil`,
+`codesign`), gratuiti e già presenti su questo computer. L'icona è generata
+localmente con CoreGraphics: nessun file immagine di terze parti. La firma è ad-hoc,
+quindi nessun certificato a pagamento e nessun account sviluppatore. Vale il vincolo
+`solo strumenti gratuiti` descritto in [GRATUITO.md](GRATUITO.md).

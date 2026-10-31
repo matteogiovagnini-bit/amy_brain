@@ -1,0 +1,337 @@
+"""Dashboard web locale di Amy.
+
+Server HTTP sulla sola interfaccia locale (predefinita 127.0.0.1), senza
+dipendenze esterne. Non espone il controllo remoto: per usarlo da un altro
+dispositivo serve una configurazione di rete esplicita e consapevole.
+"""
+
+from __future__ import annotations
+
+import ipaddress
+import json
+import mimetypes
+import os
+import threading
+import time
+import webbrowser
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any, Dict, Optional
+from urllib.parse import parse_qs, urlparse
+
+from ..core.assistant import Assistant
+from ..core.config import Config
+from ..core.errors import AmyError, ConfigError
+from ..core.logging_setup import get_logger, setup_logging
+
+_log = get_logger("ui.server")
+STATIC = Path(__file__).parent / "static"
+MAX_BODY = 2 * 1024 * 1024
+
+
+class AmyHandler(BaseHTTPRequestHandler):
+    server_version = "Amy/0.1"
+
+    @property
+    def assistant(self) -> Assistant:
+        return self.server.assistant  # type: ignore[attr-defined]
+
+    # ------------------------------------------------------------------ utils
+    def _send_json(self, data: Any, status: int = 200) -> None:
+        payload = json.dumps(data, ensure_ascii=False, default=str).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(payload)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _send_file(self, path: Path) -> None:
+        if not path.exists() or not path.is_file():
+            self._send_json({"error": "file non trovato"}, 404)
+            return
+        data = path.read_bytes()
+        content_type = mimetypes.guess_type(str(path))[0] or "application/octet-stream"
+        if content_type.startswith("text/") or content_type in {"application/javascript", "application/json"}:
+            content_type += "; charset=utf-8"
+        self.send_response(200)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; "
+            "connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'",
+        )
+        self.end_headers()
+        self.wfile.write(data)
+
+    def _read_body(self) -> Dict[str, Any]:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            length = 0
+        if length > MAX_BODY:
+            raise ValueError("Richiesta troppo grande.")
+        raw = self.rfile.read(length) if length else b""
+        if not raw:
+            return {}
+        data = json.loads(raw.decode("utf-8"))
+        if not isinstance(data, dict):
+            raise ValueError("Il corpo deve essere un oggetto JSON.")
+        return data
+
+    def log_message(self, fmt: str, *args: Any) -> None:
+        _log.debug("%s - %s", self.address_string(), fmt % args)
+
+    # -------------------------------------------------------------------- GET
+    def do_GET(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        path = parsed.path
+        try:
+            if path in {"/", "/index.html"}:
+                self._send_file(STATIC / "index.html")
+            elif path.startswith("/static/"):
+                name = path[len("/static/"):]
+                if ".." in name or name.startswith("/"):
+                    self._send_json({"error": "percorso non valido"}, 400)
+                    return
+                self._send_file(STATIC / name)
+            elif path == "/api/state":
+                self._send_json(self.assistant.status())
+            elif path == "/api/health":
+                self._send_json({"ok": True, "version": "0.1.0"})
+            elif path == "/api/tools":
+                self._send_json({"tools": self.assistant.registry.catalog()})
+            elif path == "/api/transcript":
+                query = parse_qs(parsed.query)
+                session = (query.get("session") or [""])[0] or self.assistant.resume_session()
+                self._send_json({"session_id": session, "messages": self.assistant.transcript(session, 100)})
+            elif path == "/api/pending":
+                self._send_json({"pending": self.assistant.pending_confirmations()})
+            elif path == "/api/activities":
+                self._send_json({"activities": self.assistant.memory.list_activities(50)})
+            elif path == "/api/robot/events":
+                self._send_json({"events": self.assistant.memory.list_robot_events(50)})
+            else:
+                self._send_json({"error": "endpoint non trovato"}, 404)
+        except AmyError as exc:
+            self._send_json({"error": exc.message, "code": exc.code}, 500)
+        except Exception as exc:  # noqa: BLE001
+            _log.exception("Errore GET %s", path)
+            self._send_json({"error": "errore interno", "detail": str(exc)[:300]}, 500)
+
+    # ------------------------------------------------------------------- POST
+    def do_POST(self) -> None:  # noqa: N802
+        parsed = urlparse(self.path)
+        path = parsed.path
+        try:
+            body = self._read_body()
+            if path == "/api/chat":
+                message = str(body.get("message", "")).strip()
+                if not message:
+                    self._send_json({"error": "Messaggio vuoto."}, 400)
+                    return
+                session_id = body.get("session_id") or self.assistant.resume_session()
+                with self.server.chat_lock:  # type: ignore[attr-defined]
+                    result = self.assistant.handle(message, session_id=session_id)
+                self._send_json(result.to_dict())
+            elif path == "/api/new_session":
+                title = str(body.get("title", "Dashboard")).strip() or "Dashboard"
+                session_id = self.assistant.new_session(title[:200])
+                self._send_json({"session_id": session_id})
+            elif path == "/api/confirm":
+                pending_id = str(body.get("pending_id", ""))
+                approved = bool(body.get("approved", False))
+                if not pending_id:
+                    self._send_json({"error": "pending_id mancante."}, 400)
+                    return
+                with self.server.chat_lock:  # type: ignore[attr-defined]
+                    result = self.assistant.resolve_confirmation(pending_id, approved)
+                self._send_json(result.to_dict())
+            elif path == "/api/speak":
+                text = str(body.get("text", "")).strip()
+                if not text:
+                    self._send_json({"error": "Testo mancante."}, 400)
+                    return
+                self._send_json(self.assistant.speak(text[:4000]))
+            elif path == "/api/voice/stop":
+                self.assistant.voice.stop_speaking()
+                self._send_json({"stopped": True})
+            elif path == "/api/voice/listen":
+                seconds = float(body.get("seconds", 5.0))
+                with self.server.chat_lock:  # type: ignore[attr-defined]
+                    text = self.assistant.voice.listen_once(seconds)
+                self._send_json({"text": text})
+            elif path == "/api/robot/estop":
+                reason = str(body.get("reason", "dashboard"))
+                data = self.assistant.robot_link.estop(reason)
+                self.assistant.memory.record_robot_event("estop", data)
+                self.assistant.audit.record("estop_from_ui", reason=reason)
+                self._send_json({"ok": True, "result": data})
+            elif path == "/api/robot/stop":
+                data = self.assistant.robot_link.stop(str(body.get("reason", "dashboard")))
+                self.assistant.memory.record_robot_event("stop", data)
+                self._send_json({"ok": True, "result": data})
+            else:
+                self._send_json({"error": "endpoint non trovato"}, 404)
+        except json.JSONDecodeError:
+            self._send_json({"error": "JSON non valido."}, 400)
+        except AmyError as exc:
+            self._send_json({"error": exc.message, "code": exc.code, "detail": exc.detail}, 400)
+        except Exception as exc:  # noqa: BLE001
+            _log.exception("Errore POST %s", path)
+            self._send_json({"error": "errore interno", "detail": str(exc)[:300]}, 500)
+
+
+class AmyHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def __init__(self, address, assistant: Assistant) -> None:
+        self.assistant = assistant
+        self.chat_lock = threading.Lock()
+        super().__init__(address, AmyHandler)
+
+
+def _is_loopback(host: str) -> bool:
+    """True solo per indirizzi di loopback o per il nome ``localhost``."""
+    if host in {"localhost", "::1"}:
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
+def _parent_alive(parent_pid: int) -> bool:
+    """True se il processo padre esiste ancora."""
+    try:
+        os.kill(parent_pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return True
+    return True
+
+
+def _stop_dashboard(server: AmyHTTPServer, message: str) -> None:
+    """Chiude il server e lascia una traccia, senza fallire se stdout è rotto.
+
+    Quando l'app nativa termina, la pipe su stdout del backend si chiude: una
+    ``print`` su quel canale solleverebbe BrokenPipeError. Per questo la
+    chiusura parte prima del messaggio e il messaggio è protetto.
+    """
+    threading.Thread(target=server.shutdown, daemon=True).start()
+    try:
+        print(message)
+    except Exception:  # pragma: no cover - stdout già chiuso
+        pass
+
+
+def _watch_heartbeat(
+    server: AmyHTTPServer,
+    path: str,
+    max_age_s: float = 8.0,
+    interval_s: float = 3.0,
+) -> None:
+    """Chiude il server se il heartbeat del genitore non viene più aggiornato.
+
+    Il file viene scritto periodicamente dall'app nativa. Se sparisce o
+    invecchia, il backend deduce che il genitore è morto e si chiude: evita
+    processi orfano dopo un crash o un SIGKILL.
+    """
+    while True:
+        time.sleep(interval_s)
+        try:
+            age = time.time() - os.path.getmtime(path)
+        except OSError:
+            _stop_dashboard(server, "Heartbeat del genitore assente: chiudo la dashboard.")
+            return
+        if age > max_age_s:
+            _stop_dashboard(server, "Heartbeat del genitore scaduto: chiudo la dashboard.")
+            return
+
+
+def _watch_parent(server: AmyHTTPServer, parent_pid: int) -> None:
+    """Chiude il server se il processo padre scompare.
+
+    Serve all'app nativa Amy Core: chiudendo la finestra, il backend non deve
+    restare vivo come processo orfano. È attivo solo quando il genitore
+    imposta ``AMY_WATCH_STDIN=1`` (pipe su stdin: EOF = genitore morto) o
+    ``AMY_PARENT_PID`` (controllo periodico del pid). La CLI normale non
+    imposta nessuna delle due e resta invariata.
+    """
+    watch_stdin = os.environ.get("AMY_WATCH_STDIN", "") == "1"
+    while True:
+        if watch_stdin:
+            # La pipe su stdin resta aperta finché il genitore vive: EOF
+            # significa che il genitore è morto (anche se il pid è zombia).
+            try:
+                data = os.read(0, 1)
+            except OSError:
+                data = b""
+            if not data:
+                _stop_dashboard(server, "Genitore terminato: chiudo la dashboard.")
+                return
+            continue
+        time.sleep(3.0)
+        if not _parent_alive(parent_pid):
+            _stop_dashboard(server, "Processo padre terminato: chiudo la dashboard.")
+            return
+
+
+def run_server(config: Config, *, host: Optional[str] = None, port: Optional[int] = None, open_browser: bool = False) -> None:
+    setup_logging(
+        level=str(config.get("logging.level", "INFO")),
+        log_file=str(config.get("logging.file")),
+    )
+    listen_host = host or str(config.get("ui.host", "127.0.0.1"))
+    listen_port = int(port if port is not None else config.get("ui.port", 8765))
+    if not _is_loopback(listen_host) and not bool(config.get("ui.allow_remote", False)):
+        raise ConfigError(
+            "La dashboard può ascoltare solo su localhost.",
+            detail=(
+                "%s non è un indirizzo di loopback. La dashboard non ha autenticazione: "
+                "imposta ui.allow_remote=true solo se sai cosa stai esponendo." % listen_host
+            ),
+        )
+    if not _is_loopback(listen_host):
+        print("ATTENZIONE: dashboard esposta su %s senza autenticazione." % listen_host)
+    assistant = Assistant(config)
+    server = AmyHTTPServer((listen_host, listen_port), assistant)
+    url = "http://%s:%d" % (listen_host, listen_port)
+    print("Dashboard Amy: %s" % url)
+    print("Premi Ctrl-C per terminare.")
+    if open_browser or config.get("ui.open_browser", False):
+        threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    parent_pid = os.environ.get("AMY_PARENT_PID", "").strip()
+    watch_stdin = os.environ.get("AMY_WATCH_STDIN", "") == "1"
+    heartbeat = os.environ.get("AMY_HEARTBEAT_FILE", "").strip()
+    if heartbeat:
+        threading.Thread(
+            target=_watch_heartbeat,
+            args=(server, heartbeat),
+            daemon=True,
+        ).start()
+    elif watch_stdin or parent_pid.isdigit():
+        pid = int(parent_pid) if parent_pid.isdigit() else os.getpid()
+        threading.Thread(
+            target=_watch_parent,
+            args=(server, pid),
+            daemon=True,
+        ).start()
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print("\nDashboard terminata.")
+    finally:
+        server.server_close()
+        assistant.close()

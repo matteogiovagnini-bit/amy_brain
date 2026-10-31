@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="it" data-motion="full">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Amy Core · Assistente personale</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#composerInput">Vai alla chat</a>
+  <div class="bg-grid" aria-hidden="true"></div>
+  <div class="bg-halo" aria-hidden="true"></div>
+
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">A</span>
+        <div class="brand-copy">
+          <h1>Amy <span>Core</span></h1>
+          <p>Assistente personale locale · macOS</p>
+        </div>
+      </div>
+
+      <div class="pills" aria-label="Stato sintetico">
+        <span class="pill" id="providerPill"><i aria-hidden="true"></i><span>motore IA</span></span>
+        <span class="pill" id="robotPill"><i aria-hidden="true"></i><span>robot</span></span>
+        <span class="pill" id="voicePill"><i aria-hidden="true"></i><span>voce</span></span>
+      </div>
+
+      <div class="top-actions">
+        <button class="ghost small" id="motionBtn" type="button" aria-pressed="false">Movimento: attivo</button>
+        <button class="ghost small" id="fullscreenBtn" type="button" aria-pressed="false">Schermo intero</button>
+        <button class="ghost small" id="settingsBtn" type="button">Impostazioni</button>
+        <button class="ghost small" id="stopBtn" type="button" title="Interrompi la sintesi vocale in corso">Stop voce</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel chat-panel" aria-labelledby="chatTitle">
+        <div class="panel-head">
+          <div>
+            <h2 id="chatTitle">Conversazione</h2>
+            <p id="sessionLabel">sessione in caricamento…</p>
+          </div>
+          <button class="ghost small" id="newSessionBtn" type="button">Nuova sessione</button>
+        </div>
+
+        <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <div class="typing" id="typing" hidden aria-live="polite">
+          <span aria-hidden="true"></span><span aria-hidden="true"></span><span aria-hidden="true"></span>
+          Amy sta elaborando
+        </div>
+
+        <form class="composer" id="chatForm">
+          <button class="icon-btn mic" id="micBtn" type="button" aria-label="Ascolta dal microfono del Mac" title="Ascolta dal microfono del Mac">
+            <span aria-hidden="true">◉</span>
+          </button>
+          <label class="sr-only" for="composerInput">Messaggio per Amy</label>
+          <textarea id="composerInput" rows="2" placeholder="Scrivi ad Amy…" autocomplete="off" spellcheck="false"></textarea>
+          <button class="primary send" id="sendBtn" type="submit">Invia <kbd aria-hidden="true">↵</kbd></button>
+        </form>
+        <div class="composer-hints">
+          <span>Invio per inviare · Shift+Invio per andare a capo</span>
+          <label class="switch"><input type="checkbox" id="speakToggle"> Pronuncia le risposte</label>
+        </div>
+      </section>
+
+      <section class="panel core-panel" aria-labelledby="coreTitle">
+        <div class="core-stage" id="amyCore" data-state="idle" role="img" aria-label="Amy Core: pronta, in attesa di una richiesta">
+          <div class="core-glow" aria-hidden="true"></div>
+          <svg class="core-svg" viewBox="0 0 320 320" role="presentation" focusable="false" aria-hidden="true">
+            <defs>
+              <linearGradient id="arcCyan" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#3fe3ff"></stop>
+                <stop offset="1" stop-color="#2f7bff"></stop>
+              </linearGradient>
+              <linearGradient id="arcBlue" x1="1" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#2f7bff"></stop>
+                <stop offset="1" stop-color="#3fe3ff" stop-opacity="0.15"></stop>
+              </linearGradient>
+            </defs>
+            <g class="core-rings">
+              <circle class="ring ring-outer" cx="160" cy="160" r="148"></circle>
+              <circle class="ring ring-mid" cx="160" cy="160" r="126"></circle>
+              <circle class="ring ring-inner" cx="160" cy="160" r="104"></circle>
+              <circle class="orbit orbit-a" cx="160" cy="160" r="138"></circle>
+              <circle class="orbit orbit-b" cx="160" cy="160" r="116"></circle>
+              <circle class="orbit orbit-c" cx="160" cy="160" r="92"></circle>
+            </g>
+            <g class="core-ticks">
+              <line x1="160" y1="8" x2="160" y2="20"></line>
+              <line x1="160" y1="300" x2="160" y2="312"></line>
+              <line x1="8" y1="160" x2="20" y2="160"></line>
+              <line x1="300" y1="160" x2="312" y2="160"></line>
+            </g>
+            <g class="core-particles">
+              <circle class="particle p1" cx="48" cy="96" r="2.4"></circle>
+              <circle class="particle p2" cx="270" cy="78" r="1.8"></circle>
+              <circle class="particle p3" cx="288" cy="214" r="2.2"></circle>
+              <circle class="particle p4" cx="74" cy="256" r="1.7"></circle>
+              <circle class="particle p5" cx="34" cy="178" r="1.5"></circle>
+              <circle class="particle p6" cx="236" cy="286" r="1.9"></circle>
+            </g>
+            <circle class="core-progress" cx="160" cy="160" r="80"></circle>
+          </svg>
+          <div class="core-pulse" aria-hidden="true"></div>
+          <div class="core-hub" aria-hidden="true">
+            <span class="core-monogram">A</span>
+            <span class="core-word">CORE</span>
+          </div>
+          <div class="core-wave" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+
+        <div class="core-copy">
+          <p class="core-eyebrow">Amy Core</p>
+          <h2 id="coreTitle">AMY</h2>
+          <p class="core-state" id="coreState" role="status" aria-live="polite">Pronta</p>
+          <p class="core-activity" id="coreActivity">In attesa di una richiesta</p>
+          <p class="core-hint" id="coreHint">Scrivi un messaggio, usa il microfono se disponibile o avvia una nuova interazione.</p>
+          <div class="core-provider" id="coreProvider">
+            <span class="dot" aria-hidden="true"></span>
+            <span id="coreProviderText">Motore IA in verifica…</span>
+          </div>
+          <button class="primary core-cta" id="newInteractionBtn" type="button">Nuova interazione</button>
+        </div>
+      </section>
+
+      <aside class="side-panel" aria-label="Pannello informativo">
+        <section class="card" aria-labelledby="engineTitle">
+          <div class="card-title">
+            <h3 id="engineTitle">Motore IA</h3>
+            <span class="tag" id="engineTag">verifica</span>
+          </div>
+          <dl class="data-list">
+            <dt>Provider</dt><dd id="engineProvider">Non disponibile</dd>
+            <dt>Modello</dt><dd id="engineModel">Non disponibile</dd>
+            <dt>Endpoint</dt><dd id="engineEndpoint">Non disponibile</dd>
+            <dt>Fallback</dt><dd id="engineFallback">Non disponibile</dd>
+          </dl>
+          <p class="hint" id="engineNote">Il motore IA resta locale per impostazione predefinita.</p>
+        </section>
+
+        <section class="card" aria-labelledby="systemTitle">
+          <div class="card-title">
+            <h3 id="systemTitle">Sistema</h3>
+            <span class="tag" id="systemTag">locale</span>
+          </div>
+          <dl class="data-list">
+            <dt>macOS</dt><dd id="systemOs">Non disponibile</dd>
+            <dt>Architettura</dt><dd id="systemArch">Non disponibile</dd>
+            <dt>Python</dt><dd id="systemPython">Non disponibile</dd>
+            <dt>CPU</dt><dd id="systemCpu">Non disponibile</dd>
+            <dt>Carico</dt><dd id="systemLoad">Non disponibile</dd>
+            <dt>Disco libero</dt><dd id="systemDisk">Non disponibile</dd>
+          </dl>
+          <p class="hint">Dati raccolti localmente con la libreria standard. Nessuna telemetria.</p>
+        </section>
+
+        <section class="card" aria-labelledby="voiceTitle">
+          <div class="card-title">
+            <h3 id="voiceTitle">Voce</h3>
+            <span class="tag" id="voiceTag">verifica</span>
+          </div>
+          <dl class="data-list">
+            <dt>Sintesi</dt><dd id="voiceTts">Non disponibile</dd>
+            <dt>Riconoscimento</dt><dd id="voiceStt">Non disponibile</dd>
+            <dt>Registratore</dt><dd id="voiceRecorder">Non disponibile</dd>
+            <dt>Wake word</dt><dd id="voiceWake">Non configurata</dd>
+          </dl>
+          <p class="hint" id="voiceNote">La voce è opzionale. La chat testuale funziona anche senza microfono.</p>
+        </section>
+
+        <section class="card" aria-labelledby="robotTitle">
+          <div class="card-title">
+            <h3 id="robotTitle">Robot</h3>
+            <span class="tag" id="robotTransport">simulato</span>
+          </div>
+          <dl class="data-list">
+            <dt>Collegamento</dt><dd id="robotReachable">Non disponibile</dd>
+            <dt>Modalità</dt><dd id="robotMode">Non disponibile</dd>
+            <dt>Fase</dt><dd id="robotPhase">Non disponibile</dd>
+            <dt>E-stop</dt><dd id="robotEstop">Non disponibile</dd>
+            <dt>Heartbeat</dt><dd id="robotHeartbeat">Non disponibile</dd>
+            <dt>Batteria</dt><dd id="robotBattery">Non disponibile</dd>
+            <dt>Raspberry Pi</dt><dd id="robotPi">Non disponibile</dd>
+          </dl>
+          <div class="danger-row">
+            <button class="danger" id="estopBtn" type="button" aria-describedby="robotNote">E-STOP SOFTWARE</button>
+            <button class="ghost" id="robotStopBtn" type="button">Ferma</button>
+          </div>
+          <p class="hint" id="robotNote">Il pulsante invia un E-stop software. Non sostituisce l'E-stop fisico in serie al bus dei servi.</p>
+        </section>
+
+        <section class="card" aria-labelledby="memoryTitle">
+          <div class="card-title">
+            <h3 id="memoryTitle">Memoria</h3>
+            <span class="tag" id="memoryTag">SQLite locale</span>
+          </div>
+          <div class="stats">
+            <div><strong id="statMessages">0</strong><span>messaggi</span></div>
+            <div><strong id="statFacts">0</strong><span>fatti</span></div>
+            <div><strong id="statActivities">0</strong><span>attività</span></div>
+          </div>
+          <div class="facts" id="facts"></div>
+        </section>
+
+        <section class="card" aria-labelledby="activityTitle">
+          <div class="card-title"><h3 id="activityTitle">Attività recenti</h3></div>
+          <div class="activity-list" id="activities"></div>
+        </section>
+
+        <details class="card tools-card">
+          <summary>
+            <span id="toolsTitle">Strumenti</span>
+            <span class="tag" id="toolCount">0</span>
+          </summary>
+          <div class="tools" id="tools"></div>
+        </details>
+      </aside>
+    </main>
+
+    <footer>
+      <span>Config: <code id="configPath">~/.amy/config.json</code></span>
+      <span id="footerStatus">locale · nessun dato inviato senza configurazione</span>
+    </footer>
+  </div>
+
+  <div class="modal-backdrop" id="confirmModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmReason">
+      <div class="modal-head">
+        <span class="risk" id="confirmRisk">B</span>
+        <div>
+          <h2 id="confirmTitle">Conferma richiesta</h2>
+          <p id="confirmTool">strumento</p>
+        </div>
+      </div>
+      <p class="confirm-reason" id="confirmReason"></p>
+      <dl class="confirm-grid">
+        <dt>Parametri</dt><dd><pre id="confirmArgs"></pre></dd>
+        <dt>Conseguenze</dt><dd id="confirmConsequences"></dd>
+        <dt>Annullamento</dt><dd id="confirmUndo"></dd>
+      </dl>
+      <div class="modal-actions">
+        <button class="ghost" id="confirmCancel" type="button">Annulla</button>
+        <button class="danger" id="confirmApprove" type="button">Autorizza</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <span class="risk info">i</span>
+        <div>
+          <h2 id="settingsTitle">Impostazioni</h2>
+          <p>Configurazione attiva di Amy</p>
+        </div>
+      </div>
+      <dl class="settings-grid" id="settingsGrid"></dl>
+      <p class="hint">
+        Le impostazioni si modificano in <code id="settingsPath">~/.amy/config.json</code>.
+        Le chiavi API non sono mai mostrate: Amy le legge da variabili d'ambiente o da
+        <code>~/.amy/secrets.json</code> con permessi 600.
+      </p>
+      <div class="modal-actions">
+        <button class="ghost" id="settingsClose" type="button">Chiudi</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

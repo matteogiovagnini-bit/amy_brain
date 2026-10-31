@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "amy-brain"
+version = "0.1.0"
+description = "Amy — assistente personale autonomo per macOS, con controllo robotico sicuro"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Amy Project" }]
+dependencies = []
+
+[project.optional-dependencies]
+robot = ["paho-mqtt>=2.1.0"]
+dev = []
+
+[project.scripts]
+amy = "amy.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["amy*"]
+
+[tool.setuptools.package-data]
+"amy.ui" = ["static/*"]

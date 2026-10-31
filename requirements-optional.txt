@@ -1,0 +1,9 @@
+# Dipendenze opzionali. Il nucleo di Amy funziona con la sola libreria standard.
+#
+# Robot: comunicazione MQTT reale con il Raspberry Pi.
+paho-mqtt>=2.1.0
+#
+# Voce: riconoscimento vocale locale (da installare separatamente).
+# faster-whisper>=1.0.0
+#
+# Registrazione audio su macOS: richiede ffmpeg oppure sox installati nel sistema.
