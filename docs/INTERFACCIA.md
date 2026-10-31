@@ -46,6 +46,11 @@ dashboard (`⌘R`), Schermo intero (`⌘F`), Modifica (copia/incolla), Finestra.
 pulsante «Schermo intero» della UI usa la Fullscreen API del web, il menu usa lo
 schermo intero nativo della finestra.
 
+Per la verifica visiva automatica lo stesso binario accetta `--snapshot <percorso>`
+e `--snapshot-size WxH`: carica la dashboard, salva un PNG della `WKWebView` e
+termina. Non è un secondo programma: è l'app in modalità di prova, utile quando il
+terminale non ha il permesso di cattura schermo.
+
 Requisiti: macOS 12 o superiore e **Xcode Command Line Tools** (gratuite, già
 presenti su questo computer). Non serve installare nulla.
 
@@ -68,27 +73,51 @@ La dashboard funziona anche senza Ollama: in quel caso il nucleo mostra lo stato
 ```text
 ┌──────────────────────────────────────────────────────────────┐
 │ topbar: marchio · pillole di stato · azioni                  │
-├───────────────┬────────────────────────┬─────────────────────┤
-│ chat          │        Amy Core        │ pannello dati       │
-│ messaggi      │ anelli, stato, attività│ motore IA, sistema, │
-│ composer      │ provider, CTA          │ voce, robot, memoria│
-│               │                        │ attività, strumenti │
-├───────────────┴────────────────────────┴─────────────────────┤
+├──────────────────────────────────────────────────────────────┤
+│ ┌───────────┐                                                │
+│ │ pannelli  │        nucleo a tutto schermo                  │
+│ │ sovrap-   │   anelli, stato, attività, provider            │
+│ │ posti     │                                ┌─────────────┐ │
+│ │ a sinistra│       ┌───────────────┐        │    chat     │ │
+│ │           │       │ barra comandi │        │  satellite  │ │
+│ └───────────┘       └───────────────┘        └─────────────┘ │
+├──────────────────────────────────────────────────────────────┤
 │ footer: percorso configurazione · stato sintetico            │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-- **Chat** (sinistra): cronologia reale della sessione, invio con `Invio`,
-  `Shift+Invio` per andare a capo, pulsante microfono solo se il backend dichiara
-  STT e registratore disponibili, «Nuova sessione», «Stop voce».
-- **Amy Core** (centro): stato visivo e testuale, attività reale, disponibilità del
-  provider, pulsante «Nuova interazione».
-- **Pannello dati** (destra): motore IA, sistema locale, voce, robot, memoria,
-  attività recenti e catalogo strumenti. È scrollabile in modo indipendente.
+- **Nucleo** (tutto il palco): pannello a piena area, senza bordo né card
+  contenitiva. Anelli, stato testuale, attività reale e disponibilità del provider.
+  Il fondo è un alone radiale, non un riquadro. Nel palco il pulsante «Nuova
+  interazione» è nascosto perché il campo di scrittura è sempre visibile; nel flusso
+  verticale ricompare.
+- **Chat** (satellite a destra, quasi tutta l'altezza del palco): cronologia reale
+  della sessione, `Invio` per inviare, `Shift+Invio` per andare a capo, «Nuova»,
+  «Stop voce» e pulsante microfono solo se il backend dichiara STT e registratore
+  disponibili. Non contiene il compositore. Fluttua sopra il palco con un arco
+  luminoso che la collega idealmente al nucleo; i messaggi tagliati dai bordi
+  sfumano invece di restare visibili a metà.
+- **Barra comandi** (in basso al centro del palco, staccata dalla chat): campo di
+  scrittura, microfono, «Invia», promemoria da tastiera e interruttore «Pronuncia le
+  risposte». Conserva gli stessi identificativi di prima (`chatForm`,
+  `composerInput`, `micBtn`, `sendBtn`, `speakToggle`), quindi c'è un solo punto di
+  invio e la cronologia resta nella chat. Il nucleo riserva spazio in fondo per non
+  finire sotto la barra.
+- **Pannelli informativi** (sovrapposti a sinistra): motore IA, robot, sistema,
+  voce, memoria, attività recenti e catalogo strumenti. Le schede si accavallano di
+  pochi pixel e si sollevano con hover o focus da tastiera; il contenuto scorre
+  dentro il pannello e l'ultimo tratto sfuma verso il palco. Il robot è il secondo
+  pannello perché contiene l'E-stop software.
+- **Sfondo**: campo stellato statico, disegnato con un SVG inline e stelle generate
+  localmente, sopra il gradiente notte e la griglia. Nessuna immagine, nessun filmato
+  e nessuna animazione: non pesa sulla GPU e resta compatibile con la CSP.
 
-Finestre e modali: conferma di rischio, impostazioni, toast. Il layout è fluido e
-regge il ridimensionamento della finestra; sotto 1080 px il pannello dati passa sotto
-la chat, sotto 760 px tutto diventa una colonna.
+Finestre e modali: conferma di rischio, impostazioni, toast. Sopra 1040 px il layout
+è a strati sovrapposti, con la barra comandi sopra il palco; sotto 1040 px diventa un
+flusso verticale con la chat subito dopo la topbar, poi la barra comandi, poi il
+nucleo e infine i pannelli. Sotto 680 px tutto è una colonna. La finestra minima
+dell'app nativa è 960×600: a quell'altezza il flusso verticale evita che chat, nucleo
+e pannelli si coprano.
 
 ## 3. Palette e token
 
@@ -141,7 +170,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 - Il pannello **Motore IA** legge `provider.status()`: provider, modello, endpoint,
   fallback e disponibilità effettiva. Se Ollama risponde ma il modello configurato
   non è installato, la UI lo dichiara come «modello mancante» invece di mostrare
-  «disponibile».
+  «disponibile». Se è attivo un preset online gratuito e manca la chiave API, mostra
+  «chiave API non configurata» con il nome della variabile; se è configurata ricorda
+  che la conversazione lascia il Mac e usa il servizio scelto.
 - Il pannello **Voce** legge `voice.status()`: TTS, STT, registratore, wake word e
   `speaking` reale.
 - Il pannello **Robot** legge `robot.status()`. Con il simulatore etichetta i valori
@@ -211,7 +242,7 @@ viene mai aggirata dalla UI.
 | `apps/AmyCore/build.sh` | build del bundle `.app` con tool di sistema e firma ad-hoc |
 | `apps/AmyCore/selftest.py` | self-test end-to-end dell'app (solo libreria standard) |
 | `apps/AmyCore/Resources/Info.plist` | metadati del bundle e ATS locale |
-| `amy/ui/static/index.html` | struttura delle tre aree, SVG del nucleo, modali |
+| `amy/ui/static/index.html` | palco, nucleo a tutto schermo, chat satellite, barra comandi, campo stellato, pannelli sovrapposti, modali |
 | `amy/ui/static/style.css` | token, layout, stati, animazioni, responsive, reduced motion |
 | `amy/ui/static/app.js` | stato, polling, chat, conferme, pannelli, accessibilità, fullscreen |
 | `amy/ui/server.py` | server HTTP locale, API, header di sicurezza, watchdog heartbeat |
@@ -253,7 +284,7 @@ che la WebView monti la dashboard, invia un messaggio dal DOM (`requestSubmit` s
 form della chat), verifica che la risposta compaia in chat e controlla che il backend
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
-Esito del 31 ottobre 2026: **168 test, tutti superati**. La verifica **visiva a
+Esito del 31 ottobre 2026: **189 test, tutti superati**. La verifica **visiva a
 mano** nella finestra (ridimensionamento, schermo intero, navigazione da tastiera,
 movimento ridotto, aspetto dei pannelli) non è stata eseguita: non viene dichiarata
 come eseguita.

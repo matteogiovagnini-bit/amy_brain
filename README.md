@@ -26,9 +26,11 @@ l'interfaccia e il robot Raspberry Pi. Il default è interamente locale:
 - SQLite per la memoria;
 - simulatore robotico locale.
 
-Nessuna funzione fondamentale richiede account, carta di pagamento o cloud. Un
-endpoint OpenAI-compatible pubblico non è il default, è bloccato senza consenso
-esplicito e non viene mai usato come fallback. Licenze, limiti e alternative sono in
+Nessuna funzione fondamentale richiede account, carta di pagamento o cloud. Se il
+modello locale è troppo lento si può scegliere un **provider online gratuito**
+verificato: oggi GroqCloud piano Free, senza carta di credito. Non è il default, è
+spento nel repository, richiede `ai.online.consent = true` e la conversazione lascia
+il Mac. Il fallback non può mai essere online. Licenze, limiti e alternative sono in
 [docs/GRATUITO.md](docs/GRATUITO.md).
 
 ## Avvio rapido
@@ -82,14 +84,28 @@ ollama pull qwen2.5-coder:14b
 python3 -m amy ask "elenca i file in ~/Progetti"
 ```
 
+Se il modello locale è troppo lento, si può passare a un provider online gratuito
+verificato (nessuna carta di credito, quote dichiarate). La chiave non va mai
+scritta in chat o nel repository: si salva con il comando dedicato, che non la mostra.
+
+```bash
+python3 -m amy providers              # preset, limiti, licenza, privacy
+python3 -m amy secret set GROQ_API_KEY
+# poi nella configurazione: ai.provider="groq", ai.online.consent=true
+python3 -m amy doctor                 # verifica chiave e modello
+```
+
+Dettagli e condizioni: [docs/CONFIGURAZIONE.md](docs/CONFIGURAZIONE.md#provider-online-gratuito-groq).
+
 La dashboard ascolta su `127.0.0.1:8765` per impostazione predefinita. Non ha
 autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esplicito
 (`ui.allow_remote`), e resta sconsigliata.
 
 ## Cosa sa fare oggi
 
-- Conversazione in italiano con provider astratti: Ollama locale, endpoint
-  compatibile OpenAI **locale**, oppure interprete offline deterministico.
+- Conversazione in italiano con provider astratti: Ollama locale, preset online
+  gratuito verificato (GroqCloud Free, spento per default), endpoint compatibile
+  OpenAI **locale**, oppure interprete offline deterministico.
 - 34 strumenti reali: sistema, applicazioni macOS, file confinati, shell in
   allowlist, web con protezione SSRF, memoria, voce e robot.
 - Policy A/B/C con conferma esplicita; il livello C non è mai automatico.
@@ -116,6 +132,7 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 | Movimento fisico del robot | Non verificato: nessun hardware collegato in questo ambiente |
 | Collegamento MQTT reale | Sperimentale: implementato, ma senza broker/robot verificato |
 | Riconoscimento vocale | Non operativo qui: mancano `ffmpeg`/`sox` e motore STT locale |
+| Provider online gratuito | Verificato il 31 ottobre 2026: chiave in `~/.amy/secrets.json` (`600`), risposta reale del modello GroqCloud Free. Il modello locale resterebbe il default del repository |
 | Wake word audio | Non è un motore audio dedicato: rileva la parola dopo la trascrizione |
 | Dashboard remota | Volutamente bloccata di default; nessuna autenticazione |
 | Uso continuativo / produzione | Non dichiarato stabile |
@@ -134,7 +151,7 @@ Dettagli: [docs/SICUREZZA.md](docs/SICUREZZA.md) e
 
 ```text
 amy/
-  ai/         provider Ollama, OpenAI-compatible locale, offline, fallback
+  ai/         provider Ollama, preset online gratuiti, OpenAI-compatible, offline, fallback
   core/       configurazione, orchestrazione, prompt, errori, logging
   memory/     SQLite: sessioni, messaggi, fatti, attività, eventi
   security/   livelli di rischio, policy, path guard, audit
@@ -144,7 +161,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (168 test)
+tests/        suite unittest (189 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -158,10 +175,11 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 31 ottobre 2026: **168 test, tutti superati**, più il
+Risultato verificato il 31 ottobre 2026: **189 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
-reale né il riconoscimento vocale su questa macchina. Vedi
+reale né il riconoscimento vocale su questa macchina; il provider online richiede
+una chiave personale e non viene esercitato dalla suite con traffico reale. Vedi
 [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione

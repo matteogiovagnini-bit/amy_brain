@@ -98,6 +98,56 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn('id="messages"', html)
         self.assertIn('id="systemOs"', html)
 
+    def test_layout_is_stage_with_satellite_chat_and_overlapping_panels(self) -> None:
+        """Il nucleo occupa il palco, la chat è un satellite, i pannelli si sovrappongono."""
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        css = (STATIC / "style.css").read_text(encoding="utf-8")
+        self.assertIn('class="stage"', html)
+        self.assertIn("orbit-link", html)
+        self.assertIn('class="side-scroll"', html)
+        # Il nucleo è a piena area, senza card contenitiva.
+        self.assertIn(".core-panel {", css)
+        self.assertIn("inset: 0;", css)
+        # La chat è posizionata rispetto al palco, non in una griglia.
+        self.assertIn(".chat-panel {", css)
+        self.assertIn("position: absolute;", css)
+        # Le schede di sinistra si accavallano e si sollevano al focus.
+        self.assertIn("margin-top: -12px;", css)
+        self.assertIn(".side-panel .card:focus-within", css)
+        # Sotto la soglia del palco si passa al flusso verticale.
+        self.assertIn("@media (max-width: 1040px)", css)
+        self.assertIn("order: -3;", css)  # chat subito dopo la topbar
+        self.assertIn("order: -2;", css)  # poi la barra comandi
+
+    def test_command_bar_is_separate_and_starfield_is_static(self) -> None:
+        """La barra comandi vive fuori dalla chat; lo sfondo stellato è locale."""
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        css = (STATIC / "style.css").read_text(encoding="utf-8")
+
+        self.assertIn('class="command-bar"', html)
+        bar_start = html.index('class="command-bar"')
+        core_start = html.index('class="panel core-panel"')
+        self.assertLess(bar_start, core_start)
+
+        # Gli stessi controlli di prima, ma dentro la barra: un solo invio.
+        for control in ("chatForm", "composerInput", "micBtn", "sendBtn", "speakToggle"):
+            position = html.index('id="' + control + '"')
+            self.assertTrue(
+                bar_start < position < core_start,
+                "controllo fuori dalla barra comandi: " + control,
+            )
+
+        # Il nucleo non deve finire sotto la barra: riserva spazio in fondo.
+        self.assertIn("padding-bottom: clamp(116px", css)
+        self.assertIn(".command-bar {", css)
+
+        # Campo stellato: SVG inline generato localmente, nessuna risorsa esterna.
+        self.assertIn('class="bg-stars"', html)
+        self.assertIn('<svg viewBox="0 0 1600 1000"', html)
+        self.assertIn(".bg-stars", css)
+        self.assertNotIn("<img", html)
+        self.assertNotIn("<video", html)
+
     def test_accessibility_basics(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         css = (STATIC / "style.css").read_text(encoding="utf-8")

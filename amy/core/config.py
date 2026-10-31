@@ -43,6 +43,13 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "require_api_key": False,
             "allow_remote": False,
         },
+        # Provider online gratuiti: spenti per impostazione predefinita.
+        # `consent` è la conferma esplicita che la conversazione lascia il Mac.
+        "online": {
+            "model": "",
+            "api_key_env": "",
+            "consent": False,
+        },
     },
     "memory": {
         "db_path": "~/.amy/amy.db",
@@ -262,11 +269,16 @@ class Config:
         return value.strip()
 
     def validate(self) -> None:
+        # Import locale: `amy.ai` importa a sua volta la configurazione, quindi un
+        # import in testa al modulo creerebbe un ciclo.
+        from ..ai.presets import get_preset, preset_names
+
         provider = self.get("ai.provider")
-        if provider not in {"ollama", "openai", "offline"}:
+        allowed_providers = {"ollama", "openai", "offline"} | set(preset_names())
+        if provider not in allowed_providers:
             raise ConfigError(
                 "Provider IA non supportato: %s" % provider,
-                detail="Valori ammessi: ollama, openai, offline",
+                detail="Valori ammessi: %s" % ", ".join(sorted(allowed_providers)),
             )
         fallback = self.get("ai.fallback_provider", "offline")
         if fallback not in {"ollama", "offline"}:
@@ -274,9 +286,26 @@ class Config:
                 "Fallback IA non supportato: %s" % fallback,
                 detail=(
                     "Valori ammessi: ollama, offline. Il fallback non può essere un "
-                    "servizio a pagamento."
+                    "servizio online o a pagamento."
                 ),
             )
+        preset = get_preset(str(provider))
+        if preset is not None:
+            # Un servizio online si attiva solo con una scelta esplicita e con la
+            # conferma che la conversazione lascia il computer.
+            if not bool(self.get("ai.online.consent", False)):
+                raise ConfigError(
+                    "Provider IA online non autorizzato.",
+                    detail=(
+                        "Hai scelto %s: i messaggi lascerebbero questo computer. "
+                        "Verifica le condizioni gratuite (%s) e imposta "
+                        "ai.online.consent=true per confermare." % (preset.label, preset.signup_url)
+                    ),
+                )
+            for key in ("ai.online.model", "ai.online.api_key_env"):
+                value = self.get(key, "")
+                if value is not None and not isinstance(value, str):
+                    raise ConfigError("%s deve essere una stringa." % key)
         if provider == "openai":
             base_url = self.get("ai.openai.base_url")
             if not isinstance(base_url, str) or not base_url.strip():

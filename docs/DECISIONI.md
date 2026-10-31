@@ -250,3 +250,64 @@ Command Line Tools, entrambe gratuite. Il self-test (`apps/AmyCore/selftest.py`)
 verifica end-to-end che la WebView monti la pagina, che un messaggio inviato dal DOM
 produca una risposta in chat e che il backend venga chiuso. Dettagli in
 [INTERFACCIA.md](INTERFACCIA.md).
+
+## D-021 — Provider IA online gratuito, con consenso esplicito
+
+**Contesto:** su questo Mac il modello locale via Ollama è troppo lento per un uso
+quotidiano. Serve una risposta rapida senza violare il vincolo permanente di
+gratuità: il servizio deve funzionare senza carta di credito, senza crediti
+obbligatori e senza piani premium necessari.
+
+**Scelta:** `amy/ai/presets.py` contiene un elenco chiuso di servizi online
+verificati, con endpoint, modello, licenza, quote, privacy e data di verifica. Il
+primo è GroqCloud piano Free, modello `openai/gpt-oss-120b` (Apache-2.0). Un preset:
+
+- resta spento nel repository: `ai.provider` predefinito è `ollama` e
+  `ai.online.consent` è `false`;
+- si attiva solo con `ai.provider` uguale al preset **e** `ai.online.consent = true`,
+  cioè una conferma esplicita che i messaggi lasciano il computer;
+- non può mai essere il fallback: il fallback resta `offline` (o `ollama`);
+- legge la chiave solo da variabile d'ambiente o `~/.amy/secrets.json` (`0600`),
+  scritta con `python3 -m amy secret set` senza mostrarla;
+- non introduce nuove dipendenze: riusa l'adattatore compatibile OpenAI già
+  presente, quindi solo libreria standard.
+
+**Conseguenze:** la conversazione può essere più rapida senza costi, ma smette di
+essere locale: privacy e disponibilità dipendono dal servizio, che va riverificato
+prima di aggiornare i preset. Se il servizio cambia condizioni o quote, il preset va
+corretto o rimosso; se non esiste un'alternativa gratuita adeguata, ci si ferma e lo
+si chiede all'utente. Senza chiave o con il servizio irraggiungibile Amy usa il
+fallback locale e lo dichiara nella UI e in `amy doctor`. Dettagli e fonti in
+[GRATUITO.md](GRATUITO.md); configurazione in
+[CONFIGURAZIONE.md](CONFIGURAZIONE.md#provider-online-gratuito-groq).
+
+## D-022 — Interfaccia a palco: nucleo, satellite, pannelli sovrapposti
+
+**Contesto:** l'utente ha chiesto un'interfaccia ispirata a J.A.R.V.I.S. e ha
+indicato come riferimento il minuto 5:28 del video
+<https://www.youtube.com/watch?v=8CQ1rfwS_RE>: nucleo luminoso al centro, chat su un
+lato, pannelli informativi sovrapposti, sfondo scuro a campo stellato.
+
+**Scelta:** la dashboard usa un unico palco (`.stage`):
+
+- il nucleo è un pannello a piena area (`.core-panel`), senza card contenitiva;
+- la chat è un satellite a destra, alto quasi quanto il palco, sopra il nucleo;
+- i pannelli informativi sono schede sovrapposte a sinistra, con sollevamento su
+  hover/focus e chiusura sfumata in basso;
+- la barra comandi è staccata dalla chat e centrata in fondo al palco, come nel
+  riferimento, con gli stessi identificativi del vecchio compositore;
+- lo sfondo è un campo stellato statico in SVG inline, senza immagini esterne;
+- sotto 1040 px il palco non regge tre strati e diventa un flusso verticale con chat,
+  barra comandi, nucleo e pannelli in quest'ordine; a 960×600 resta utilizzabile.
+
+Il riferimento è stato ricavato dai fotogrammi pubblici del video, non da risorse
+protette: nessun asset, font o codice del video è stato copiato.
+
+**Conseguenze:** l'aspetto è più vicino al riferimento senza rinunciare a
+accessibilità, CSP e leggibilità. Il compositore è unico e vive nella barra, quindi
+il punto di invio resta uno solo; la chat conserva la cronologia e il pulsante
+«Nuova», mentre il nucleo riserva spazio in fondo per non finire sotto la barra. Gli
+identificativi non cambiano, così il codice della UI non è stato riscritto. La
+verifica è visiva tramite snapshot; interazioni manuali (ridimensionamento,
+fullscreen, focus) restano da provare a mano.
+

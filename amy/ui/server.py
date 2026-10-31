@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.parse import parse_qs, urlparse
 
+from .. import __version__
 from ..core.assistant import Assistant
 from ..core.config import Config
 from ..core.errors import AmyError, ConfigError
@@ -106,7 +107,7 @@ class AmyHandler(BaseHTTPRequestHandler):
             elif path == "/api/state":
                 self._send_json(self.assistant.status())
             elif path == "/api/health":
-                self._send_json({"ok": True, "version": "0.1.0"})
+                self._send_json({"ok": True, "version": __version__})
             elif path == "/api/tools":
                 self._send_json({"tools": self.assistant.registry.catalog()})
             elif path == "/api/transcript":

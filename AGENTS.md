@@ -77,7 +77,9 @@ Prima di introdurre un componente, una libreria, un modello o un servizio:
 3. preferisci una soluzione locale o open source, con Ollama come default per i
    modelli;
 4. se il componente è online, documenta limiti, quote e cosa accade quando il piano
-   gratuito finisce;
+   gratuito finisce; un modello online è ammesso solo se resta **spento per default**
+   nel repository, si attiva con consenso esplicito dell'utente e non può mai essere
+   il fallback (vedi `amy/ai/presets.py`);
 5. assicurati che il progetto continui a funzionare senza quel servizio, con un
    fallback gratuito e locale;
 6. aggiungi o aggiorna i test che impediscono l'introduzione di dipendenze a
@@ -126,15 +128,19 @@ python3 -m amy ask "che ore sono?" --offline
 ```
 
 Se hai toccato il provider Ollama, verifica anche una richiesta reale. Se hai toccato
-la voce, verifica almeno la sintesi su file (`amy doctor` la esegue). Se hai toccato
-il robot, esegui i test del simulatore e **non** affermare che l'hardware funziona.
+un preset online gratuito, verifica `python3 -m amy providers`, `python3 -m amy doctor`
+e — solo se l'utente ha fornito la chiave — una richiesta reale. Non inserire mai una
+chiave nel repository, nei log o nei test. Se hai toccato la voce, verifica almeno la
+sintesi su file (`amy doctor` la esegue). Se hai toccato il robot, esegui i test del
+simulatore e **non** affermare che l'hardware funziona.
 
-Stato verificato il 31 ottobre 2026: 168 test superati, doctor con TTS funzionante,
-Ollama configurato ma non in esecuzione all'ultima prova (fallback offline attivo),
+Stato verificato il 31 ottobre 2026: 189 test superati, doctor con TTS funzionante,
+provider personale configurato su GroqCloud piano Free con chiave valida e risposta
+reale del modello `openai/gpt-oss-120b`, default del repository ancora Ollama locale,
 STT e registratore assenti, robot solo simulato, MQTT non verificato, applicazione
-macOS «Amy Core» compilata, installata in `~/Applications` e verificata con
-self-test end-to-end (dashboard montata, messaggio inviato dal DOM, risposta in
-chat, backend chiuso), senza verifica visiva a mano della finestra.
+macOS «Amy Core» compilata, installata in `~/Applications` e verificata con self-test
+end-to-end (dashboard montata, messaggio inviato dal DOM, risposta in chat, backend
+chiuso), senza verifica visiva a mano della finestra.
 
 ## 7. Documentazione e continuità
 

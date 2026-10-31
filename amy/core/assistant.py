@@ -18,6 +18,7 @@ import uuid
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
 
+from .. import __version__
 from ..ai.base import AIProvider
 from ..ai.factory import build_provider
 from ..core.config import Config
@@ -600,7 +601,7 @@ class Assistant:
         return {
             "assistant": {
                 "name": self.config.get("assistant.name", "Amy"),
-                "version": "0.1.0",
+                "version": __version__,
                 "session_id": self.resume_session(),
             },
             "provider": self.provider_status(),

@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import platform
+import re
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from . import __version__
+from .ai.factory import build_primary
 from .ai.offline import OfflineProvider
+from .ai.presets import PRESETS, get_preset
 from .core.assistant import Assistant, TurnResult
 from .core.config import Config, amy_home, default_config_path, init_config, is_local_endpoint, load_secrets
 from .core.errors import AmyError, ConfigError
@@ -160,7 +165,44 @@ def cmd_doctor(args: argparse.Namespace) -> int:
     )
 
     provider_name = str(config.get("ai.provider", "ollama")).lower()
-    if provider_name in {"ollama", "offline"}:
+    preset = get_preset(provider_name)
+    if preset is not None:
+        add(
+            "Servizio IA",
+            True,
+            "%s · piano gratuito verificato il %s" % (preset.label, preset.verified_on),
+            "OK",
+        )
+        try:
+            probe = build_primary(config).check_remote()  # type: ignore[attr-defined]
+        except Exception as exc:  # noqa: BLE001
+            probe = {"key_valid": False, "detail": str(exc)}
+        key_env = str(config.get("ai.online.api_key_env", "") or preset.api_key_env)
+        if probe.get("key_valid"):
+            add("Chiave API", True, "%s valida" % key_env, "OK")
+            if probe.get("model_available") is False:
+                add(
+                    "Modello online",
+                    False,
+                    "%s non è nell'elenco del servizio" % provider_status.get("model"),
+                    "ATTENZIONE",
+                )
+            else:
+                add("Modello online", True, str(provider_status.get("model")), "OK")
+        else:
+            add(
+                "Chiave API",
+                False,
+                "%s assente o non valida: %s" % (key_env, probe.get("detail", "")),
+                "ATTENZIONE",
+            )
+        add(
+            "Costi IA",
+            True,
+            "%s · %s" % (preset.free_terms, preset.limits),
+            "OK",
+        )
+    elif provider_name in {"ollama", "offline"}:
         add("Costi IA", True, "provider locale o offline, nessun costo previsto", "OK")
     else:
         base_url = str(config.get("ai.openai.base_url", ""))
@@ -244,6 +286,77 @@ def cmd_config(args: argparse.Namespace) -> int:
         print(config.path)
     else:
         _print_json(config.redacted())
+    return 0
+
+
+def cmd_providers(args: argparse.Namespace) -> int:
+    """Elenca i provider online gratuiti verificati, senza segreti."""
+    print("Provider IA online gratuiti verificati\n")
+    for preset in PRESETS.values():
+        print("%s — %s" % (preset.id, preset.label))
+        print("  endpoint : %s" % preset.base_url)
+        print("  modello  : %s" % preset.model)
+        print("  chiave   : %s (da %s)" % (preset.api_key_env, preset.signup_url))
+        print("  licenza  : %s" % preset.model_license)
+        print("  limiti   : %s" % preset.limits)
+        print("  privacy  : %s" % preset.privacy)
+        print("  verificato il %s" % preset.verified_on)
+        print()
+    print("Per attivarlo, nella configurazione personale:")
+    print('  ai.provider = "groq"')
+    print("  ai.online.consent = true")
+    print("  ai.fallback_provider = \"offline\"")
+    print("Poi salva la chiave con: python3 -m amy secret set GROQ_API_KEY")
+    return 0
+
+
+def cmd_secret(args: argparse.Namespace) -> int:
+    """Legge o scrive i segreti locali, senza mai stamparli."""
+    path = amy_home() / "secrets.json"
+    if args.action == "list":
+        if not path.exists():
+            print("Nessun segreto configurato (%s non esiste)." % path)
+            return 0
+        names = sorted(load_secrets(path))
+        if not names:
+            print("Nessun segreto configurato.")
+            return 0
+        for name in names:
+            print(name)
+        return 0
+
+    name = str(args.name or "").strip()
+    if not re.match(r"^[A-Z][A-Z0-9_]*$", name):
+        print("Nome non valido: usa lettere maiuscole, numeri e underscore (es. GROQ_API_KEY).")
+        return 2
+    try:
+        value = getpass.getpass("Valore per %s (non verrà mostrato): " % name).strip()
+    except (EOFError, KeyboardInterrupt):
+        print()
+        return 1
+    if not value:
+        print("Valore vuoto: nessuna modifica.")
+        return 1
+
+    data: Dict[str, str] = {}
+    if path.exists():
+        # Un file esistente con permessi aperti bloccherebbe la lettura: li
+        # correggiamo prima di leggerlo.
+        try:
+            os.chmod(path, 0o600)
+        except OSError:
+            pass
+        data = load_secrets(path)
+    data[name] = value
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    fd = os.open(str(tmp), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+    os.chmod(tmp, 0o600)
+    tmp.replace(path)
+    print("Segreto %s salvato in %s (permessi 600)." % (name, path))
     return 0
 
 
@@ -593,7 +706,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
 # ----------------------------------------------------------------------- parser
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="amy", description="Amy — assistente personale per macOS e robotica")
-    parser.add_argument("--version", action="version", version="Amy 0.1.0")
+    parser.add_argument("--version", action="version", version="Amy %s" % __version__)
     sub = parser.add_subparsers(dest="command")
 
     p_init = sub.add_parser("init", help="crea la configurazione iniziale")
@@ -610,6 +723,16 @@ def build_parser() -> argparse.ArgumentParser:
     p_config = sub.add_parser("config", help="mostra la configurazione")
     p_config.add_argument("action", choices=["show", "path"], nargs="?", default="show")
     p_config.set_defaults(func=cmd_config)
+
+    p_providers = sub.add_parser("providers", help="elenca i provider IA online gratuiti verificati")
+    p_providers.set_defaults(func=cmd_providers)
+
+    p_secret = sub.add_parser("secret", help="gestisci i segreti locali (mai stampati)")
+    secret_sub = p_secret.add_subparsers(dest="action")
+    secret_set = secret_sub.add_parser("set")
+    secret_set.add_argument("name")
+    secret_sub.add_parser("list")
+    p_secret.set_defaults(func=cmd_secret, action="list")
 
     p_chat = sub.add_parser("chat", help="avvia la conversazione interattiva")
     p_chat.add_argument("--offline", action="store_true", help="usa solo l'interprete locale")

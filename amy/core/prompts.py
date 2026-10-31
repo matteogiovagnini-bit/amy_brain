@@ -15,6 +15,25 @@ from typing import Any, Dict, List
 
 MAX_TOOL_RESULT_CHARS = 12000
 
+# Il catalogo serve al modello per scegliere nome e argomenti. I campi usati solo
+# dall'interfaccia (rischio, motivo, conseguenze, undo, tag, timeout) non vengono
+# inviati: appesantirebbero il prompt senza migliorare la scelta dello strumento.
+# Il prompt compatto conta: i piani gratuiti dei provider online hanno un limite di
+# token al minuto stretto.
+_MODEL_TOOL_FIELDS = ("name", "description", "parameters")
+
+
+def model_tools_catalog(tools_catalog: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    slim: List[Dict[str, Any]] = []
+    for tool in tools_catalog:
+        entry = {key: tool[key] for key in _MODEL_TOOL_FIELDS if key in tool}
+        if "description" not in entry:
+            entry["description"] = ""
+        if "parameters" not in entry:
+            entry["parameters"] = {"type": "object", "properties": {}, "additionalProperties": False}
+        slim.append(entry)
+    return slim
+
 
 def _facts_block(facts: List[Dict[str, Any]]) -> str:
     if not facts:
@@ -34,7 +53,11 @@ def build_system_prompt(
     robot_context: str = "",
 ) -> str:
     now = datetime.now().astimezone()
-    tool_json = json.dumps(tools_catalog, ensure_ascii=False, indent=2)
+    tool_json = json.dumps(
+        model_tools_catalog(tools_catalog),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     user_line = user_name.strip() or "l'utente"
     return f"""Sei {assistant_name}, un assistente personale autonomo per macOS, ispirato a JARVIS.
 Parli italiano naturale, con tono competente, diretto e umano. Non sei un chatbot generico:

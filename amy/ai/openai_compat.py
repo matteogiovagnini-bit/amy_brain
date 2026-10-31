@@ -4,22 +4,37 @@ from __future__ import annotations
 
 import json
 import socket
+import time
 import urllib.error
 import urllib.request
 from typing import Any, Dict, List, Optional
 
+from .. import __version__
 from ..core.config import get_secret, is_local_endpoint
 from ..core.errors import AIError, AITimeoutError, AIUnavailableError
 from .base import AIProvider, normalize_messages
 
+# Alcuni servizi online (Cloudflare) rifiutano con HTTP 403 il User-Agent
+# predefinito di urllib. Dichiararsi esplicitamente evita il blocco e rende
+# riconoscibili le richieste di Amy nei log del servizio.
+_USER_AGENT = "AmyBrain/%s" % __version__
+
+# Attesa massima accettata prima di ritentare una richiesta bloccata dal limite
+# gratuito. Oltre questa soglia è meglio il fallback locale che una chat ferma.
+_MAX_RETRY_WAIT_S = 20.0
+
 
 class OpenAICompatibleProvider(AIProvider):
-    """Endpoint compatibile OpenAI, pensato per server locali gratuiti.
+    """Endpoint compatibile OpenAI, locale oppure online gratuito.
 
     Non è un requisito del progetto e non è il provider predefinito. Un endpoint
     pubblico è accettato solo con ``allow_remote=True`` esplicito, perché potrebbe
     richiedere pagamenti obbligatori. Amy non sceglie mai un servizio a pagamento
     come fallback.
+
+    I preset verificati (vedi ``presets.py``) impostano ``allow_remote`` dopo una
+    scelta esplicita dell'utente e portano con sé le condizioni del piano gratuito,
+    così l'interfaccia può dichiararle senza inventare nulla.
     """
 
     name = "openai"
@@ -36,6 +51,8 @@ class OpenAICompatibleProvider(AIProvider):
         max_tokens: int = 1200,
         require_api_key: bool = False,
         allow_remote: bool = False,
+        name: Optional[str] = None,
+        preset: Optional[Dict[str, Any]] = None,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.model = model
@@ -46,6 +63,8 @@ class OpenAICompatibleProvider(AIProvider):
         self.max_tokens = int(max_tokens)
         self.require_api_key = bool(require_api_key)
         self.allow_remote = bool(allow_remote)
+        self.name = name or self.name
+        self.preset = dict(preset) if preset else {}
         if not self.allow_remote and not is_local_endpoint(self.base_url):
             raise AIUnavailableError(
                 "Endpoint IA remoto non autorizzato.",
@@ -80,7 +99,7 @@ class OpenAICompatibleProvider(AIProvider):
             "stream": False,
         }
         key = self._key()
-        headers = {"Content-Type": "application/json"}
+        headers = {"Content-Type": "application/json", "User-Agent": _USER_AGENT}
         if key:
             headers["Authorization"] = "Bearer " + key
         request = urllib.request.Request(
@@ -89,25 +108,7 @@ class OpenAICompatibleProvider(AIProvider):
             headers=headers,
             method="POST",
         )
-        try:
-            with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
-                data = json.loads(response.read().decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            body = exc.read().decode("utf-8", errors="replace")[:500]
-            if exc.code in {401, 403}:
-                raise AIUnavailableError(
-                    "Il provider remoto ha rifiutato la chiave API.",
-                    detail=body,
-                ) from exc
-            if exc.code == 429:
-                raise AIError("Limite di utilizzo del provider raggiunto. Riprova più tardi.", detail=body) from exc
-            raise AIError("Il provider remoto ha risposto con errore HTTP %s." % exc.code, detail=body) from exc
-        except socket.timeout as exc:
-            raise AITimeoutError("Il provider remoto non ha risposto in tempo.") from exc
-        except urllib.error.URLError as exc:
-            raise AIUnavailableError("Provider remoto non raggiungibile.", detail=str(exc.reason)[:300]) from exc
-        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise AIError("Risposta non valida dal provider remoto.", detail=str(exc)) from exc
+        data = self._post_with_retry(request)
 
         try:
             content = data["choices"][0]["message"]["content"]
@@ -117,10 +118,113 @@ class OpenAICompatibleProvider(AIProvider):
             raise AIError("Il provider remoto ha restituito una risposta vuota.")
         return content.strip()
 
+    @staticmethod
+    def _retry_after_seconds(error: urllib.error.HTTPError) -> float:
+        """Legge ``Retry-After`` senza fidarsi di valori enormi."""
+        raw = ""
+        try:
+            raw = error.headers.get("Retry-After", "") if error.headers else ""
+        except AttributeError:
+            raw = ""
+        try:
+            value = float(str(raw).strip())
+        except (TypeError, ValueError):
+            return 2.0
+        return max(0.0, min(value, _MAX_RETRY_WAIT_S))
+
+    def _post_with_retry(self, request: urllib.request.Request) -> Dict[str, Any]:
+        """Esegue la richiesta, ritentando una volta se il limite è per minuto.
+
+        I piani gratuiti hanno un tetto di token al minuto: due messaggi ravvicinati
+        possono superarlo. Un solo tentativo con l'attesa indicata dal servizio evita
+        di scivolare subito nel fallback, senza mascherare un limite giornaliero.
+        """
+        for attempt in (1, 2):
+            try:
+                with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
+                    return json.loads(response.read().decode("utf-8"))
+            except urllib.error.HTTPError as exc:
+                body = exc.read().decode("utf-8", errors="replace")[:500]
+                if exc.code in {401, 403}:
+                    raise AIUnavailableError(
+                        "Il provider remoto ha rifiutato la chiave API.",
+                        detail=body,
+                    ) from exc
+                if exc.code == 429:
+                    if attempt == 1:
+                        time.sleep(self._retry_after_seconds(exc))
+                        continue
+                    raise AIError(
+                        "Limite di utilizzo del provider raggiunto. Riprova più tardi.",
+                        detail=body,
+                    ) from exc
+                raise AIError(
+                    "Il provider remoto ha risposto con errore HTTP %s." % exc.code,
+                    detail=body,
+                ) from exc
+            except socket.timeout as exc:
+                raise AITimeoutError("Il provider remoto non ha risposto in tempo.") from exc
+            except urllib.error.URLError as exc:
+                raise AIUnavailableError("Provider remoto non raggiungibile.", detail=str(exc.reason)[:300]) from exc
+            except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+                raise AIError("Risposta non valida dal provider remoto.", detail=str(exc)) from exc
+        raise AIError("Limite di utilizzo del provider raggiunto. Riprova più tardi.")
+
+    def check_remote(self) -> Dict[str, Any]:
+        """Verifica chiave e modello con una richiesta leggera a ``/models``.
+
+        Non consuma token di conversazione. Va usata dal doctor e dai test, non
+        dal polling della dashboard, per non sprecare il limite gratuito.
+        """
+        if is_local_endpoint(self.base_url):
+            return {"checked": False, "reason": "endpoint locale"}
+        try:
+            key = self._key()
+        except AIUnavailableError as exc:
+            return {"checked": True, "key_valid": False, "detail": exc.message}
+        if not key:
+            return {"checked": True, "key_valid": False, "detail": "chiave API assente"}
+        request = urllib.request.Request(
+            self.base_url + "/models",
+            headers={"Authorization": "Bearer " + key, "User-Agent": _USER_AGENT},
+            method="GET",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=min(self.timeout_s, 20.0)) as response:
+                data = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            if exc.code in {401, 403}:
+                return {"checked": True, "key_valid": False, "detail": "chiave rifiutata (HTTP %s)" % exc.code}
+            return {"checked": True, "key_valid": False, "detail": "HTTP %s" % exc.code}
+        except (socket.timeout, urllib.error.URLError, OSError) as exc:
+            return {"checked": True, "key_valid": False, "detail": "non raggiungibile: %s" % str(exc)[:200]}
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            return {"checked": True, "key_valid": False, "detail": "risposta non valida: %s" % exc}
+        models = []
+        if isinstance(data, dict) and isinstance(data.get("data"), list):
+            models = [str(item.get("id")) for item in data["data"] if isinstance(item, dict)]
+        return {
+            "checked": True,
+            "key_valid": True,
+            "model_available": self.model in models,
+            "models_count": len(models),
+            "detail": "chiave valida",
+        }
+
     def status(self) -> Dict[str, Any]:
         configured = bool(self.api_key or get_secret(self.api_key_env))
         local = is_local_endpoint(self.base_url)
-        return {
+        if local:
+            note = "Endpoint locale: nessun costo previsto dal progetto."
+        elif self.preset:
+            note = "Servizio online gratuito scelto esplicitamente: %s" % self.preset.get(
+                "free_terms", "verifica le condizioni del piano gratuito."
+            )
+        else:
+            note = "Endpoint remoto autorizzato esplicitamente: verifica che sia gratuito."
+        if not local and self.require_api_key and not configured:
+            note = "Chiave API non configurata: imposta %s." % self.api_key_env
+        status: Dict[str, Any] = {
             "provider": self.name,
             "model": self.model,
             "base_url": self.base_url,
@@ -129,9 +233,11 @@ class OpenAICompatibleProvider(AIProvider):
             "api_key_configured": configured,
             "local_endpoint": local,
             "remote_allowed": self.allow_remote,
-            "note": (
-                "Endpoint locale: nessun costo previsto dal progetto."
-                if local
-                else "Endpoint remoto autorizzato esplicitamente: verifica che sia gratuito."
-            ),
+            "requires_api_key": self.require_api_key,
+            "note": note,
         }
+        if self.preset:
+            status["preset"] = self.preset
+            status["free_tier"] = True
+            status["data_leaves_device"] = not local
+        return status

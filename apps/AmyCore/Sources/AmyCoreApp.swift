@@ -289,6 +289,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private let selfTestMode = CommandLine.arguments.contains("--selftest")
     private var selfTestStarted = false
     private var selfTestDeadline = Date()
+    /// Modalità di verifica visiva: `--snapshot /percorso.png` salva un'immagine
+    /// della dashboard dopo il caricamento e termina. Serve a controllare layout e
+    /// leggibilità senza dipendere dal permesso di cattura schermo del terminale.
+    private let snapshotPath: String? = {
+        let args = CommandLine.arguments
+        guard let index = args.firstIndex(of: "--snapshot"), index + 1 < args.count else { return nil }
+        return args[index + 1]
+    }()
+
+    /// Dimensione della finestra per la verifica visiva: `--snapshot-size 960x600`.
+    private let snapshotSize: NSSize? = {
+        let args = CommandLine.arguments
+        guard let index = args.firstIndex(of: "--snapshot-size"), index + 1 < args.count else { return nil }
+        let parts = args[index + 1].lowercased().split(separator: "x")
+        guard parts.count == 2, let width = Double(parts[0]), let height = Double(parts[1]) else { return nil }
+        return NSSize(width: width, height: height)
+    }()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
@@ -322,6 +339,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let controller = buildWindow()
         window = controller.window
         webView = controller.webView
+        if let size = snapshotSize {
+            window?.setContentSize(size)
+        }
         webView.navigationDelegate = self
         window?.delegate = self
         if selfTestMode {
@@ -594,6 +614,40 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         }
         if selfTestMode {
             startSelfTest()
+        } else if let path = snapshotPath {
+            captureSnapshot(to: path)
+        }
+    }
+
+    // MARK: Verifica visiva
+
+    private func captureSnapshot(to path: String) {
+        // Attende che il primo giro di stato popoli i pannelli.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            guard let self = self else { return }
+            let configuration = WKSnapshotConfiguration()
+            configuration.rect = self.webView.bounds
+            self.webView.takeSnapshot(with: configuration) { image, error in
+                guard let image = image,
+                      let tiff = image.tiffRepresentation,
+                      let bitmap = NSBitmapImageRep(data: tiff),
+                      let png = bitmap.representation(using: .png, properties: [:]) else {
+                    print("SNAPSHOT FALLITO: \(error?.localizedDescription ?? "immagine non disponibile")")
+                    self.backend?.stop()
+                    exit(1)
+                }
+                do {
+                    try png.write(to: URL(fileURLWithPath: path))
+                    print("SNAPSHOT: \(path)")
+                } catch {
+                    print("SNAPSHOT FALLITO: \(error.localizedDescription)")
+                    self.backend?.stop()
+                    exit(1)
+                }
+                self.backend?.stop()
+                self.removePidFile()
+                exit(0)
+            }
         }
     }
 

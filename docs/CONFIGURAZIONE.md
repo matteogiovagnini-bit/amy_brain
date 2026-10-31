@@ -72,6 +72,11 @@ python3 -m amy config path   # percorso del file in uso
       "api_key_env": "OPENAI_API_KEY",
       "require_api_key": false,
       "allow_remote": false
+    },
+    "online": {
+      "model": "",
+      "api_key_env": "",
+      "consent": false
     }
   },
   "memory": {
@@ -170,13 +175,23 @@ errore di configurazione, non un valore silenziosamente sbagliato.
 
 Mai nella configurazione principale, mai nei log, mai nella dashboard.
 
+Il modo sicuro per scriverli è il comando dedicato, che non li mostra e non li
+salva nella cronologia della shell:
+
+```bash
+python3 -m amy secret set GROQ_API_KEY   # chiede il valore a schermo spento
+python3 -m amy secret list               # mostra solo i nomi
+```
+
+Il file resta `~/.amy/secrets.json` con permessi `0600`:
+
 ```bash
 chmod 600 ~/.amy/secrets.json
 ```
 
 ```json
 {
-  "OPENAI_API_KEY": "sk-...",
+  "GROQ_API_KEY": "...",
   "AMY_MQTT_PASSWORD": "..."
 }
 ```
@@ -291,6 +306,52 @@ python3 -m amy ask "rispondi solo con: ciao"
 
 Se il modello non è installato, `amy doctor` lo segnala. Il fallback non deve
 nascondere il problema.
+
+### Provider online gratuito (Groq)
+
+Quando il modello locale è troppo lento, si può usare un servizio online gratuito
+verificato. La conversazione lascia il Mac: serve un consenso esplicito.
+
+```bash
+python3 -m amy providers            # preset disponibili, limiti e licenze
+python3 -m amy secret set GROQ_API_KEY   # chiede il valore senza mostrarlo
+```
+
+```json
+{
+  "ai": {
+    "provider": "groq",
+    "fallback_provider": "offline",
+    "online": {
+      "model": "openai/gpt-oss-120b",
+      "api_key_env": "",
+      "consent": true
+    }
+  }
+}
+```
+
+- `provider`: `groq` sceglie GroqCloud, piano Free (nessuna carta di credito).
+- `online.model`: vuoto usa il modello predefinito del preset.
+- `online.api_key_env`: vuoto usa `GROQ_API_KEY`.
+- `online.consent`: deve essere `true`; senza, la configurazione viene rifiutata.
+- Il fallback resta `offline`: il servizio online non può mai essere il fallback.
+
+La chiave vive in `~/.amy/secrets.json` con permessi `600` (oppure in una variabile
+d'ambiente). Non va mai scritta nella configurazione, nei log o nel repository.
+`python3 -m amy secret list` mostra solo i nomi, mai i valori.
+
+`amy doctor` verifica la chiave con `GET /models` e segnala se il modello non è
+nell'elenco del servizio. Per tornare al locale basta rimettere
+`"provider": "ollama"` (o `"offline"`) e `"consent": false`.
+
+Il piano Free ha 8.000 token al minuto: bastano per uno o due messaggi ravvicinati,
+non per una raffica. Amy riduce il catalogo strumenti a nome, descrizione e parametri,
+ritenta una volta un `429` rispettando `Retry-After` e, se il limite resta, risponde
+con il fallback locale dichiarandolo. La quota si libera da sola entro un minuto.
+
+Limiti e privacy del piano Free sono documentati in
+[GRATUITO.md](GRATUITO.md#provider-ia-online-gratuiti-facoltativi).
 
 ### Offline
 

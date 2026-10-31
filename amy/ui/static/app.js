@@ -315,6 +315,10 @@
       model: String((primary && primary.model) || raw.model || ""),
       endpoint: String((primary && primary.base_url) || raw.base_url || ""),
       note: String(raw.last_fallback_reason || raw.note || ""),
+      primaryNote: String((primary && primary.note) || ""),
+      apiKeyEnv: String((primary && primary.api_key_env) || ""),
+      apiKeyConfigured: primary ? primary.api_key_configured !== false : true,
+      remote: Boolean(primary && primary.local_endpoint === false),
       available,
       modelInstalled: installedRaw,
       fallback,
@@ -489,6 +493,9 @@
       } else if (provider.available) {
         message = provider.name + (provider.model ? " · " + provider.model : "") + " · disponibile";
         tone = "ok";
+      } else if (provider.remote && provider.apiKeyConfigured === false) {
+        message = provider.name + " · chiave API non configurata";
+        tone = "warn";
       } else if (provider.fallbackAvailable) {
         message = provider.name + " non raggiungibile · fallback " + String(
           (provider.fallback && provider.fallback.provider) || "locale"
@@ -534,8 +541,13 @@
     pill("providerPill", primaryPill, tone, provider.note || primaryPill);
 
     let note = "Il motore IA resta locale per impostazione predefinita.";
-    if (provider.primary && provider.primary.local_endpoint === false) {
-      note = "Endpoint remoto autorizzato esplicitamente: verifica che sia gratuito e disponibile.";
+    if (provider.remote && provider.apiKeyConfigured === false) {
+      note = "Servizio gratuito scelto, ma manca la chiave API: imposta " +
+        (provider.apiKeyEnv || "la variabile indicata") +
+        " in ~/.amy/secrets.json (permessi 600) e riavvia Amy.";
+    } else if (provider.remote) {
+      note = provider.primaryNote ||
+        "Servizio online gratuito autorizzato: la conversazione lascia questo computer.";
     } else if (missingModel) {
       note = "Ollama è raggiungibile ma il modello configurato (" + (provider.model || "non specificato") +
         ") non risulta installato. Scarica il modello o Amy userà il fallback se disponibile.";

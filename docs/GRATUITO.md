@@ -73,6 +73,7 @@ Audit eseguito il **30 ottobre 2026** sul repository:
 | Import del pacchetto `amy` | solo libreria standard e moduli interni | nessun pacchetto commerciale |
 | `requirements-optional.txt` | solo `paho-mqtt` | opzionale, licenza EPL-2.0/EDL-1.0 |
 | Provider IA predefinito | Ollama su `127.0.0.1` | locale, nessun costo |
+| Provider IA online (facoltativo) | preset `groq` verificato, spento per default | piano Free senza carta di credito; si attiva solo con consenso esplicito |
 | Fallback IA predefinito | `offline` | deterministico, nessun costo |
 | Endpoint OpenAI-compatible | `http://127.0.0.1:8000/v1` | locale; remoto bloccato senza consenso |
 | TTS | comando `say` di macOS | già presente, nessun costo aggiuntivo |
@@ -86,7 +87,9 @@ Audit eseguito il **30 ottobre 2026** sul repository:
 
 I test `tests/test_free_only.py` verificano che non vengano introdotte dipendenze
 obbligatorie, host IA commerciali cablati o campi di fatturazione nella
-configurazione predefinita.
+configurazione predefinita. `tests/test_online_presets.py` verifica che ogni preset
+online sia gratuito senza carta, spento per default e attivabile solo con consenso
+esplicito.
 
 ## 3. Licenze verificate
 
@@ -105,6 +108,8 @@ Verifica effettuata il **30 ottobre 2026** sulle fonti ufficiali dei progetti.
 | FFmpeg | LGPL-2.1+ o GPL-2.0+ secondo la build | opzionale; la licenza dipende dai codec abilitati |
 | SoX | GPL-2.0-or-later; libsox LGPL-2.1-or-later | opzionale |
 | paho-mqtt | EPL-2.0 / EDL-1.0 | opzionale per MQTT |
+| GroqCloud (piano Free) | condizioni d'uso del servizio, uso gratuito entro quote | opzionale; nessun metodo di pagamento richiesto per il piano Free |
+| `openai/gpt-oss-120b` (modello ospitato da Groq) | Apache-2.0 | pesi aperti; verificare la model card della versione usata |
 | AppKit, WebKit, Foundation, Darwin | componenti di macOS (SDK Apple) | di sistema, già presenti; nessun costo |
 | Swift compiler (`swiftc`) | parte di Xcode Command Line Tools | gratuito, già presente; nessun account richiesto per l'uso locale |
 | Icona dell'app | originale, generata con CoreGraphics | nessun file di terze parti |
@@ -121,6 +126,10 @@ Fonti consultate:
 - <https://ffmpeg.org/legal.html>
 - <https://sourceforge.net/projects/sox/>
 - <https://github.com/eclipse-paho/paho.mqtt.python/blob/master/LICENSE.txt>
+- <https://console.groq.com/docs/rate-limits>
+- <https://console.groq.com/docs/billing-faqs>
+- <https://console.groq.com/docs/your-data>
+- <https://huggingface.co/openai/gpt-oss-120b>
 
 Le licenze possono cambiare nelle versioni future. Prima di aggiornare un componente
 importante, ricontrollare la licenza della versione scelta. I modelli IA hanno
@@ -128,18 +137,70 @@ licenze proprie, separate da quelle del runtime: non basta che Ollama sia MIT.
 
 ## 4. Servizi online
 
-Amy **non** richiede servizi online per conversazione, voce, memoria o controllo del
-Mac.
+Amy **non richiede** servizi online: il default è locale e funziona senza rete. Un
+modello online gratuito può però essere scelto esplicitamente quando il computer è
+lento a eseguire un modello locale. In quel caso la conversazione lascia il Mac e
+Amy lo dichiara nella dashboard.
 
-Le uniche funzioni che possono usare Internet sono:
+Le funzioni che possono usare Internet sono:
 
 - `web.open`: apre un URL nel browser dell'utente;
 - `web.search`: apre una ricerca DuckDuckGo nel browser;
-- `web.fetch`: legge una pagina pubblica via HTTP.
+- `web.fetch`: legge una pagina pubblica via HTTP;
+- il provider IA online, solo se scelto esplicitamente con un preset verificato.
 
-Non richiedono chiavi API né account. Il costo è quello della connessione
+`web.*` non richiede chiavi API né account. Il costo è quello della connessione
 dell'utente, se presente. Se la rete non c'è, queste funzioni falliscono e il resto
 continua a funzionare.
+
+### Provider IA online gratuiti (facoltativi)
+
+`ai.provider` accetta i preset elencati da `python3 -m amy providers`. Oggi è
+disponibile un preset: `groq`.
+
+| Voce | Valore |
+| --- | --- |
+| Servizio | GroqCloud, piano **Free** |
+| Endpoint | `https://api.groq.com/openai/v1` (compatibile OpenAI) |
+| Modello predefinito | `openai/gpt-oss-120b` (Apache-2.0) |
+| Alternativa | `openai/gpt-oss-20b` (più veloce, meno preciso) |
+| Chiave | `GROQ_API_KEY`, da <https://console.groq.com/keys> |
+| Registrazione | nessuna carta di credito richiesta |
+| Limiti Free, `gpt-oss-120b` | 30 richieste/min, 1.000/giorno, 8.000 token/min, 200.000 token/giorno |
+| Costo per Amy | 0: il piano Developer a consumo è facoltativo e non serve |
+| Privacy | dati non conservati per default; fino a 30 giorni per affidabilità e abuso; conservazione zero attivabile; elaborazione negli USA |
+| Fallback | `offline`, locale e deterministico |
+
+Limiti verificati il **31 ottobre 2026** sulle fonti ufficiali indicate sotto. Se il
+servizio cambia condizioni, il preset va riverificato o rimosso.
+
+Il tetto di **8.000 token al minuto** è il vincolo pratico più stretto: con un prompt
+di sistema di circa 3.100 token Amy riesce a gestire normalmente uno o due messaggi
+ravvicinati al minuto. Per questo il catalogo inviato al modello è ridotto a nome,
+descrizione e parametri, e un `429` viene ritentato una volta rispettando
+`Retry-After`. Se il limite resta superato, Amy risponde con il fallback locale e lo
+dichiara; la quota si libera da sola nel giro di un minuto.
+
+Regole applicate dal codice:
+
+- il preset è **spento per impostazione predefinita**;
+- si attiva solo con `ai.provider` uguale al preset **e** `ai.online.consent = true`,
+  cioè una conferma esplicita che i messaggi lasciano il computer;
+- la chiave non sta mai nella configurazione: solo `~/.amy/secrets.json` con permessi
+  `0600` oppure variabile d'ambiente;
+- senza chiave il provider risulta **non disponibile**, non "disponibile ma lento";
+- il fallback non può essere un preset online: resta `offline` o `ollama`;
+- `amy doctor` verifica chiave e modello con una richiesta leggera a `/models` e
+  mostra limiti e condizioni del piano;
+- se il piano gratuito finisce o il servizio non risponde, Amy usa il fallback
+  locale: non esiste alcun percorso che possa generare un addebito.
+
+Fonti consultate:
+
+- <https://console.groq.com/docs/rate-limits>
+- <https://console.groq.com/docs/billing-faqs>
+- <https://console.groq.com/docs/your-data>
+- <https://huggingface.co/openai/gpt-oss-120b>
 
 ### Endpoint compatibile OpenAI
 

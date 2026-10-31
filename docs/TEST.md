@@ -26,12 +26,12 @@ python3 -m amy memory sessions
 Data della verifica: **31 ottobre 2026**.
 
 ```text
-Ran 168 tests in 11.8s
+Ran 189 tests in 11.8s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 168, tutti superati.
+`compileall` non produce errori. I test sono 189, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
@@ -41,8 +41,10 @@ OK
 | `tests/test_native_app.py` | 8 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat |
 | `tests/test_memory.py` | 5 | sessioni, messaggi, conteggio, fatti, attività, redazione |
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
+| `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
 | `tests/test_orchestrator.py` | 13 | turno, conferme, rifiuti, limite passaggi, audit, storia |
 | `tests/test_policy.py` | 12 | livelli A/B/C, allow-list, E-stop non bloccato, TTL |
+| `tests/test_prompt_budget.py` | 2 | prompt compatto entro il limite gratuito, catalogo senza campi riservati alla UI |
 | `tests/test_protocol.py` | 8 | envelope, versione, campi extra, ruoli, topic |
 | `tests/test_providers.py` | 6 | stato del fallback, endpoint locale/remoto, chiave opzionale |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
@@ -52,10 +54,10 @@ OK
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
 | `tests/test_system_info.py` | 5 | dati locali reali, disco, nessun segreto o dato robot |
 | `tests/test_tts_cache.py` | 2 | elenco voci calcolato una sola volta |
-| `tests/test_ui_static.py` | 15 | otto stati, tre aree, accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
+| `tests/test_ui_static.py` | 17 | otto stati, palco a strati, barra comandi separata, campo stellato locale, accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
 | `tests/test_voice_service.py` | 3 | `speaking` reale dal TTS, stop della sintesi |
 | `tests/test_voice.py` | 5 | TTS, stato, wake word testuale, STT assente |
-| **Totale** | **168** | |
+| **Totale** | **189** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.
@@ -84,6 +86,14 @@ questa tabella.
 - Un endpoint pubblico può essere abilitato solo esplicitamente.
 - Un endpoint privato di rete è accettato.
 - La chiave API è opzionale per i server locali e obbligatoria solo se configurata.
+- Ogni preset online dichiara endpoint HTTPS compatibile OpenAI, licenza e data di
+  verifica; le condizioni dichiarano l'assenza di carta di credito.
+- Un preset online senza `ai.online.consent = true` viene rifiutato da `Config` e dal
+  factory.
+- Il default del repository resta `ai.provider = "ollama"` e `consent = false`.
+- Il fallback di un preset resta locale (`offline`) e non può essere online.
+- Senza chiave il provider online risulta non disponibile, con nota esplicita.
+- La sonda `/models` non viene chiamata senza chiave: nessun traffico nei test.
 - `pyproject.toml` non dichiara dipendenze Python obbligatorie.
 - Le dipendenze opzionali restano nella lista verificata (`paho-mqtt`).
 - Nessun host IA commerciale noto è cablato nel codice.

@@ -192,11 +192,20 @@ kbd {
 
 /* ------------------------------------------------------- sfondo tecnico */
 .bg-grid,
-.bg-halo {
+.bg-halo,
+.bg-stars {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
+}
+
+.bg-stars { opacity: 0.62; }
+
+.bg-stars svg {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .bg-grid {
@@ -218,20 +227,45 @@ kbd {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
-  max-width: 1840px;
   height: 100%;
   margin: 0 auto;
-  padding: 14px clamp(14px, 2vw, 26px) 10px;
+  padding: 12px clamp(12px, 1.8vw, 24px) 8px;
 }
 
-.layout {
+/* Palco a tutto schermo: il nucleo occupa l'intera area, la chat è un
+   satellite e i pannelli informativi galleggiano sopra il palco. */
+.stage {
+  position: relative;
   flex: 1;
   min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(300px, 1fr) minmax(330px, 1.06fr) minmax(286px, 0.82fr);
-  gap: 14px;
+  isolation: isolate;
+}
+
+.orbit-link {
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  z-index: 0;
+  width: min(86vh, 74vw);
+  aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border: 1px dashed rgba(63, 227, 255, 0.13);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.orbit-link .orbit-node {
+  position: absolute;
+  right: 6.5%;
+  bottom: 10%;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 0 4px rgba(63, 227, 255, 0.12), 0 0 18px rgba(63, 227, 255, 0.8);
+  animation: softPulse 3.8s ease-in-out infinite;
 }
 
 /* --------------------------------------------------------------- topbar */
@@ -351,10 +385,75 @@ kbd {
 
 /* ------------------------------------------------------------------ chat */
 .chat-panel {
+  position: absolute;
+  z-index: 6;
+  right: clamp(12px, 2vw, 32px);
+  top: clamp(6px, 2vh, 22px);
+  bottom: clamp(10px, 2vh, 24px);
   display: flex;
   flex-direction: column;
+  width: clamp(320px, 29vw, 430px);
+  height: auto;
   overflow: hidden;
+  border-radius: 22px;
+  border-color: rgba(63, 227, 255, 0.2);
+  background: linear-gradient(180deg, rgba(10, 20, 36, 0.88), rgba(5, 11, 21, 0.94));
+  -webkit-backdrop-filter: blur(18px) saturate(1.1);
+  backdrop-filter: blur(18px) saturate(1.1);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(63, 227, 255, 0.05) inset,
+    0 0 44px rgba(47, 123, 255, 0.1);
 }
+
+/* Satellite: un arco luminoso collega idealmente la chat al nucleo. */
+.chat-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 22px;
+  width: 46px;
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--cyan), transparent);
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* Sfuma i messaggi tagliati dai bordi dell'area scorrevole. */
+.chat-panel::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 63px;
+  bottom: 1px;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(9, 18, 32, 0.96), rgba(9, 18, 32, 0)) top / 100% 22px no-repeat,
+    linear-gradient(0deg, rgba(9, 18, 32, 0.96), rgba(9, 18, 32, 0)) bottom / 100% 30px no-repeat;
+}
+
+.chat-panel .panel-head {
+  padding: 13px 16px 11px;
+  background: rgba(8, 15, 27, 0.97);
+}
+
+.chat-panel .messages {
+  padding: 16px 16px 8px;
+  gap: 12px;
+}
+
+.chat-panel .composer {
+  padding: 10px 12px 6px;
+}
+
+.chat-panel .composer-hints {
+  padding: 0 15px 10px;
+}
+
+.chat-panel .message { max-width: 92%; }
 
 .panel-head {
   display: flex;
@@ -365,6 +464,8 @@ kbd {
   border-bottom: 1px solid var(--line);
   background: rgba(8, 15, 27, 0.68);
 }
+
+.panel-head > div { min-width: 0; }
 
 .panel-head h2 {
   font-size: 14px;
@@ -377,7 +478,14 @@ kbd {
   color: var(--dim);
   font-family: var(--font-mono);
   font-size: 11px;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-head .ghost.small {
+  flex: none;
+  white-space: nowrap;
 }
 
 .messages {
@@ -386,7 +494,7 @@ kbd {
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 20px 20px 10px;
+  padding: 20px 20px 30px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -492,6 +600,8 @@ kbd {
 }
 
 .typing {
+  position: relative;
+  z-index: 3;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -585,15 +695,65 @@ kbd {
 
 .switch input { accent-color: var(--cyan); }
 
+/* --------------------------------------------------------- barra comandi */
+/* Nel palco la barra è staccata dalla chat e centrata sotto il nucleo,
+   come nel riferimento J.A.R.V.I.S.; nel flusso verticale torna in linea. */
+.command-bar {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(8px, 1.6vh, 18px);
+  z-index: 7;
+  width: clamp(300px, 34vw, 520px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+.command-bar .composer {
+  padding: 8px 9px;
+  border: 1px solid rgba(63, 227, 255, 0.22);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(10, 20, 36, 0.93), rgba(6, 12, 22, 0.97));
+  -webkit-backdrop-filter: blur(16px) saturate(1.05);
+  backdrop-filter: blur(16px) saturate(1.05);
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(63, 227, 255, 0.04) inset,
+    0 0 28px rgba(47, 123, 255, 0.12);
+}
+
+.command-bar .composer textarea {
+  min-height: 44px;
+  max-height: 120px;
+}
+
+.command-bar .composer-hints {
+  padding: 0 6px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  justify-content: center;
+  font-size: 10.5px;
+}
+
 /* ------------------------------------------------------------ Amy Core */
 .core-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-5);
-  padding: 22px 18px;
+  gap: var(--space-4);
+  padding: clamp(8px, 2vh, 26px) 0;
   overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(720px 600px at 52% 44%, rgba(63, 227, 255, 0.07), transparent 68%),
+    radial-gradient(520px 460px at 52% 44%, rgba(47, 123, 255, 0.1), transparent 72%);
+  box-shadow: none;
 }
 
 .core-stage {
@@ -603,7 +763,7 @@ kbd {
   position: relative;
   display: grid;
   place-items: center;
-  width: min(100%, clamp(220px, 25vw, 350px));
+  width: clamp(200px, min(38vh, 32vw), 420px);
   aspect-ratio: 1 / 1;
   margin: 0 auto;
   transition: filter 0.3s ease;
@@ -908,7 +1068,7 @@ kbd {
 }
 
 .core-copy h2 {
-  font-size: 30px;
+  font-size: clamp(30px, 3.3vw, 46px);
   font-weight: 700;
   letter-spacing: 0.36em;
   line-height: 1.15;
@@ -1022,13 +1182,72 @@ kbd {
 
 /* --------------------------------------------------------------- laterale */
 .side-panel {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: clamp(262px, 22vw, 324px);
   display: flex;
   flex-direction: column;
-  gap: 11px;
   min-height: 0;
-  padding-right: 2px;
+}
+
+/* Sfumatura di chiusura: segnala che il pannello continua, invece di
+   tagliare a metà una scheda. È un livello separato perché la maschera CSS
+   non è affidabile su tutti i WebKit. */
+.side-panel::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  height: 74px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(3, 6, 13, 0) 0%, rgba(3, 6, 13, 0.72) 48%, rgba(3, 6, 13, 0.97) 88%);
+}
+
+/* Il contenuto scorre dentro il pannello: l'ultimo tratto sfuma verso il
+   palco invece di tagliare a metà una scheda. */
+.side-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  padding: 2px 16px 30px 2px;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+/* Pannelli sovrapposti al palco: si accavallano di poco e si sollevano
+   quando ricevono fuoco o puntatore, restando leggibili da tastiera. */
+.side-panel .card {
+  position: relative;
+  flex: none;
+  margin-top: -12px;
+  background: linear-gradient(180deg, rgba(11, 20, 35, 0.97), rgba(7, 13, 24, 0.98));
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.side-panel .card:first-child { margin-top: 2px; }
+.side-panel .card:nth-child(even) { margin-left: 10px; }
+
+.side-panel .card:nth-child(1) { z-index: 7; }
+.side-panel .card:nth-child(2) { z-index: 8; }
+.side-panel .card:nth-child(3) { z-index: 9; }
+.side-panel .card:nth-child(4) { z-index: 10; }
+.side-panel .card:nth-child(5) { z-index: 11; }
+.side-panel .card:nth-child(6) { z-index: 12; }
+.side-panel .card:nth-child(7) { z-index: 13; }
+
+.side-panel .card:hover,
+.side-panel .card:focus-within {
+  z-index: 30;
+  transform: translateX(9px);
+  border-color: rgba(63, 227, 255, 0.34);
+  box-shadow: 0 20px 46px rgba(0, 0, 0, 0.52), 0 0 0 1px rgba(63, 227, 255, 0.1);
 }
 
 .card {
@@ -1430,20 +1649,20 @@ footer .bad { color: var(--bad); }
 
 /* ------------------------------------------------------------- schermo pieno */
 html.is-fullscreen .app {
-  max-width: none;
-  padding: 18px clamp(20px, 3vw, 42px) 12px;
-}
-
-html.is-fullscreen .layout {
-  grid-template-columns: minmax(340px, 1fr) minmax(380px, 1.14fr) minmax(320px, 0.9fr);
-  gap: 18px;
+  padding: 18px clamp(18px, 2.4vw, 34px) 10px;
 }
 
 html.is-fullscreen .core-stage {
-  width: min(42vh, 460px);
+  width: clamp(240px, min(42vh, 34vw), 480px);
 }
 
-html.is-fullscreen .core-copy h2 { font-size: 34px; }
+html.is-fullscreen .core-copy h2 { font-size: clamp(34px, 3.6vw, 52px); }
+
+html.is-fullscreen .side-panel { width: clamp(280px, 22vw, 340px); }
+
+html.is-fullscreen .chat-panel {
+  width: clamp(340px, 30vw, 460px);
+}
 
 /* ------------------------------------------------------------- animazioni */
 @keyframes rise {
@@ -1521,16 +1740,39 @@ html[data-motion="off"] *::after {
   }
 }
 
-/* ------------------------------------------------------------- responsività */
-@media (max-width: 1240px) {
-  .layout {
-    grid-template-columns: minmax(280px, 1fr) minmax(300px, 1fr) minmax(262px, 0.8fr);
-  }
+@media (min-width: 1041px) {
+  /* La barra comandi occupa il fondo del palco: il nucleo si alza quanto basta
+     a lasciarla libera e la CTA duplicata sparisce, perché il campo di
+     scrittura è sempre visibile. */
+  .core-panel { padding-bottom: clamp(116px, calc(14vh + 30px), 180px); }
+  .core-cta,
+  .core-hint,
+  .core-provider { display: none; }
+}
 
+/* ------------------------------------------------------------- responsività */
+@media (max-width: 1360px) {
+  .side-panel { width: 264px; }
+  .chat-panel { width: 352px; }
+  .core-stage { width: clamp(200px, min(48vh, 38vw), 440px); }
   .top-actions .small { font-size: 11px; }
 }
 
-@media (max-width: 1080px) {
+@media (max-width: 1120px) {
+  .side-panel { width: 244px; }
+  .chat-panel { width: 320px; }
+  .core-stage { width: clamp(190px, min(44vh, 36vw), 380px); }
+  .core-copy { max-width: 360px; }
+  .core-copy h2 { font-size: 28px; }
+
+  .topbar { grid-template-columns: auto minmax(0, 1fr); }
+  .top-actions { grid-column: 1 / -1; justify-content: flex-start; }
+}
+
+/* Sotto questa soglia il palco non regge tre strati: si passa al flusso
+   verticale, mantenendo la chat subito dopo il nucleo. La finestra minima
+   dell'app nativa è 960×600, quindi qui rientra anche quel caso. */
+@media (max-width: 1040px) {
   body { overflow: auto; }
 
   .app {
@@ -1539,35 +1781,108 @@ html[data-motion="off"] *::after {
     padding: 12px;
   }
 
-  .layout {
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 0.86fr);
+  .stage {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .orbit-link { display: none; }
+
+  .core-panel {
+    position: relative;
+    inset: auto;
+    order: -1;
+    min-height: 58vh;
+    padding: 18px 12px;
+  }
+
+  .core-stage { width: min(68vw, 340px); }
+  .core-copy h2 { font-size: 30px; }
+
+  .chat-panel {
+    position: relative;
+    right: auto;
+    bottom: auto;
+    top: auto;
+    order: -3;
+    width: auto;
+    height: clamp(280px, 46vh, 560px);
+    min-height: 0;
+  }
+
+  .command-bar {
+    position: relative;
+    left: auto;
+    bottom: auto;
+    transform: none;
+    order: -2;
+    width: auto;
   }
 
   .side-panel {
-    grid-column: 1 / -1;
+    position: relative;
+    left: auto;
+    top: auto;
+    bottom: auto;
+    order: 1;
+    width: auto;
+    display: block;
+  }
+
+  .side-panel::after { display: none; }
+
+  .side-scroll {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    height: auto;
+    padding: 0;
     overflow: visible;
   }
 
-  .side-panel .tools-card,
-  .side-panel .card:last-child { grid-column: auto; }
+  .side-panel .card {
+    margin: 0;
+    transform: none;
+  }
 
-  .chat-panel { min-height: 66vh; }
-  .core-panel { min-height: 66vh; }
-
-  .topbar { grid-template-columns: auto minmax(0, 1fr); }
-  .top-actions { grid-column: 1 / -1; justify-content: flex-start; }
+  .side-panel .card:hover,
+  .side-panel .card:focus-within { transform: none; }
 }
 
-@media (max-width: 760px) {
-  .layout { grid-template-columns: 1fr; }
+@media (max-height: 900px) and (min-width: 1041px) {
+  .side-panel .card { padding: 11px 13px; }
+  .side-panel .card-title { margin-bottom: 7px; }
+  .side-panel .data-list { gap: 4px 9px; }
+  .side-panel .hint { margin-top: 7px; line-height: 1.45; }
+  #engineNote {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
 
-  .core-panel { order: -1; min-height: auto; padding: 20px 14px; }
-  .core-stage { width: min(74vw, 300px); }
+@media (max-height: 760px) and (min-width: 1041px) {
+  .core-panel {
+    gap: var(--space-2);
+    padding: 6px 0 clamp(116px, calc(14vh + 30px), 180px);
+  }
+  .core-stage { width: clamp(150px, 30vh, 260px); }
+  .core-copy { gap: 5px; max-width: 380px; }
+  .core-copy h2 { font-size: clamp(24px, 2.6vw, 36px); }
+  .core-hint { display: none; }
+  .core-cta { margin-top: 2px; }
+}
+
+@media (max-width: 680px) {
+  .core-panel { min-height: auto; padding: 20px 12px; }
+  .core-stage { width: min(76vw, 300px); }
   .core-copy h2 { font-size: 26px; }
 
-  .side-panel { grid-template-columns: 1fr; }
+  .chat-panel { height: 42vh; min-height: 260px; }
+
+  .side-scroll { grid-template-columns: 1fr; }
 
   .topbar { grid-template-columns: 1fr; gap: 10px; }
   .brand p { white-space: normal; }

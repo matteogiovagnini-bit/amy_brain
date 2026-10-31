@@ -3,6 +3,74 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [0.2.0] — 2026-10-31
+
+### Aggiunto
+
+- **Provider IA online gratuiti verificati** (`amy/ai/presets.py`): elenco chiuso con
+  endpoint, modello, licenza, condizioni del piano gratuito, privacy e data di
+  verifica. Primo preset: GroqCloud piano Free (`groq`, `openai/gpt-oss-120b`,
+  Apache-2.0), senza carta di credito, con quote dichiarate.
+- `python3 -m amy providers`: mostra preset, limiti, licenza e privacy senza segreti.
+- `python3 -m amy secret set|list`: scrittura di `~/.amy/secrets.json` con permessi
+  `0600` e input nascosto; `list` mostra solo i nomi.
+- `amy doctor` verifica `Servizio IA`, `Chiave API` (con `GET /models`, nessun token
+  di conversazione) e `Modello online`, e riporta le condizioni del piano gratuito
+  sotto `Costi IA`.
+- `tests/test_online_presets.py` (17 test): metadati gratuiti, consenso esplicito,
+  default locale, fallback locale, sonda senza chiave che non usa la rete, presenza
+  di un `User-Agent` esplicito, retry singolo sul limite di token.
+- `tests/test_prompt_budget.py` (2 test): il prompt di sistema resta sotto il budget
+  compatibile con un piano gratuito e il catalogo inviato al modello non contiene i
+  campi riservati all'interfaccia.
+- Pannello Motore IA: distingue «chiave API non configurata», «servizio online
+  gratuito autorizzato» e «modello mancante», senza inventare disponibilità.
+
+### Modificato
+
+- `ai.provider` accetta i preset online, ma solo con `ai.online.consent = true`.
+  Senza consenso la configurazione viene rifiutata con un messaggio esplicito.
+- Il fallback non può essere un servizio online: resta `offline` o `ollama`.
+- **Dashboard ridisegnata**: il nucleo occupa l'intero palco, la chat è un satellite
+  a destra, alto quasi quanto il palco, e i pannelli informativi si sovrappongono a
+  sinistra, con chiusura sfumata e sollevamento su hover/focus. Il pannello Robot
+  sale al secondo posto per tenere l'E-stop software raggiungibile; sotto 1040 px il
+  layout passa a un flusso verticale con la chat subito dopo la topbar.
+- **Barra comandi separata**, centrata in fondo al palco come nel riferimento
+  J.A.R.V.I.S.: campo di scrittura, microfono, «Invia», promemoria e «Pronuncia le
+  risposte» escono dalla chat e conservano gli stessi identificativi, quindi resta un
+  solo punto di invio. Il nucleo riserva spazio per non finirci sotto.
+- **Campo stellato statico** in SVG inline, con stelle generate localmente: nessuna
+  immagine, nessun filmato e nessuna animazione, per non pesare sulla GPU (Mac Intel)
+  e restare compatibile con la CSP che vieta stili inline e risorse esterne.
+- `tests/test_ui_static.py`: nuovo test su barra comandi separata, unicità dei
+  controlli di invio e campo stellato locale.
+- `docs/GRATUITO.md`, `docs/CONFIGURAZIONE.md` e il resto della documentazione
+  riportano licenze, limiti, privacy e il nuovo flusso di configurazione.
+
+### Corretto
+
+- Le richieste al provider online dichiarano un `User-Agent` esplicito
+  (`AmyBrain/<versione>`): senza, Cloudflare davanti a Groq rispondeva `403` con
+  «error code: 1010» anche con una chiave valida.
+- La versione dell'applicazione è centralizzata in `amy.__version__` (0.2.0) e non
+  più ripetuta come stringa letterale in server, assistente e CLI.
+- Il catalogo strumenti inviato al modello contiene solo nome, descrizione e
+  parametri: il prompt di sistema scende da ~6.500 a ~3.100 token stimati e resta
+  dentro il limite gratuito di token al minuto.
+- Una risposta `429` del provider viene ritentata una sola volta, rispettando
+  `Retry-After` (massimo 20 s), prima di usare il fallback locale.
+- Il motivo del fallback viene registrato con il dettaglio dell'errore, redatto e
+  troncato, così un guasto del provider è diagnosticabile senza esporre segreti.
+
+### Sicurezza
+
+- La chiave API non compare nella configurazione, nei log, nella dashboard o nel
+  repository; senza chiave il provider risulta non disponibile.
+- Il default del repository resta locale (`ai.provider = "ollama"`,
+  `ai.online.consent = false`): nessun traffico verso servizi esterni senza scelta
+  esplicita.
+
 ## [0.1.0] — 2026-10-30
 
 ### Aggiunto
@@ -53,7 +121,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   dialog con focus trap, `Esc`, schermo intero, movimento ridotto, nessuna risorsa
   esterna e nessuno stile inline compatibile con la CSP.
 - Test per interfaccia statica, informazioni di sistema e servizio vocale.
-- Test suite con 168 test.
+- Test suite con 168 test (189 dalla 0.2.0).
 - Vincolo «solo strumenti gratuiti» reso **globale e permanente** in `AGENTS.md`,
   `OpenCode.md`, `README.md` e documentazione tematica: vale per conversazione,
   modelli IA, voce, wake word, controllo del Mac, interfaccia e robot.

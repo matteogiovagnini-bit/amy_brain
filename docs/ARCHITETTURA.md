@@ -34,7 +34,7 @@ livello. Il robot reale ha una propria catena di sicurezza hardware descritta in
 | `amy/core/assistant.py` | turno conversazionale, validazione, conferme, orchestrazione |
 | `amy/core/prompts.py` | prompt di sistema e formato dei risultati strumento |
 | `amy/core/logging_setup.py` | logging con redazione dei segreti |
-| `amy/ai/` | provider Ollama, compatibile OpenAI, offline, fallback |
+| `amy/ai/` | provider Ollama, preset online gratuiti, compatibile OpenAI, offline, fallback |
 | `amy/memory/store.py` | SQLite: sessioni, messaggi, fatti, attività, eventi |
 | `amy/security/policy.py` | livelli A/B/C, path guard, richieste di conferma |
 | `amy/security/audit.py` | registro append-only delle decisioni |
@@ -104,13 +104,22 @@ La risposta del modello non è mai eseguita come codice.
 `amy/ai/factory.py` costruisce il provider in base a `ai.provider`:
 
 - `ollama`: API locale `http://127.0.0.1:11434`, modello configurabile;
+- `groq` (e futuri preset in `amy/ai/presets.py`): servizio online **gratuito**
+  verificato, compatibile OpenAI, attivo solo con `ai.online.consent = true`;
 - `openai`: endpoint compatibile OpenAI, pensato per un server **locale**; un
   endpoint pubblico richiede `ai.openai.allow_remote=true` e non è mai il default;
 - `offline`: interprete deterministico di comandi italiani frequenti.
 
 Il progetto è vincolato a strumenti gratuiti: nessun provider a pagamento è
-obbligatorio, e il fallback predefinito è `offline`, non un servizio cloud. Dettagli e
-licenze in [GRATUITO.md](GRATUITO.md).
+obbligatorio, e il fallback predefinito è `offline`, non un servizio cloud. Un
+preset online non può essere usato come fallback. Dettagli, limiti e licenze in
+[GRATUITO.md](GRATUITO.md).
+
+I preset vivono in un elenco chiuso e versionato (`amy/ai/presets.py`) con endpoint,
+modello, licenza, condizioni del piano gratuito, privacy e data di verifica. La
+chiave non entra mai nella configurazione: arriva da variabile d'ambiente o da
+`~/.amy/secrets.json` (`0600`). Senza chiave il primario risulta non disponibile, non
+«disponibile ma lento».
 
 Se il provider primario fallisce, `FallbackProvider` usa il fallback configurato
 (default `offline`) e riporta il motivo. Lo stato del provider espone

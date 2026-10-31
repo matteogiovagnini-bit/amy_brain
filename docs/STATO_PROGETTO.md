@@ -11,25 +11,36 @@ ciò che è solo pianificato.
 | Sistema | macOS 26.7.1 |
 | Architettura | x86_64 |
 | Python | 3.9.6 |
-| Provider IA | configurato Ollama `qwen2.5-coder:14b`; server non in esecuzione all'ultima verifica, fallback offline attivo |
+| Provider IA | `groq` (GroqCloud piano Free, `openai/gpt-oss-120b`) con chiave valida e risposta reale verificata; fallback `offline` |
 | TTS | comando `say`, voce italiana `Alice` |
 | STT | non installato (`whisper-cli` assente) |
 | Registratore | non installato (`ffmpeg` e `sox` assenti) |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 168 test, tutti superati, più il self-test dell'app nativa |
+| Test | 189 test, tutti superati, più il self-test dell'app nativa |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
-| Controllo versione | nessun repository Git inizializzato in questa verifica |
+| Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
 ## 2. Implementato e verificato
 
 - Configurazione in `~/.amy/config.json`, override da variabili d'ambiente,
   segreti da `~/.amy/secrets.json`, redazione nei log.
-- CLI: `init`, `doctor`, `tools`, `config`, `chat`, `ask`, `memory`, `robot`,
-  `voice`, `serve`.
-- Provider Ollama con richiesta reale riuscita in una prova precedente; all'ultima
-  verifica il server non era in esecuzione e Amy è ricaduta sul fallback offline
-  senza fingere che il modello fosse disponibile.
+- CLI: `init`, `doctor`, `providers`, `secret`, `tools`, `config`, `chat`, `ask`,
+  `memory`, `robot`, `voice`, `serve`.
+- Provider online gratuito verificato: preset `groq` (GroqCloud piano Free, senza
+  carta di credito) con modello `openai/gpt-oss-120b`, spento per default e
+  attivabile solo con `ai.online.consent = true`. La chiave si salva con
+  `python3 -m amy secret set` in `~/.amy/secrets.json` (`0600`), mai nella
+  configurazione o nei log.
+- `amy providers` elenca preset, limiti, licenza e privacy; `amy doctor` verifica la
+  chiave con `GET /models` e mostra le condizioni del piano gratuito.
+- Richiesta reale al provider online verificata il 31 ottobre 2026 (`amy ask`
+  risponde tramite GroqCloud Free); `amy doctor` conferma chiave valida e modello
+  presente nell'elenco del servizio.
+- Worker offline sempre disponibile come fallback: un preset online non può essere
+  scelto come fallback.
+- Provider Ollama con richiesta reale riuscita in una prova precedente; resta il
+  default del repository e la scelta consigliata quando si vuole tutto locale.
 - Interprete offline con comandi italiani frequenti.
 - Fallback provider con stato esposto correttamente.
 - Vincolo solo-gratuito **globale e permanente**: default locale, fallback offline,
@@ -54,11 +65,16 @@ ciò che è solo pianificato.
 - TTS macOS e sintesi su file verificata da `amy doctor` (58.276 byte).
 - Dashboard locale «Amy Core» con chat reale, cronologia, conferme in due fasi,
   nucleo a otto stati derivati da segnali reali, informazioni di sistema locali,
-  pannelli motore IA/voce/robot/memoria/attività/strumenti, E-stop software e stop.
+  pannelli motore IA/robot/sistema/voce/memoria/attività/strumenti, E-stop software
+  e stop. Il nucleo occupa l'intero palco, la chat è un satellite a destra, la barra
+  comandi è centrata in fondo, lo sfondo ha un campo stellato statico e i pannelli
+  informativi si sovrappongono a sinistra, con chiusura sfumata e layout verticale
+  sotto 1040 px.
 - Applicazione macOS nativa «Amy Core» (Swift, AppKit, WebKit): finestra propria,
   icona nel Dock generata localmente, menu, schermo intero nativo, avvio e chiusura
   del backend locale, heartbeat anti-orfano. Verificata con self-test end-to-end:
   dashboard montata, messaggio inviato dal DOM, risposta in chat, backend chiuso.
+  Accetta `--snapshot` per catturare la WebView durante le verifiche visive.
 - Il backend locale si chiude da solo entro ~10 s se l'app viene uccisa con
   SIGKILL: nessun processo orfano.
 - Informazioni di sistema reali via libreria standard (`macOS`, architettura, Python,
@@ -69,9 +85,9 @@ ciò che è solo pianificato.
 - Bind della dashboard limitato a loopback salvo consenso esplicito.
 - Simulatore robotico protocollo v1: TEST iniziale, calibrazione assente, ACK/NACK,
   deduplicazione, sequenza, limiti, watchdog, E-stop.
-- Test suite: 168 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 189 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
-  voce, provider e vincolo gratuito.
+  voce, provider gratuiti online e vincolo gratuito.
 
 ## 3. Implementato ma non verificato in questo ambiente
 
@@ -129,10 +145,10 @@ ciò che è solo pianificato.
    forza.
 7. **Prompt injection.** Il prompt istruisce a trattare file e web come dati non
    attendibili, ma la difesa principale resta la policy nel codice.
-8. **Endpoint IA remoto.** Se l'utente abilita `allow_remote`, Amy non può verificare
-   da sola che il servizio sia gratuito, che non richieda carta o che i limiti siano
-   sostenibili. La responsabilità è esplicita e documentata in
-   [GRATUITO.md](GRATUITO.md).
+8. **Endpoint IA remoto.** Amy verifica autonomamente solo i preset dichiarati in
+   `amy/ai/presets.py`, con limiti e licenza riportati e datati; un endpoint remoto
+   generico (`ai.openai.allow_remote`) non è verificabile da sola. In entrambi i casi
+   la responsabilità è esplicita e documentata in [GRATUITO.md](GRATUITO.md).
 
 ## 8. Come verificare lo stato
 
@@ -146,6 +162,8 @@ python3 -m amy ask "che ore sono?" --offline
 Per una verifica reale del provider:
 
 ```bash
+python3 -m amy providers
+python3 -m amy doctor
 python3 -m amy ask "rispondi solo con: ciao"
 ```
 
