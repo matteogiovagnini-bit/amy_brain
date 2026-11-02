@@ -48,6 +48,17 @@ class WakeWordTests(unittest.TestCase):
         for phrase in ("che ore sono", "grazie mille", "amaca nuova"):
             self.assertFalse(self.detector.matches(phrase), phrase)
 
+    def test_short_unrelated_words_do_not_trigger_the_wake_word(self) -> None:
+        """«ha» dista due caratteri da «amy» ma non è la wake word.
+
+        Osservato il 2 novembre 2026: «ha pret mehilda» ha attivato Amy e
+        eseguito un comando mai pronunciato. Il confronto tollerante deve
+        accettare «Emi»/«Ami» ma non parole comuni come «ha», «mai», «mia».
+        """
+        detector = WakeWordDetector("amy", 0.5)
+        for phrase in ("ha pret mehilda", "non lo faccio mai", "mia sorella"):
+            self.assertFalse(detector.matches(phrase), phrase)
+
     def test_extract_command_after_phrase(self) -> None:
         self.assertEqual(self.detector.extract_command("Amy che ore sono"), "che ore sono")
         self.assertEqual(self.detector.extract_command("ehi Amy, accendi la luce"), "accendi la luce")

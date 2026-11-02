@@ -92,6 +92,11 @@ class WakeWordDetector:
             # «am», «amy», «amyy»: prefissi brevi non bastano, serve il token intero.
             if len(token) >= max(2, len(self.phrase) - tolerance):
                 return True
+        # Le trascrizioni sbagliate di «Amy» iniziano per vocale («Emi», «Ami»,
+        # «Emy»). Senza questo filtro la distanza di edit accettava anche «ha»
+        # (distanza 2) e attivava Amy su frasi qualsiasi.
+        if token[:1] not in {"a", "e"}:
+            return False
         return edit_distance(token, self.phrase) <= tolerance
 
     def _match_index(self, tokens: Sequence[str]) -> Tuple[int, int]:

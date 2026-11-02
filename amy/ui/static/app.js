@@ -48,7 +48,7 @@
     voiceReady: false,
     wakeRunning: false,
     wakeAvailable: false,
-    lastTranscriptCount: 0,
+    lastTranscriptSignature: "",
   };
 
   // ------------------------------------------------------------------ utilità
@@ -289,8 +289,22 @@
       (item) => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string"
     );
     renderTranscript(messages);
-    app.lastTranscriptCount = messages.length;
+    app.lastTranscriptSignature = transcriptSignature(messages);
     return messages;
+  }
+
+  // La trascrizione è limitata agli ultimi 100 messaggi: confrontare solo la
+  // lunghezza non basta, perché una volta raggiunto il limite resta 100 anche
+  // quando arrivano nuovi messaggi. La firma include l'ultimo messaggio.
+  function transcriptSignature(messages) {
+    if (!messages.length) return "0";
+    const last = messages[messages.length - 1];
+    return [
+      messages.length,
+      last.created_at || "",
+      last.role || "",
+      String(last.content || "").slice(0, 40),
+    ].join("|");
   }
 
   // Durante l'ascolto continuo i turni vocali avvengono in background: il
@@ -302,9 +316,10 @@
       const messages = (data.messages || []).filter(
         (item) => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string"
       );
-      if (messages.length !== app.lastTranscriptCount) {
+      const signature = transcriptSignature(messages);
+      if (signature !== app.lastTranscriptSignature) {
         renderTranscript(messages);
-        app.lastTranscriptCount = messages.length;
+        app.lastTranscriptSignature = signature;
       }
     } catch (error) {
       // Silenzioso: il polling riproverà al ciclo successivo.
