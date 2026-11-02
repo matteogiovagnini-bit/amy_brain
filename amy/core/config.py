@@ -89,7 +89,10 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "download_root": "~/.amy/models/whisper",
         },
         "wake_word": {
-            "enabled": False,
+            # L'utente ha richiesto l'avvio automatico dell'ascolto continuo.
+            # Resta disattivabile con `enabled = false` o `start_on_launch = false`.
+            "enabled": True,
+            "start_on_launch": True,
             "phrase": "amy",
             "sensitivity": 0.5,
             "max_minutes": 20,

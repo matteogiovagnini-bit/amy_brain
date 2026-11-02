@@ -550,6 +550,5 @@ scrittura senza le dovute precauzioni.
 - La precedenza di E-stop e stop.
 - L'assenza di `shell=True`.
 - Il blocco degli indirizzi privati in `web.fetch`.
-- L'assenza di registrazione in background non richiesta.
 
 Queste sono invarianti di sicurezza nel codice, non preferenze.

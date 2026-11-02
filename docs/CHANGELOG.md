@@ -3,6 +3,20 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [0.3.1] — 2026-11-02
+
+### Modificato
+
+- **Avvio automatico dell'ascolto continuo.** Su richiesta esplicita dell'utente
+  è stata rimossa la regola che vietava la registrazione in background senza
+  azione esplicita: l'ascolto continuo si avvia automaticamente all'avvio del
+  server se `voice.wake_word.start_on_launch` è attivo (default: true), ed è
+  disattivabile con `voice.wake_word.enabled = false` o
+  `start_on_launch = false`. La responsabilità della privacy è dell'utente.
+- **Versione del bundle macOS** sincronizzata con `pyproject.toml` tramite
+  `PlistBuddy` in `build.sh` (prima restava a 0.1.0).
+- **Conteggio strumenti** corretto da 34 a 35 (era sfuggito `system.battery`).
+
 ## [0.3.0] — 2026-10-31
 
 ### Aggiunto

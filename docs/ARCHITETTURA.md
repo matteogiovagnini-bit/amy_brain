@@ -184,8 +184,8 @@ Dettagli: [ROBOTICA.md](ROBOTICA.md).
 - Wake word: rilevamento **testuale** dopo la trascrizione, non un motore audio
   dedicato. Confronto tollerante ristretto al primo token o dopo un prefisso di
   richiamo.
-- Nessuna registrazione in background: il ciclo parte solo da `amy voice loop` o da
-  un'azione esplicita.
+- Registrazione in background: possibile su richiesta esplicita o con avvio
+  automatico abilitato (`voice.wake_word.start_on_launch`, default attivo).
 - Messaggio di avvio: pronunciato all'avvio della dashboard con la sola sintesi
   locale, senza registrazione. Il testo viene dalla configurazione
   (`voice.startup_greeting_text`) ed è disattivabile con

@@ -132,8 +132,8 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
   watchdog e modalità TEST senza movimento fisico.
 - Voce completa e locale: microfono con `sounddevice`, trascrizione con
   `faster-whisper`, sintesi con `say` e wake word «Amy». All'avvio Amy dice
-  «Amy è attiva e operativa»; l'ascolto continuo parte solo dal pulsante
-  «Ascolta «Amy»» e si ferma da solo dopo 20 minuti.
+  «Amy è attiva e operativa»; l'ascolto continuo si avvia automaticamente
+  all'avvio (disattivabile) e si ferma da solo dopo 20 minuti.
 - Protezione dall'eco **half-duplex** nel ciclo vocale: mentre Amy parla il
   microfono resta chiuso e i frammenti che contengono la sua voce vengono
   scartati, così la sua risposta non viene scambiata per un comando.

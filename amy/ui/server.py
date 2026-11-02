@@ -93,7 +93,7 @@ class AmyHandler(BaseHTTPRequestHandler):
 
     # ---------------------------------------------------------- ascolto wake
     def _start_wake_loop(self) -> None:
-        """Avvia l'ascolto continuo solo su richiesta esplicita della UI."""
+        """Avvia l'ascolto continuo su richiesta della UI (o automaticamente all'avvio)."""
         voice = self.assistant.voice
         status = voice.status()
         if not bool(voice.config.get("voice.wake_word.enabled", False)):
@@ -127,18 +127,7 @@ class AmyHandler(BaseHTTPRequestHandler):
 
     def _on_voice_command(self, text: str) -> None:
         """Esegue un comando dettato e pronuncia la risposta, in un thread separato."""
-        try:
-            with self.server.chat_lock:  # type: ignore[attr-defined]
-                result = self.assistant.handle(text, session_id=self.assistant.resume_session())
-        except Exception:  # noqa: BLE001
-            _log.exception("Comando vocale non riuscito")
-            return
-        reply = str(getattr(result, "reply", "") or "").strip()
-        if reply:
-            try:
-                self.assistant.speak(reply)
-            except Exception:  # noqa: BLE001
-                _log.warning("Sintesi della risposta vocale non riuscita")
+        self.server.handle_voice_command(text)
 
     # -------------------------------------------------------------------- GET
     def do_GET(self) -> None:  # noqa: N802
@@ -254,6 +243,40 @@ class AmyHTTPServer(ThreadingHTTPServer):
         self.assistant = assistant
         self.chat_lock = threading.Lock()
         super().__init__(address, AmyHandler)
+
+    def handle_voice_command(self, text: str) -> None:
+        """Esegue un comando dettato e pronuncia la risposta (usato anche all'avvio)."""
+        try:
+            with self.chat_lock:
+                result = self.assistant.handle(text, session_id=self.assistant.resume_session())
+        except Exception:  # noqa: BLE001
+            _log.exception("Comando vocale non riuscito")
+            return
+        reply = str(getattr(result, "reply", "") or "").strip()
+        if reply:
+            try:
+                self.assistant.voice.speak(reply, block=False)
+            except Exception:  # noqa: BLE001
+                _log.warning("Sintesi della risposta vocale non riuscita")
+
+    def start_wake_loop_on_launch(self) -> bool:
+        """Avvia l'ascolto continuo se la configurazione lo richiede."""
+        voice = self.assistant.voice
+        if not bool(voice.config.get("voice.wake_word.enabled", False)):
+            return False
+        if not bool(voice.config.get("voice.wake_word.start_on_launch", False)):
+            return False
+        status = voice.status()
+        if not bool(status.get("wake_word", {}).get("available", False)):
+            _log.info("Ascolto continuo non avviato: microfono o STT non disponibili.")
+            return False
+        try:
+            voice.start_wake_loop(self.handle_voice_command)
+            _log.info("Ascolto continuo avviato automaticamente all'avvio.")
+            return True
+        except Exception:  # noqa: BLE001
+            _log.warning("Avvio automatico dell'ascolto continuo non riuscito", exc_info=True)
+            return False
 
 
 def _is_loopback(host: str) -> bool:
@@ -410,6 +433,7 @@ def run_server(config: Config, *, host: Optional[str] = None, port: Optional[int
     if open_browser or config.get("ui.open_browser", False):
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     _schedule_greeting(assistant)
+    server.start_wake_loop_on_launch()
     parent_pid = os.environ.get("AMY_PARENT_PID", "").strip()
     watch_stdin = os.environ.get("AMY_WATCH_STDIN", "") == "1"
     heartbeat = os.environ.get("AMY_HEARTBEAT_FILE", "").strip()

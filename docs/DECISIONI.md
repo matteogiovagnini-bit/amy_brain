@@ -154,15 +154,18 @@ l'esposizione remota resta sconsigliata anche con il flag.
 **Conseguenze:** la voce in uscita funziona subito; quella in ingresso no. Non si
 simula uno STT assente.
 
-## D-015 — Nessuna registrazione in background non richiesta
+## D-015 — Registrazione in background su richiesta esplicita
 
-**Contesto:** un microfono sempre acceso è un rischio di privacy.
+**Contesto:** un microfono sempre acceso è un rischio di privacy; l'utente ha
+scelto di abilitare l'avvio automatico.
 
-**Scelta:** la registrazione avviene solo su comando esplicito o nel ciclo
-`voice loop` avviato dall'utente.
+**Scelta:** la registrazione avviene su comando esplicito, nel ciclo `voice loop`
+avviato dall'utente, oppure automaticamente all'avvio se
+`voice.wake_word.start_on_launch` è attivo (default: true). Resta disattivabile con
+`voice.wake_word.enabled = false` o `start_on_launch = false`.
 
-**Conseguenze:** niente wake word sempre attiva per default. Il ciclo continuo va
-avviato consapevolmente.
+**Conseguenze:** l'ascolto continuo può essere sempre attivo; la responsabilità
+della privacy è dell'utente, che ha richiesto esplicitamente questa modalità.
 
 ## D-016 — Memoria e audit separati
 

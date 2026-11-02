@@ -82,8 +82,9 @@ ciò che è solo pianificato.
 - Voce completa e locale: `sounddevice` per il microfono, `faster-whisper` per la
   trascrizione, `say` per la sintesi, wake word «Amy» sul testo trascritto.
   Verificata anche end-to-end: «Amy, che ore sono?» → comando eseguito e risposta
-  pronunciata. Il ciclo continuo parte solo dal pulsante della dashboard o dalla
-  CLI e si ferma da solo dopo 20 minuti.
+  pronunciata. L'ascolto continuo si avvia automaticamente all'avvio se
+  `voice.wake_word.start_on_launch` è attivo (default: sì) e si ferma da solo
+  dopo 20 minuti; resta disattivabile.
 - Protezione dall'eco **half-duplex** nel ciclo vocale: durante la sintesi il
   microfono non registra, i frammenti che contengono la voce di Amy vengono
   scartati e dopo la risposta segue una pausa di 0,8 s
@@ -157,7 +158,6 @@ ciò che è solo pianificato.
 - Comandi GPIO, PWM, tensione o controllo diretto dei servi.
 - Shell arbitraria.
 - Cancellazione definitiva dei file tramite strumenti.
-- Registrazione audio in background non richiesta.
 - Auto-approvazione del livello C.
 - Uso della dashboard su rete pubblica.
 - Invio di segreti al modello o nei log.
