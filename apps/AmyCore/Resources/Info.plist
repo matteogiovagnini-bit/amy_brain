@@ -27,6 +27,8 @@
     <string>12.0</string>
     <key>NSHighResolutionCapable</key>
     <true/>
+    <key>NSMicrophoneUsageDescription</key>
+    <string>Amy usa il microfono solo quando premi il pulsante di ascolto o attivi «Ascolta Amy»: la registrazione parte da un tuo comando e la trascrizione resta sul Mac.</string>
     <key>NSHumanReadableCopyright</key>
     <string>MIT — progetto Amy Brain</string>
     <key>NSAppTransportSecurity</key>

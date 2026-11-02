@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Ultima verifica: **31 ottobre 2026**. Ogni voce è separata tra ciò che è stato
+Ultima verifica: **2 novembre 2026**. Ogni voce è separata tra ciò che è stato
 eseguito davvero, ciò che è implementato ma non verificato, ciò che è sperimentale e
 ciò che è solo pianificato.
 
@@ -13,11 +13,11 @@ ciò che è solo pianificato.
 | Python | 3.9.6 |
 | Provider IA | `groq` (GroqCloud piano Free, `openai/gpt-oss-120b`) con chiave valida e risposta reale verificata; fallback `offline` |
 | TTS | comando `say`, voce italiana `Alice` |
-| STT | non installato (`whisper-cli` assente) |
-| Registratore | non installato (`ffmpeg` e `sox` assenti) |
+| STT | `faster-whisper` 1.2.1 locale, modello `base`, CPU int8 |
+| Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 189 test, tutti superati, più il self-test dell'app nativa |
+| Test | 255 test, tutti superati, più il self-test dell'app nativa |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -79,15 +79,44 @@ ciò che è solo pianificato.
   SIGKILL: nessun processo orfano.
 - Informazioni di sistema reali via libreria standard (`macOS`, architettura, Python,
   CPU, carico, disco) esposte in `status()["system"]`.
+- Voce completa e locale: `sounddevice` per il microfono, `faster-whisper` per la
+  trascrizione, `say` per la sintesi, wake word «Amy» sul testo trascritto.
+  Verificata anche end-to-end: «Amy, che ore sono?» → comando eseguito e risposta
+  pronunciata. Il ciclo continuo parte solo dal pulsante della dashboard o dalla
+  CLI e si ferma da solo dopo 20 minuti.
+- Protezione dall'eco **half-duplex** nel ciclo vocale: durante la sintesi il
+  microfono non registra, i frammenti che contengono la voce di Amy vengono
+  scartati e dopo la risposta segue una pausa di 0,8 s
+  (`voice.wake_word.echo_guard`, `voice.wake_word.echo_guard_cooldown_s`).
+  Verificata dal vivo il 2 novembre 2026: con tre comandi dagli altoparlanti uno
+  è stato perso durante la risposta e, forzando una sovrapposizione, il log ha
+  riportato «Frammento scartato: Amy stava parlando (protezione dall'eco).».
+- Strumento `system.battery`: stato reale della batteria del Mac letto con
+  `pmset -g batt` (sola lettura), con percentuale, carica/scarica e tempo
+  residuo; su un Mac senza batteria dichiara l'assenza senza inventare valori.
+- Registrazione con limite di tempo: se PortAudio si blocca nel HAL di Core Audio,
+  la chiamata fallisce dopo `durata + 6 s` con «Il microfono non risponde», lo stato
+  espone `stuck: true` e il ciclo di wake word si ferma dichiarando il motivo.
+  `amy doctor` apre il microfono per un secondo per distinguere «modulo installato»
+  da «ingresso che risponde».
 - Stato voce con `speaking` reale, usato dalla UI per lo stato di sintesi.
+- Dashboard e app nativa resistenti agli stalli: heartbeat su coda dedicata
+  (`DispatchSourceTimer`) avviato prima del backend, tolleranza del watchdog 20 s,
+  controllo di salute a 6 s con 3 fallimenti, avviso «backend non risponde» come
+  sheet non modale, sintesi bloccante con limite di tempo.
 - API HTTP locale e protezioni di base: CSP, `X-Frame-Options`, nessun CDN,
   nessun `innerHTML`.
 - Bind della dashboard limitato a loopback salvo consenso esplicito.
 - Simulatore robotico protocollo v1: TEST iniziale, calibrazione assente, ACK/NACK,
   deduplicazione, sequenza, limiti, watchdog, E-stop.
-- Test suite: 189 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
+  con la sola sintesi locale: nessuna registrazione, testo configurabile
+  (`voice.startup_greeting_text`) e disattivabile.
+- Test suite: 255 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
-  voce, provider gratuiti online e vincolo gratuito.
+  voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
+  blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
+  sonda del microfono.
 
 ## 3. Implementato ma non verificato in questo ambiente
 
@@ -95,9 +124,9 @@ ciò che è solo pianificato.
 | --- | --- | --- |
 | Movimento robot fisico | Nessun robot collegato | Solo simulatore; ogni esito dichiara `simulated` e nessun movimento fisico |
 | Link MQTT | Nessun broker/robot configurato | Codice e test di protocollo; nessuna connessione reale |
-| Riconoscimento vocale | Mancano registratore e motore STT | TTS e stato `ready_for_voice_commands=false` |
-| Microfono della dashboard | Stessi limiti dello STT | Endpoint testato con voce finta, non con audio reale |
-| Wake word audio | Non esiste un motore audio dedicato | Rilevamento testuale dopo trascrizione |
+| Wake word acustica | Non esiste un rilevatore dedicato | Rilevamento sul testo trascritto, verificato con parlato reale |
+| Qualità su parlanti diversi | Una sola voce di prova | Trascrizione verificata con voce sintetica e con la stessa frase dal microfono |
+| Consumo CPU del ciclo continuo | Nessuna misura prolungata | Latenza misurata su frasi brevi (~1–2 s per comando) |
 | Uso prolungato | Non testato per ore/giorni | Test unitari e smoke test brevi |
 | Verifica visiva della finestra dell'app | Non ispezionata a mano | Verifica programmatica: pagina montata, invio reale, risposta in chat, chiusura del backend |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
@@ -115,7 +144,7 @@ ciò che è solo pianificato.
 ## 5. Pianificato, non implementato
 
 - Wake word audio dedicata (rilevamento locale prima della trascrizione).
-- Installazione guidata di `ffmpeg`/STT con verifica automatica.
+- Installazione guidata del modello STT con verifica automatica.
 - Test end-to-end su Raspberry Pi e broker MQTT reale.
 - Calibrazione meccanica e verifica dei limiti reali del robot.
 - Autenticazione o token per la dashboard, se mai si vorrà esporla in rete.
@@ -137,15 +166,23 @@ ciò che è solo pianificato.
 
 1. **Hardware reale mai validato.** Il simulatore non dimostra la sicurezza fisica.
 2. **MQTT non validato.** Un ACK non è un completamento verificato.
-3. **Voce incompleta.** Senza STT/registratore, l'uso è testuale.
-4. **Dashboard senza autenticazione.** Mitigata dal bind locale, non adatta alla rete.
-5. **SSRF con DNS lookup.** La risoluzione è controllata prima della richiesta, ma
+3. **Voce dipendente dall'ambiente.** Microfono, permesso di sistema e modello
+   scaricato sono prerequisiti; senza di essi la chat resta testuale e la UI lo
+   dichiara. La wake word è testuale e può avere falsi positivi, anche con Amy che
+   sente i propri altoparlanti. Il 1 novembre 2026 l'ingresso audio si è bloccato
+   nel HAL di Core Audio per cause esterne ad Amy: ora l'errore è onesto e limitato
+   nel tempo, ma il rimedio richiede un riavvio del servizio audio o del Mac.
+4. **Saluto di avvio non verificato a mano.** Il messaggio «Amy è attiva e
+   operativa.» è stato verificato dai log (sintesi avviata e completata) e dal
+   self-test del servizio, ma non con una verifica uditiva dell'utente.
+5. **Dashboard senza autenticazione.** Mitigata dal bind locale, non adatta alla rete.
+6. **SSRF con DNS lookup.** La risoluzione è controllata prima della richiesta, ma
    non è una difesa contro ogni forma di DNS rebinding.
-6. **Timeout strumenti via thread.** Un thread bloccato non viene terminato con la
+7. **Timeout strumenti via thread.** Un thread bloccato non viene terminato con la
    forza.
-7. **Prompt injection.** Il prompt istruisce a trattare file e web come dati non
+8. **Prompt injection.** Il prompt istruisce a trattare file e web come dati non
    attendibili, ma la difesa principale resta la policy nel codice.
-8. **Endpoint IA remoto.** Amy verifica autonomamente solo i preset dichiarati in
+9. **Endpoint IA remoto.** Amy verifica autonomamente solo i preset dichiarati in
    `amy/ai/presets.py`, con limiti e licenza riportati e datati; un endpoint remoto
    generico (`ai.openai.allow_remote`) non è verificabile da sola. In entrambi i casi
    la responsabilità è esplicita e documentata in [GRATUITO.md](GRATUITO.md).

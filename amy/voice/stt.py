@@ -32,32 +32,60 @@ class STT:
     def available(self) -> bool:
         return bool(self.status().get("available"))
 
+    def warm(self) -> None:
+        """Precarica il modello in memoria. Le implementazioni possono ignorarlo."""
+        return None
+
 
 class FasterWhisperSTT(STT):
-    def __init__(self, model: str = "small", language: str = "it") -> None:
-        self.model_name = model or "small"
+    def __init__(
+        self,
+        model: str = "base",
+        language: str = "it",
+        download_root: Optional[str] = None,
+    ) -> None:
+        self.model_name = model or "base"
         self.language = language
+        self.download_root = download_root
         self._model = None
 
-    def available(self) -> bool:
+    def installed(self) -> bool:
         return importlib.util.find_spec("faster_whisper") is not None
 
     def _load(self):
         if self._model is None:
             from faster_whisper import WhisperModel  # type: ignore
 
-            self._model = WhisperModel(self.model_name, device="cpu", compute_type="int8")
+            self._model = WhisperModel(
+                self.model_name,
+                device="cpu",
+                compute_type="int8",
+                download_root=self.download_root,
+            )
         return self._model
 
+    def warm(self) -> None:
+        if self.installed():
+            self._load()
+
     def transcribe(self, audio_path: Path) -> str:
-        if not self.available():
-            raise VoiceError("faster-whisper non è installato.")
+        if not self.installed():
+            raise VoiceError(
+                "faster-whisper non è installato.",
+                detail="Installa con: pip3 install --user faster-whisper",
+            )
         model = self._load()
         segments, _ = model.transcribe(str(audio_path), language=self.language, vad_filter=True)
         return " ".join(segment.text.strip() for segment in segments).strip()
 
     def status(self) -> Dict[str, Any]:
-        return {"available": self.available(), "engine": "faster-whisper", "model": self.model_name}
+        return {
+            "available": self.installed(),
+            "engine": "faster-whisper",
+            "model": self.model_name,
+            "model_present": self.installed(),
+            "note": "Trascrizione locale su CPU; il modello viene scaricato la prima volta.",
+        }
 
 
 class WhisperCliSTT(STT):
@@ -162,10 +190,19 @@ class WhisperCppSTT(STT):
 
 
 def build_stt(config) -> STT:
-    engine = str(config.get("voice.stt.engine", "whisper-cli")).lower()
+    engine = str(config.get("voice.stt.engine", "auto") or "auto").lower()
     language = str(config.get("voice.stt.language", "it"))
+    model = str(config.get("voice.stt.model", "") or "")
+    download_root = str(config.get("voice.stt.download_root", "~/.amy/models/whisper"))
+    if engine == "whisper-cli":
+        command = str(config.get("voice.stt.command", "whisper-cli"))
+        model_ok = bool(model and Path(model).expanduser().exists())
+        if not (shutil.which(command) and model_ok) and importlib.util.find_spec("faster_whisper"):
+            engine = "faster-whisper"  # ripiego locale, stesso vincolo di gratuità
+    if engine == "auto":
+        engine = "faster-whisper" if importlib.util.find_spec("faster_whisper") else "whisper-cli"
     if engine == "faster-whisper":
-        return FasterWhisperSTT(str(config.get("voice.stt.model", "small")), language)
+        return FasterWhisperSTT(model or "base", language, str(Path(download_root).expanduser()))
     if engine == "whisper":
         return WhisperCliSTT(str(config.get("voice.stt.command", "whisper")), str(config.get("voice.stt.model", "base")), language)
     return WhisperCppSTT(

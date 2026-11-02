@@ -39,7 +39,7 @@ livello. Il robot reale ha una propria catena di sicurezza hardware descritta in
 | `amy/security/policy.py` | livelli A/B/C, path guard, richieste di conferma |
 | `amy/security/audit.py` | registro append-only delle decisioni |
 | `amy/tools/` | 34 strumenti registrati e validati |
-| `amy/voice/` | TTS macOS, STT opzionale, registratore, wake word testuale |
+| `amy/voice/` | TTS macOS, STT locale, registratore, wake word testuale |
 | `amy/robot/` | protocollo v1, simulatore, link simulato e MQTT |
 | `amy/ui/server.py` | API HTTP locale, file statici, CSP |
 | `amy/ui/static/` | interfaccia «Amy Core» senza dipendenze esterne |
@@ -178,12 +178,18 @@ Dettagli: [ROBOTICA.md](ROBOTICA.md).
 ## 9. Voce
 
 - TTS: comando `say` di macOS, voce italiana configurabile.
-- STT: opzionale (`faster-whisper`, CLI Whisper, whisper.cpp).
-- Registratore: `ffmpeg` o `sox`.
+- STT: locale, `faster-whisper` (CPU int8) con ripiego su CLI Whisper e whisper.cpp.
+- Registratore: `sounddevice` (in-process, WAV 16 kHz mono) con ripiego su `ffmpeg`
+  o `sox`.
 - Wake word: rilevamento **testuale** dopo la trascrizione, non un motore audio
-  dedicato.
+  dedicato. Confronto tollerante ristretto al primo token o dopo un prefisso di
+  richiamo.
 - Nessuna registrazione in background: il ciclo parte solo da `amy voice loop` o da
   un'azione esplicita.
+- Messaggio di avvio: pronunciato all'avvio della dashboard con la sola sintesi
+  locale, senza registrazione. Il testo viene dalla configurazione
+  (`voice.startup_greeting_text`) ed è disattivabile con
+  `voice.startup_greeting = false` o `AMY_STARTUP_GREETING=0`.
 
 Dettagli: [VOCE.md](VOCE.md).
 
@@ -205,6 +211,9 @@ Server HTTP con `ThreadingHTTPServer`, solo `127.0.0.1` per default. API princip
 | POST | `/api/speak` | sintesi vocale |
 | POST | `/api/voice/stop` | interrompe la voce |
 | POST | `/api/voice/listen` | ascolto singolo |
+| POST | `/api/voice/greet` | ripete il messaggio di avvio |
+| POST | `/api/voice/wake/start` | avvia l'ascolto continuo della wake word |
+| POST | `/api/voice/wake/stop` | ferma l'ascolto continuo |
 | POST | `/api/robot/estop` | E-stop software |
 | POST | `/api/robot/stop` | arresto controllato |
 

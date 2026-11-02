@@ -74,6 +74,18 @@ class HeartbeatWatchdogTests(unittest.TestCase):
             # Il watchdog continua a girare: si ferma solo a fine test.
             self.assertTrue(thread.is_alive())
 
+    def test_default_tolerance_is_wide_enough_for_a_slow_app(self) -> None:
+        """Il backend non deve chiudersi se l'app rallenta per qualche secondo.
+
+        L'app nativa aggiorna l'heartbeat ogni 2 s, ma può bloccarsi (alert
+        modale, carico CPU durante una trascrizione). Con una tolleranza di 8 s
+        il backend si chiudeva da solo mentre l'app era viva.
+        """
+        import inspect
+
+        default = inspect.signature(_watch_heartbeat).parameters["max_age_s"].default
+        self.assertGreaterEqual(default, 20.0)
+
 
 if __name__ == "__main__":
     unittest.main()

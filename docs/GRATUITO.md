@@ -53,7 +53,9 @@ Amy è progettata per funzionare interamente in locale:
 | Conversazione | Ollama su `127.0.0.1` | nessuno, solo hardware ed elettricità |
 | Fallback conversazione | interprete offline deterministico | nessuno |
 | Sintesi vocale | comando `say` di macOS | nessuno aggiuntivo |
-| Riconoscimento vocale | whisper.cpp / faster-whisper / Whisper CLI | nessuno |
+| Riconoscimento vocale | `faster-whisper` locale (CPU) | nessuno; il modello si scarica una volta da Hugging Face |
+| Registrazione dal microfono | `sounddevice` (in-process) | nessuno |
+| Wake word | confronto testuale sulla trascrizione locale | nessuno |
 | Memoria | SQLite locale | nessuno |
 | Controllo Mac | strumenti Python e AppleScript locali | nessuno |
 | Robot | simulatore o MQTT locale | nessuno |
@@ -72,12 +74,13 @@ Audit eseguito il **30 ottobre 2026** sul repository:
 | `pyproject.toml` | `dependencies = []` | nessuna dipendenza Python obbligatoria |
 | Import del pacchetto `amy` | solo libreria standard e moduli interni | nessun pacchetto commerciale |
 | `requirements-optional.txt` | solo `paho-mqtt` | opzionale, licenza EPL-2.0/EDL-1.0 |
+| Componenti vocali installati a mano | `faster-whisper`, `sounddevice` e dipendenze | opzionali, licenze MIT/BSD/Apache-2.0; nessuna richiesta di account, carta o crediti |
 | Provider IA predefinito | Ollama su `127.0.0.1` | locale, nessun costo |
 | Provider IA online (facoltativo) | preset `groq` verificato, spento per default | piano Free senza carta di credito; si attiva solo con consenso esplicito |
 | Fallback IA predefinito | `offline` | deterministico, nessun costo |
 | Endpoint OpenAI-compatible | `http://127.0.0.1:8000/v1` | locale; remoto bloccato senza consenso |
 | TTS | comando `say` di macOS | già presente, nessun costo aggiuntivo |
-| STT e registratore | adapter locali opzionali | non installati; nessun servizio cloud |
+| STT e registratore | adapter locali opzionali (`faster-whisper`, `sounddevice`) | installati e verificati localmente; nessun servizio cloud |
 | Wake word | confronto testuale su trascrizione locale | nessun servizio cloud |
 | Dashboard «Amy Core» | file statici locali, SVG/CSS originali, nessuna libreria frontend, nessun CDN | nessuna risorsa esterna né dipendenza a pagamento |
 | Applicazione «Amy Core.app» | Swift + framework di sistema macOS (AppKit, WebKit, Foundation, Darwin), `Xcode Command Line Tools` | nessuna dipendenza di terze parti, nessun account sviluppatore, firma ad-hoc |
@@ -93,7 +96,9 @@ esplicito.
 
 ## 3. Licenze verificate
 
-Verifica effettuata il **30 ottobre 2026** sulle fonti ufficiali dei progetti.
+Verifica effettuata il **30 ottobre 2026** sulle fonti ufficiali dei progetti;
+componenti vocali verificati il **31 ottobre 2026** sui metadati dei pacchetti
+installati.
 
 | Componente | Licenza | Note |
 | --- | --- | --- |
@@ -102,7 +107,13 @@ Verifica effettuata il **30 ottobre 2026** sulle fonti ufficiali dei progetti.
 | Ollama | MIT | server locale, open source |
 | `qwen2.5-coder:14b` | Apache-2.0 | verificare la model card della versione usata |
 | `say` di macOS | componente di macOS | nessun costo aggiuntivo; macOS non è open source |
-| faster-whisper | MIT | opzionale |
+| faster-whisper | MIT | opzionale; verificato installato (1.2.1) il 31 ottobre 2026 |
+| ctranslate2 (usato da faster-whisper) | MIT | opzionale; verificato installato (4.8.4) il 31 ottobre 2026 |
+| sounddevice (PortAudio bindings) | MIT | opzionale; verificato installato (0.5.6) il 31 ottobre 2026 |
+| NumPy (usato da faster-whisper) | BSD-3-Clause | opzionale; verificato installato (2.0.2) il 31 ottobre 2026 |
+| huggingface-hub (download del modello) | Apache-2.0 | opzionale; verificato installato (1.8.0) il 31 ottobre 2026 |
+| tokenizers (usato da faster-whisper) | Apache-2.0 | opzionale; verificato installato (0.22.2) il 31 ottobre 2026 |
+| onnxruntime | MIT | opzionale; verificato installato (1.19.2) il 31 ottobre 2026 |
 | OpenAI Whisper (codice e modelli) | MIT | opzionale |
 | whisper.cpp | MIT | opzionale |
 | FFmpeg | LGPL-2.1+ o GPL-2.0+ secondo la build | opzionale; la licenza dipende dai codec abilitati |
@@ -121,6 +132,12 @@ Fonti consultate:
 - <https://github.com/ollama/ollama/blob/main/LICENSE>
 - <https://huggingface.co/Qwen/Qwen2.5-Coder-14B-Instruct>
 - <https://github.com/SYSTRAN/faster-whisper/blob/master/LICENSE>
+- <https://github.com/OpenNMT/CTranslate2/blob/master/LICENSE>
+- <https://github.com/alsrd/sounddevice/blob/master/LICENSE>
+- <https://github.com/numpy/numpy/blob/main/LICENSE.txt>
+- <https://github.com/huggingface/huggingface_hub/blob/main/LICENSE>
+- <https://github.com/huggingface/tokenizers/blob/main/LICENSE>
+- <https://github.com/microsoft/onnxruntime/blob/main/LICENSE>
 - <https://github.com/openai/whisper/blob/main/LICENSE>
 - <https://github.com/ggerganov/whisper.cpp/blob/master/LICENSE>
 - <https://ffmpeg.org/legal.html>

@@ -3,32 +3,59 @@
 from __future__ import annotations
 
 import json
+import os
 import threading
+import time
 import unittest
 import urllib.error
 import urllib.request
+from unittest import mock
 
 from amy.core.assistant import Assistant
+from amy.core.config import Config
 from amy.core.errors import ConfigError
 from amy.memory.store import MemoryStore
 from amy.robot.links import SimulatedLink
 from amy.robot.simulator import RobotSimulator
 from amy.security.audit import NullAudit
-from amy.ui.server import AmyHTTPServer, run_server
+from amy.ui.server import AmyHTTPServer, _schedule_greeting, run_server
 from tests.helpers import TempAmy
 
 
 class FakeVoice:
+    def __init__(self) -> None:
+        self.config = Config({"voice": {"wake_word": {"enabled": True}}})
+        self.running = False
+        self.started = 0
+        self.on_command = None
+
     def status(self):
         return {
-            "enabled": False,
+            "enabled": True,
             "speaking": False,
             "tts": {"available": False, "engine": "none"},
             "stt": {"available": False, "engine": "none"},
             "recorder": {"available": False, "engine": "none"},
-            "wake_word": {"phrase": "amy", "enabled": False, "running": False},
+            "wake_word": {
+                "phrase": "amy",
+                "enabled": True,
+                "running": self.running,
+                "available": True,
+            },
             "ready_for_voice_commands": False,
         }
+
+    def start_wake_loop(self, on_command, *, max_minutes=None):
+        self.running = True
+        self.started += 1
+        self.on_command = on_command
+        return None
+
+    def stop_wake_loop(self):
+        self.running = False
+
+    def greet(self, text=None):
+        return {"spoken": True, "text": text or "Amy è attiva e operativa."}
 
     def speak(self, text, *, block=False):
         return {"spoken": True, "test": True}
@@ -170,6 +197,49 @@ class ServerTests(unittest.TestCase):
         response, _ = self.call("GET", "/static/app.js")
         self.assertEqual(response.status, 200)
         self.assertIn("javascript", response.headers.get("Content-Type", ""))
+
+    def test_voice_greet_endpoint_speaks(self) -> None:
+        response, data = self.call("POST", "/api/voice/greet", {})
+        self.assertEqual(response.status, 200)
+        self.assertIs(data.get("spoken"), True)
+
+    def test_startup_greeting_is_scheduled_and_can_be_disabled(self) -> None:
+        """All'avvio Amy saluta; l'ambiente può disattivarlo (test automatici)."""
+        spoken = []
+
+        class FakeAssistant:
+            class voice:  # noqa: N801 - semplice contenitore finto
+                @staticmethod
+                def greet(text=None):
+                    spoken.append(text)
+                    return {"spoken": True, "text": text}
+
+        with mock.patch.dict(os.environ, {"AMY_STARTUP_GREETING": "0"}):
+            _schedule_greeting(FakeAssistant(), delay=0.0)
+            time.sleep(0.3)
+        self.assertEqual(spoken, [])
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("AMY_STARTUP_GREETING", None)
+            _schedule_greeting(FakeAssistant(), delay=0.0)
+            deadline = time.monotonic() + 3
+            while not spoken and time.monotonic() < deadline:
+                time.sleep(0.05)
+        self.assertEqual(len(spoken), 1)
+
+    def test_voice_wake_endpoints_start_and_stop(self) -> None:
+        response, _ = self.call("POST", "/api/voice/wake/start", {})
+        self.assertEqual(response.status, 200)
+        self.assertIs(self.assistant.voice.running, True)
+        response, _ = self.call("POST", "/api/voice/wake/stop", {})
+        self.assertEqual(response.status, 200)
+        self.assertIs(self.assistant.voice.running, False)
+
+    def test_voice_wake_requires_explicit_configuration(self) -> None:
+        self.assistant.voice.config = Config({"voice": {"wake_word": {"enabled": False}}})
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            self.call("POST", "/api/voice/wake/start", {})
+        self.assertEqual(context.exception.code, 400)
 
     def test_remote_bind_requires_explicit_consent(self) -> None:
         with self.assertRaises(ConfigError):

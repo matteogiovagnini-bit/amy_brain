@@ -22,7 +22,9 @@ l'interfaccia e il robot Raspberry Pi. Il default è interamente locale:
 
 - Ollama su `127.0.0.1` per la conversazione;
 - interprete offline come fallback;
-- `say` di macOS per la voce;
+- `say` di macOS per la sintesi;
+- `faster-whisper` e `sounddevice` per la trascrizione e il microfono, entrambi
+  locali e gratuiti;
 - SQLite per la memoria;
 - simulatore robotico locale.
 
@@ -74,6 +76,9 @@ python3 -m amy chat
 
 # 5. Stessa dashboard dell'app, aperta nel browser
 python3 -m amy serve --open-browser
+
+# 6. Saluto vocale di prova (sintesi locale, non registra)
+python3 -m amy voice greet
 ```
 
 Con Ollama attivo e un modello installato, Amy usa il modello configurato:
@@ -106,8 +111,9 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 - Conversazione in italiano con provider astratti: Ollama locale, preset online
   gratuito verificato (GroqCloud Free, spento per default), endpoint compatibile
   OpenAI **locale**, oppure interprete offline deterministico.
-- 34 strumenti reali: sistema, applicazioni macOS, file confinati, shell in
-  allowlist, web con protezione SSRF, memoria, voce e robot.
+- 35 strumenti reali: sistema (inclusa la batteria del Mac), applicazioni macOS,
+  file confinati, shell in allowlist, web con protezione SSRF, memoria, voce e
+  robot.
 - Policy A/B/C con conferma esplicita; il livello C non è mai automatico.
 - E-stop e arresto robot mai bloccati da conferma o dal modello.
 - Memoria SQLite locale con fatti, sessioni, attività ed eventi robotici.
@@ -124,6 +130,13 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
   schermo intero e layout responsivo; nessuna risorsa esterna e nessun CDN.
 - Simulatore robotico del protocollo v1 con limiti, ACK/NACK, deduplicazione,
   watchdog e modalità TEST senza movimento fisico.
+- Voce completa e locale: microfono con `sounddevice`, trascrizione con
+  `faster-whisper`, sintesi con `say` e wake word «Amy». All'avvio Amy dice
+  «Amy è attiva e operativa»; l'ascolto continuo parte solo dal pulsante
+  «Ascolta «Amy»» e si ferma da solo dopo 20 minuti.
+- Protezione dall'eco **half-duplex** nel ciclo vocale: mentre Amy parla il
+  microfono resta chiuso e i frammenti che contengono la sua voce vengono
+  scartati, così la sua risposta non viene scambiata per un comando.
 
 ## Cosa non è verificato o non è disponibile
 
@@ -131,9 +144,10 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 | --- | --- |
 | Movimento fisico del robot | Non verificato: nessun hardware collegato in questo ambiente |
 | Collegamento MQTT reale | Sperimentale: implementato, ma senza broker/robot verificato |
-| Riconoscimento vocale | Non operativo qui: mancano `ffmpeg`/`sox` e motore STT locale |
+| Riconoscimento vocale | Verificato il 31 ottobre 2026: `faster-whisper` 1.2.1 con modello `base` locale, `sounddevice` 0.5.6 sul microfono. Verificata anche la trascrizione di parlato reale |
 | Provider online gratuito | Verificato il 31 ottobre 2026: chiave in `~/.amy/secrets.json` (`600`), risposta reale del modello GroqCloud Free. Il modello locale resterebbe il default del repository |
-| Wake word audio | Non è un motore audio dedicato: rileva la parola dopo la trascrizione |
+| Wake word audio | Non è un motore audio dedicato: rileva la parola dopo la trascrizione. Consumi CPU e falsi positivi restano possibili |
+| Qualità vocale su più parlanti | Verificato solo con una voce di prova | Trascrizioni con voci diverse, rumore e accenti |
 | Dashboard remota | Volutamente bloccata di default; nessuna autenticazione |
 | Uso continuativo / produzione | Non dichiarato stabile |
 
@@ -156,12 +170,12 @@ amy/
   memory/     SQLite: sessioni, messaggi, fatti, attività, eventi
   security/   livelli di rischio, policy, path guard, audit
   tools/      strumenti macOS, file, shell, web, memoria, voce, robot
-  voice/      TTS macOS, STT opzionale, registratore, wake word testuale
+  voice/      TTS macOS, STT locale, registratore, wake word testuale
   robot/      protocollo v1, simulatore, link simulato e MQTT
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (189 test)
+tests/        suite unittest (255 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -175,12 +189,12 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 31 ottobre 2026: **189 test, tutti superati**, più il
+Risultato verificato il 2 novembre 2026: **255 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
-reale né il riconoscimento vocale su questa macchina; il provider online richiede
-una chiave personale e non viene esercitato dalla suite con traffico reale. Vedi
-[docs/TEST.md](docs/TEST.md).
+reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il
+provider online richiede una chiave personale e non viene esercitato dalla suite con
+traffico reale. Vedi [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione
 

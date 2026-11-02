@@ -108,6 +108,11 @@ La dashboard funziona anche senza Ollama: in quel caso il nucleo mostra lo stato
   pochi pixel e si sollevano con hover o focus da tastiera; il contenuto scorre
   dentro il pannello e l'ultimo tratto sfuma verso il palco. Il robot è il secondo
   pannello perché contiene l'E-stop software.
+- **Topbar**: oltre a movimento, schermo intero e impostazioni, due azioni vocali:
+  «Ascolta «Amy»» (diventa «Ferma ascolto» mentre il ciclo continuo è attivo,
+  con `aria-pressed` che segue lo stato reale) e «Stop voce» (interrompe la sintesi).
+  Il pannello Voce mostra inoltre la riga «Saluto iniziale» e il pulsante «Ripeti
+  saluto», che riproduce il messaggio di avvio con la stessa sintesi locale.
 - **Sfondo**: campo stellato statico, disegnato con un SVG inline e stelle generate
   localmente, sopra il gradiente notte e la griglia. Nessuna immagine, nessun filmato
   e nessuna animazione: non pesa sulla GPU e resta compatibile con la CSP.
@@ -173,8 +178,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
   «disponibile». Se è attivo un preset online gratuito e manca la chiave API, mostra
   «chiave API non configurata» con il nome della variabile; se è configurata ricorda
   che la conversazione lascia il Mac e usa il servizio scelto.
-- Il pannello **Voce** legge `voice.status()`: TTS, STT, registratore, wake word e
-  `speaking` reale.
+- Il pannello **Voce** legge `voice.status()`: TTS, STT, registratore, wake word,
+  `speaking` reale e il messaggio di avvio (`startup_greeting`). Il testo del saluto
+  mostrato è quello dichiarato dal backend, non una stringa fissa in JavaScript.
 - Il pannello **Robot** legge `robot.status()`. Con il simulatore etichetta i valori
   come simulati/stimati; per MQTT mostra lo stato ricevuto e ricorda che il movimento
   fisico non è verificato.
@@ -190,7 +196,8 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 - Conferme in due fasi: `/api/pending` e `/api/confirm`, con dettagli su rischio,
   argomenti, conseguenze e annullamento.
 - Nuova sessione: `/api/new_session`.
-- Voce: `/api/speak`, `/api/voice/listen`, `/api/voice/stop`.
+- Voce: `/api/speak`, `/api/voice/listen`, `/api/voice/stop`, `/api/voice/greet`
+  e il ciclo continuo `/api/voice/wake/start` e `/api/voice/wake/stop`.
 - Robot: `/api/robot/estop` e `/api/robot/stop`.
 - Aggiornamento stato da `/api/state`, polling base ogni 5 s e più frequente
   (1 s) durante un turno, un'attività, l'ascolto o la sintesi.
@@ -201,7 +208,8 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 
 - Nessun pulsante per interrompere la generazione della risposta: il backend non
   espone questa operazione. «Stop voce» interrompe solo la sintesi.
-- Nessuna registrazione in background: il microfono parte solo premendo il pulsante.
+- Nessuna registrazione in background: il microfono parte solo premendo il pulsante
+  microfono o «Ascolta «Amy»». Il saluto di avvio usa solo la sintesi e non registra.
 - Nessun dato remoto, nessuna telemetria, nessuna sincronizzazione cloud.
 - Nessuna modifica della configurazione dalla UI: il file va modificato a mano.
 - Nessun secondo programma a schermo intero: si usa il Fullscreen API del browser,

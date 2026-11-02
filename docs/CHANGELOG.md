@@ -3,6 +3,122 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [0.3.0] — 2026-10-31
+
+### Aggiunto
+
+- **Attivazione vocale completa e locale.** Registrazione dal microfono con
+  `sounddevice` (PortAudio/Core Audio, WAV PCM 16 bit mono a 16 kHz scritto con il
+  modulo standard `wave`), trascrizione con `faster-whisper` 1.2.1 su CPU (int8,
+  modello `base` scaricato una volta in `~/.amy/models/whisper`) e sintesi con `say`
+  di macOS. Nessun audio lascia il Mac, nessun account o credito richiesto.
+- **Wake word «Amy»** (`amy/voice/wakeword.py`): confronto testuale tollerante
+  ristretto al primo token o dopo un prefisso di richiamo, per riconoscere gli
+  errori tipici dello STT su una parola inventata («Emi», «Ami», «Emy») senza
+  attivarsi su parole comuni.
+- **Ciclo di ascolto continuo** (`VoiceService.start_wake_loop`): parte solo da un
+  comando esplicito (pulsante «Ascolta «Amy»» o `amy voice loop`), si ferma con lo
+  stesso comando e comunque dopo `voice.wake_word.max_minutes` (20 di default,
+  massimo 120).
+- **Endpoint di dashboard** `POST /api/voice/wake/start`, `POST /api/voice/wake/stop`
+  e `POST /api/voice/greet`.
+- **Saluto di avvio**: all'avvio della dashboard Amy pronuncia «Amy è attiva e
+  operativa.» con la sola sintesi locale, senza registrare nulla. Il testo è
+  configurabile (`voice.startup_greeting_text`), disattivabile in modo permanente
+  (`voice.startup_greeting`) o per una sessione (`AMY_STARTUP_GREETING=0`).
+- **Strumento `system.battery`**: legge lo stato della batteria del **Mac**
+  (`pmset -g batt`, sola lettura) e restituisce percentuale, carica o scarica e
+  tempo residuo stimato. Rischio A, nessuna modifica. Su un Mac senza batteria
+  integrata dichiara l'assenza invece di inventare un valore. La batteria del
+  robot resta `robot.status`.
+- **Protezione dall'eco in modalità half-duplex** (`voice.wake_word.echo_guard`):
+  mentre Amy parla il microfono non registra, i frammenti che contengono la sua
+  voce vengono scartati e dopo la sintesi segue una pausa breve
+  (`voice.wake_word.echo_guard_cooldown_s`, default 0,8 s). La sintesi non
+  bloccante viene seguita da un thread di sorveglianza che chiude l'intervallo di
+  sintesi (`MacSayTTS.speech_overlaps`).
+- `python3 -m amy voice greet`: ripete il messaggio di avvio dalla CLI.
+- **Pulsante «Ascolta «Amy»»** nella topbar, con `aria-pressed` che segue lo stato
+  reale, e **«Ripeti saluto»** nel pannello Voce.
+- `tests/test_recorder.py` (12 test), `tests/test_voice_wake.py` (21 test),
+  `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
+  casi in `tests/test_voice_service.py`, `tests/test_server.py`,
+  `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
+  `tests/test_ui_static.py`: 255 test in totale, tutti superati.
+- `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
+  riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
+  risponde davvero.
+
+### Modificato
+
+- `voice.stt.engine` default `auto`: sceglie `faster-whisper` se installato, altrimenti
+  `whisper-cli`; `voice.recorder.engine` default `auto`: preferisce `sounddevice`,
+  poi `ffmpeg`. Il motore `faster-whisper` viene usato come ripiego locale anche
+  quando è configurato `whisper-cli` senza comando o modello.
+- Corretto un difetto latente in `FasterWhisperSTT`: il metodo `available()` sovrascriveva
+  la proprietà `available` della classe base.
+- Precaricamento del modello STT in background all'avvio del server
+  (`VoiceService.warm()`): il primo comando vocale non aspetta il caricamento.
+- `NSMicrophoneUsageDescription` aggiunto a `Info.plist`: il permesso Microfono è
+  attribuito ad «Amy Core» e la sua descrizione spiega che la registrazione parte
+  solo da un comando.
+- L'app nativa passa `AMY_STARTUP_GREETING=0` durante il self-test, che non deve
+  emettere audio.
+- Documentazione aggiornata: `docs/VOCE.md` riscritto, nuove voci in `docs/GRATUITO.md`
+  (licenze di `sounddevice`, `ctranslate2`, NumPy, `huggingface-hub`, `tokenizers`,
+  `onnxruntime`), `docs/CONFIGURAZIONE.md`, `docs/INTERFACCIA.md`,
+  `docs/ARCHITETTURA.md`, `docs/TEST.md`, `docs/STATO_PROGETTO.md`, `README.md` e
+  decisione **D-023** in `docs/DECISIONI.md`.
+
+### Corretto
+
+- **Registrazione senza attese infinite.** PortAudio può bloccarsi dentro il HAL di
+  Core Audio (`Pa_OpenStream` non restituisce il controllo): la cattura ora gira in
+  un thread con limite `durata + 6 s`, poi `VoiceError` «Il microfono non risponde»,
+  stato `stuck: true` e nessun nuovo tentativo per 60 secondi. Il ciclo di wake word
+  si ferma dichiarando `microfono non rispondente`; `POST /api/voice/listen` risponde
+  400 dopo ~11 s e `POST /api/voice/wake/start` risponde 503, invece di lasciare la
+  richiesta appesa per sempre.
+- **Heartbeat dell'app nativa** spostato su `DispatchSourceTimer` in una coda
+  dedicata, avviato prima del backend: il timer sul run loop principale poteva
+  fermarsi quando la finestra era occupata e il backend si chiudeva da solo durante
+  l'ascolto continuo. Tolleranza del watchdog portata a 20 s, controllo di salute a
+  6 s con 3 fallimenti consecutivi, messaggio di chiusura con file, età e tolleranza.
+- **Avviso «backend non risponde» non modale** (`beginSheetModal`): con
+  `runModal` l'app restava congelata finché l'utente non rispondeva.
+- **Sintesi bloccante con limite di tempo** (`MacSayTTS.block_timeout`, minimo 20 s):
+  un `say` appeso non blocca più il saluto di avvio né l'endpoint HTTP; il processo
+  viene terminato e il risultato dichiara `spoken: false` con il motivo.
+- Il saluto di avvio registra «pronunciato» solo quando la sintesi è davvero
+  conclusa; altrimenti lascia un avviso con il motivo.
+
+### Verificato dal vivo
+
+- **2 novembre 2026, protezione dall'eco**: tre comandi «Amy, che ore sono?» dagli
+  altoparlanti con il ciclo attivo. Due rilevati, uno perso perché pronunciato
+  mentre Amy rispondeva (microfono chiuso). Forzando una sintesi durante una
+  registrazione, il log ha riportato
+  `Frammento scartato: Amy stava parlando (protezione dall'eco).` e nessun comando
+  è stato eseguito.
+- **2 novembre 2026, batteria del Mac**: `python3 -m amy ask "quanto è carica la
+  batteria del mac?" --offline` → «Batteria del Mac al 100%, carica.» (nessun
+  «0:00» inventato quando il tempo residuo non è utile).
+- Il ciclo CLI ora condivide la stessa `VoiceService` dell'assistente: prima ne
+  creava una seconda e l'echo guard non vedeva la sintesi, e la risposta veniva
+  troncata da `close()`.
+
+### Limiti dichiarati
+
+- La wake word **non** è un rilevatore acustico dedicato: consuma STT su tutto
+  l'audio ascoltato e può avere falsi positivi. Un filtro acustico locale
+  (per esempio openWakeWord) davanti allo STT non è ancora integrato.
+- Con la protezione half-duplex attiva, **mentre Amy parla il microfono è
+  chiuso**: un comando dettato durante la risposta viene perso e va ripetuto, e
+  l'interruzione a voce non è più possibile.
+- Il consumo CPU del ciclo continuo non è stato misurato su periodi lunghi.
+- La qualità della trascrizione è stata verificata con una sola voce di prova e con
+  frasi brevi.
+
 ## [0.2.0] — 2026-10-31
 
 ### Aggiunto

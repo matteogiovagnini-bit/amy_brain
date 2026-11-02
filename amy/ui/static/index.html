@@ -37,6 +37,7 @@
         <button class="ghost small" id="motionBtn" type="button" aria-pressed="false">Movimento: attivo</button>
         <button class="ghost small" id="fullscreenBtn" type="button" aria-pressed="false">Schermo intero</button>
         <button class="ghost small" id="settingsBtn" type="button">Impostazioni</button>
+        <button class="ghost small" id="wakeBtn" type="button" aria-pressed="false" title="Ascolta la parola «Amy» dal microfono del Mac">Ascolta «Amy»</button>
         <button class="ghost small" id="stopBtn" type="button" title="Interrompi la sintesi vocale in corso">Stop voce</button>
       </div>
     </header>
@@ -200,7 +201,11 @@
             <dt>Riconoscimento</dt><dd id="voiceStt">Non disponibile</dd>
             <dt>Registratore</dt><dd id="voiceRecorder">Non disponibile</dd>
             <dt>Wake word</dt><dd id="voiceWake">Non configurata</dd>
+            <dt>Saluto</dt><dd id="voiceGreeting">Non configurato</dd>
           </dl>
+          <div class="card-actions">
+            <button class="ghost" id="greetBtn" type="button" aria-describedby="voiceNote">Ripeti saluto</button>
+          </div>
           <p class="hint" id="voiceNote">La voce è opzionale. La chat testuale funziona anche senza microfono.</p>
         </section>
 

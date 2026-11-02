@@ -94,6 +94,36 @@ enum AppLog {
 
 // MARK: - Controllo del backend
 
+/// Trasforma una stringa in un literal JavaScript sicuro.
+/// Serve per costruire gli script di verifica senza iniettare codice.
+func jsonString(_ value: String) -> String {
+    let data = (try? JSONSerialization.data(withJSONObject: [value], options: [])) ?? Data("[\"\"]".utf8)
+    guard let array = try? JSONSerialization.jsonObject(with: data) as? [String] else { return "\"\"" }
+    return array.first.map { jsonQuote($0) } ?? "\"\""
+}
+
+/// Escape di una stringa per un literal JavaScript.
+func jsonQuote(_ value: String) -> String {
+    var out = "\""
+    for character in value.unicodeScalars {
+        switch character {
+        case "\"": out += "\\\""
+        case "\\": out += "\\\\"
+        case "\n": out += "\\n"
+        case "\r": out += "\\r"
+        case "\t": out += "\\t"
+        default:
+            if character.value < 0x20 {
+                out += String(format: "\\u%04x", character.value)
+            } else {
+                out.unicodeScalars.append(character)
+            }
+        }
+    }
+    out += "\""
+    return out
+}
+
 /// Verifica HTTP senza passare da ATS: connessione TCP a 127.0.0.1 e richiesta
 /// grezza. `URLSession` rifiuta infatti il loopback su IP literal.
 func localServerResponds(port: Int, timeout: TimeInterval = 1.0) -> Bool {
@@ -148,11 +178,14 @@ final class Backend {
     private let pythonPath: String
     private let heartbeatPath: String
     private var logHandle: FileHandle?
+    /// Se falso il backend non pronuncia il messaggio di avvio (usato nei test).
+    private let startupGreeting: Bool
 
-    init(repoPath: String, pythonPath: String, heartbeatPath: String) {
+    init(repoPath: String, pythonPath: String, heartbeatPath: String, startupGreeting: Bool = true) {
         self.repoPath = repoPath
         self.pythonPath = pythonPath
         self.heartbeatPath = heartbeatPath
+        self.startupGreeting = startupGreeting
     }
 
     var baseURL: URL {
@@ -211,6 +244,9 @@ final class Backend {
         // Il backend deve chiudersi se questa app termina in modo improvviso.
         environment["AMY_PARENT_PID"] = String(getpid())
         environment["AMY_HEARTBEAT_FILE"] = heartbeatPath
+        if !startupGreeting {
+            environment["AMY_STARTUP_GREETING"] = "0"
+        }
         let existingPath = environment["PYTHONPATH"] ?? ""
         environment["PYTHONPATH"] = existingPath.isEmpty ? repoPath : repoPath + ":" + existingPath
         process.environment = environment
@@ -282,7 +318,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private var webView: WKWebView!
     private var backend: Backend?
     private var monitorTimer: Timer?
-    private var heartbeatTimer: Timer?
+    private var heartbeatTimer: DispatchSourceTimer?
     private var signalSources: [DispatchSourceSignal] = []
     private var failedHealthChecks = 0
     private var didReportCrash = false
@@ -307,6 +343,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         return NSSize(width: width, height: height)
     }()
 
+    /// Selettore CSS da portare in vista prima dello snapshot:
+    /// `--snapshot-scroll "[aria-labelledby='voiceTitle']"`. Serve a verificare
+    /// le schede che stanno dentro il pannello scorrevole.
+    private let snapshotScroll: String? = {
+        let args = CommandLine.arguments
+        guard let index = args.firstIndex(of: "--snapshot-scroll"), index + 1 < args.count else { return nil }
+        return args[index + 1]
+    }()
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
         buildMainMenu()
@@ -314,8 +359,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         terminateStaleInstance()
         writePidFile()
         // L'heartbeat deve esistere prima del backend: se manca, il backend
-        // deduce che il genitore è morto e si chiude subito.
-        writeHeartbeat()
+        // deduce che il genitore è morto e si chiude subito. Il timer parte
+        // qui, non dopo l'avvio del backend: durante l'attesa il file deve
+        // restare aggiornato, altrimenti il watchdog lo considera scaduto.
+        startHeartbeat()
 
         let repoPath = resolveRepositoryPath()
         guard let repoPath = repoPath else {
@@ -326,7 +373,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         let backend = Backend(
             repoPath: repoPath,
             pythonPath: resolvePythonPath(),
-            heartbeatPath: heartbeatURL.path
+            heartbeatPath: heartbeatURL.path,
+            // Nel self-test il saluto viene omesso: il test verifica la UI, non l'audio.
+            startupGreeting: !selfTestMode
         )
         do {
             try backend.start()
@@ -359,7 +408,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         monitorTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
             self?.checkBackend()
         }
-        startHeartbeat()
         AppLog.write("App avviata: \(backend.baseURL.absoluteString)")
     }
 
@@ -413,6 +461,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     }
 
     /// Aggiorna il heartbeat: il backend esce se il file non viene più toccato.
+    /// Scrive sempre su disco: il backend legge il file, non lo tiene in memoria.
     private func writeHeartbeat() {
         let directory = heartbeatURL.deletingLastPathComponent()
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -422,13 +471,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
 
     private func startHeartbeat() {
         writeHeartbeat()
-        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        // Thread dedicato invece di un `Timer` sul main run loop: se l'app
+        // mostra un alert modale (per esempio «backend non risponde»), il main
+        // thread è bloccato e i timer non scattano. Senza questo, l'heartbeat
+        // si fermava e il backend chiudeva la dashboard da solo.
+        let queue = DispatchQueue(label: "local.amy.brain.heartbeat")
+        heartbeatTimer = DispatchSource.makeTimerSource(queue: queue)
+        heartbeatTimer?.schedule(deadline: .now() + 2.0, repeating: 2.0)
+        heartbeatTimer?.setEventHandler { [weak self] in
             self?.writeHeartbeat()
         }
+        heartbeatTimer?.resume()
     }
 
     private func stopHeartbeat() {
-        heartbeatTimer?.invalidate()
+        heartbeatTimer?.cancel()
         heartbeatTimer = nil
         try? FileManager.default.removeItem(at: heartbeatURL)
     }
@@ -536,7 +593,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard let backend = backend else { return }
         let port = backend.port
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            let ok = localServerResponds(port: port, timeout: 2.0)
+            // Timeout generoso: durante una trascrizione vocale il backend è
+            // occupato e può rispondere in più secondi. Un controllo troppo
+            // severo dichiarerebbe «backend morto» mentre è solo occupato.
+            let ok = localServerResponds(port: port, timeout: 6.0)
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 if ok {
@@ -544,7 +604,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                     return
                 }
                 self.failedHealthChecks += 1
-                if self.failedHealthChecks >= 2 && !self.didReportCrash {
+                // Tre controlli consecutivi falliti: con intervalli da 8 s
+                // servono circa 24 s di backend irraggiungibile.
+                if self.failedHealthChecks >= 3 && !self.didReportCrash {
                     self.didReportCrash = true
                     self.presentBackendLost()
                 }
@@ -558,26 +620,41 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         alert.informativeText = "Il server locale si è fermato. Riavvio in corso, altrimenti rilancia Amy Core."
         alert.addButton(withTitle: "Riavvia backend")
         alert.addButton(withTitle: "Esci")
-        if alert.runModal() == .alertFirstButtonReturn {
-            backend?.stop()
-            didReportCrash = false
-            failedHealthChecks = 0
-            let repoPath = resolveRepositoryPath()
-            guard let repoPath = repoPath else { return }
-            let restarted = Backend(
-                repoPath: repoPath,
-                pythonPath: resolvePythonPath(),
-                heartbeatPath: heartbeatURL.path
-            )
-            do {
-                try restarted.start()
-                backend = restarted
-                webView.load(URLRequest(url: restarted.baseURL))
-            } catch {
-                presentFatal(message: error.localizedDescription)
+        // Avviso non modale: `runModal` blocca il thread principale finché
+        // l'utente non risponde, e con esso la finestra e i controlli
+        // periodici. Una sheet lascia l'app viva e non la congela per ore.
+        let handle: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard let self = self else { return }
+            if response == .alertFirstButtonReturn {
+                self.restartBackend()
+            } else {
+                NSApp.terminate(nil)
             }
+        }
+        if let window = window {
+            alert.beginSheetModal(for: window, completionHandler: handle)
         } else {
-            NSApp.terminate(nil)
+            handle(alert.runModal())
+        }
+    }
+
+    private func restartBackend() {
+        backend?.stop()
+        didReportCrash = false
+        failedHealthChecks = 0
+        guard let repoPath = resolveRepositoryPath() else { return }
+        let restarted = Backend(
+            repoPath: repoPath,
+            pythonPath: resolvePythonPath(),
+            heartbeatPath: heartbeatURL.path,
+            startupGreeting: !selfTestMode
+        )
+        do {
+            try restarted.start()
+            backend = restarted
+            webView.load(URLRequest(url: restarted.baseURL))
+        } catch {
+            presentFatal(message: error.localizedDescription)
         }
     }
 
@@ -625,29 +702,65 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         // Attende che il primo giro di stato popoli i pannelli.
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
             guard let self = self else { return }
-            let configuration = WKSnapshotConfiguration()
-            configuration.rect = self.webView.bounds
-            self.webView.takeSnapshot(with: configuration) { image, error in
-                guard let image = image,
-                      let tiff = image.tiffRepresentation,
-                      let bitmap = NSBitmapImageRep(data: tiff),
-                      let png = bitmap.representation(using: .png, properties: [:]) else {
-                    print("SNAPSHOT FALLITO: \(error?.localizedDescription ?? "immagine non disponibile")")
-                    self.backend?.stop()
-                    exit(1)
+            if let selector = self.snapshotScroll {
+                self.scrollTo(selector: selector) {
+                    self.takeSnapshot(to: path)
                 }
-                do {
-                    try png.write(to: URL(fileURLWithPath: path))
-                    print("SNAPSHOT: \(path)")
-                } catch {
-                    print("SNAPSHOT FALLITO: \(error.localizedDescription)")
-                    self.backend?.stop()
-                    exit(1)
-                }
-                self.backend?.stop()
-                self.removePidFile()
-                exit(0)
+                return
             }
+            self.takeSnapshot(to: path)
+        }
+    }
+
+    /// Porta in vista un elemento prima dello snapshot.
+    private func scrollTo(selector: String, completion: @escaping () -> Void) {
+        let script = """
+        (function () {
+          var target = document.querySelector(\(jsonString(selector)));
+          if (!target) return 'ERRORE:selettore non trovato';
+          target.scrollIntoView({block: 'start'});
+          return 'OK:scrollato';
+        })();
+        """
+        webView.evaluateJavaScript(script) { [weak self] result, error in
+            if let error = error {
+                AppLog.write("Scroll non riuscito: \(error.localizedDescription)")
+            } else if let result = result as? String {
+                AppLog.write("Scroll: \(result)")
+            }
+            // Breve attesa: il layout deve assestarsi prima della cattura.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                completion()
+            }
+            _ = self
+        }
+    }
+
+    /// Cattura la WebView e scrive il PNG.
+    private func takeSnapshot(to path: String) {
+        let configuration = WKSnapshotConfiguration()
+        configuration.rect = webView.bounds
+        webView.takeSnapshot(with: configuration) { [weak self] image, error in
+            guard let self = self else { return }
+            guard let image = image,
+                  let tiff = image.tiffRepresentation,
+                  let bitmap = NSBitmapImageRep(data: tiff),
+                  let png = bitmap.representation(using: .png, properties: [:]) else {
+                print("SNAPSHOT FALLITO: \(error?.localizedDescription ?? "immagine non disponibile")")
+                self.backend?.stop()
+                exit(1)
+            }
+            do {
+                try png.write(to: URL(fileURLWithPath: path))
+                print("SNAPSHOT: \(path)")
+            } catch {
+                print("SNAPSHOT FALLITO: \(error.localizedDescription)")
+                self.backend?.stop()
+                exit(1)
+            }
+            self.backend?.stop()
+            self.removePidFile()
+            exit(0)
         }
     }
 

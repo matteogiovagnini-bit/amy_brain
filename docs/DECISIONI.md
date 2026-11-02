@@ -311,3 +311,40 @@ identificativi non cambiano, così il codice della UI non è stato riscritto. La
 verifica è visiva tramite snapshot; interazioni manuali (ridimensionamento,
 fullscreen, focus) restano da provare a mano.
 
+
+## D-023 — Voce locale completa: STT, registratore e wake word sul testo
+
+**Contesto:** per attivare Amy a voce servivano tre pezzi: un registratore dal
+microfono, un motore di riconoscimento vocale e una wake word. Su questo Mac
+(Intel, macOS 26) le opzioni gratuite sono state valutate una per una:
+
+- Apple `SpeechAnalyzer` (API nuova, macOS 26) dichiara l'asset on-device
+  `unsupported` su questa architettura: scartata.
+- `SFSpeechRecognizer` richiede autorizzazione di sistema e un bundle con
+  `NSSpeechRecognitionUsageDescription`: non verificabile dal backend.
+- `ffmpeg` e `sox` non sono installati e Homebrew non è presente.
+- `faster-whisper` 1.2.1 (MIT) con `sounddevice` 0.5.6 (MIT) gira su CPU
+  (ctranslate2 int8) e non richiede account, carte o crediti.
+
+**Scelta:**
+
+- registrazione in-process con `sounddevice` (PortAudio/Core Audio), WAV PCM
+  16 bit mono a 16 kHz scritto con il modulo standard `wave`;
+- trascrizione locale con `faster-whisper`, modello `base` scaricato una sola
+  volta in `~/.amy/models/whisper` (int8, CPU);
+- wake word **testuale**: il confronto avviene sulla trascrizione, non sul
+  segnale audio;
+- tolleranza di confronto ristretta al primo token o dopo un prefisso di
+  richiamo, perché «Amy» è una parola inventata e lo STT la scrive quasi sempre
+  «Emi», «Ami» o «Emy»;
+- l'ascolto continuo parte solo da un comando esplicito (pulsante «Ascolta «Amy»»
+  o `amy voice loop`) e si ferma al comando opposto o dopo
+  `voice.wake_word.max_minutes`;
+- il messaggio di avvio «Amy è attiva e operativa.» usa solo la sintesi locale e
+  non registra nulla.
+
+**Conseguenze:** la voce è completa e verificata end-to-end senza servizi a
+pagamento e senza audio che esce dal Mac. Il limite dichiarato è che la wake word
+non è keyword spotting acustico: consuma STT su tutto l'audio ascoltato e può
+attivarsi su frasi che iniziano con parole simili. Per un rilevamento a basso
+consumo serve un filtro acustico (per esempio openWakeWord) davanti allo STT.

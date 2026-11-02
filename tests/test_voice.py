@@ -45,6 +45,19 @@ class MacSayTTSTests(unittest.TestCase):
             self.assertTrue(target.exists())
             self.assertGreater(target.stat().st_size, 500)
 
+    def test_block_timeout_is_bounded_and_proportional(self) -> None:
+        """La sintesi bloccante non deve poter attendere per sempre.
+
+        `say` può restare appeso se il dispositivo audio non è disponibile:
+        il saluto di avvio non deve bloccare la dashboard a tempo indefinito.
+        """
+        self.assertGreaterEqual(MacSayTTS.block_timeout(""), 20.0)
+        self.assertGreaterEqual(MacSayTTS.block_timeout("Amy è attiva."), 20.0)
+        self.assertEqual(
+            MacSayTTS.block_timeout("x" * 4000),
+            1000.0,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

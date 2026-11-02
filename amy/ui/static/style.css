@@ -1329,6 +1329,14 @@ kbd {
 
 .danger-row button { flex: 1; }
 
+.card-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.card-actions button { flex: 1; }
+
 .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

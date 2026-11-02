@@ -148,6 +148,29 @@ class StaticUiTests(unittest.TestCase):
         self.assertNotIn("<img", html)
         self.assertNotIn("<video", html)
 
+    def test_wake_listening_starts_only_from_the_button(self) -> None:
+        """L'ascolto continuo deve partire solo da un comando esplicito."""
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="wakeBtn"', html)
+        self.assertIn('aria-pressed="false"', html)
+        self.assertIn("/api/voice/wake/start", js)
+        self.assertIn("/api/voice/wake/stop", js)
+        # Un solo punto di avvio, dentro il gestore del click.
+        self.assertEqual(js.count("/api/voice/wake/start"), 1)
+        self.assertIn('wake.addEventListener("click", toggleWake)', js)
+
+    def test_startup_greeting_is_visible_and_repeatable(self) -> None:
+        """Il saluto di avvio è dichiarato nella UI e ripetibile a comando."""
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn('id="voiceGreeting"', html)
+        self.assertIn('id="greetBtn"', html)
+        self.assertIn("/api/voice/greet", js)
+        self.assertIn('greetButton.addEventListener("click", greet)', js)
+        # Il testo del saluto arriva dai dati reali dello stato.
+        self.assertIn("startup_greeting", js)
+
     def test_accessibility_basics(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         css = (STATIC / "style.css").read_text(encoding="utf-8")

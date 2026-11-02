@@ -17,6 +17,7 @@ HELP_TEXT = (
     "In modalità offline capisco comandi semplici in italiano. Per esempio:\n"
     "• «che ore sono?»\n"
     "• «stato del sistema» oppure «mostrami i processi»\n"
+    "• «quanto è carica la batteria del Mac?»\n"
     "• «apri Safari», «chiudi Note», «porta in primo piano Terminale»\n"
     "• «cerca documentazione ESP32-S3» oppure «apri https://…»\n"
     "• «leggi ~/Progetti/…/README.md», «elenca ~/Progetti»\n"
@@ -85,6 +86,10 @@ class OfflineProvider(AIProvider):
         if re.search(r"\b(impostazioni|permessi)\b", lowered):
             panel = "microphone" if "microfono" in lowered else "privacy"
             return _action_payload("system.settings", {"panel": panel}, "Apro le impostazioni pertinenti.")
+        if re.search(r"\b(batteria|carica)\b", lowered) and re.search(
+            r"\b(mac|macbook|portatile|computer|notebook)\b", lowered
+        ):
+            return _action_payload("system.battery", {}, "Controllo la batteria del Mac.")
 
         # Applicazioni.
         match = re.search(r"^(?:amy[, ]+)?(?:apri|avvia|lancia)\s+(?:l'app(?:licazione)?\s+|il programma\s+)?(.+)$", text, re.I)
@@ -206,6 +211,16 @@ class OfflineProvider(AIProvider):
                     result.get("disco_libero_gb", "?"),
                 )
             )
+        if tool == "system.battery" and isinstance(result, dict):
+            if not result.get("presente"):
+                return "Nessuna batteria integrata rilevata su questo Mac: è collegato alla rete."
+            parts = ["Batteria del Mac al %s%%" % result.get("percentuale", "?")]
+            if result.get("stato"):
+                parts.append(str(result["stato"]))
+            remaining = result.get("tempo_rimanente")
+            if remaining and remaining != "0:00":
+                parts.append("%s rimanenti" % remaining)
+            return ", ".join(parts) + "."
         if tool == "robot.status" and isinstance(result, dict):
             joints = result.get("joints") or []
             return (

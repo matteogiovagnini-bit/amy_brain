@@ -53,9 +53,31 @@ def _load_config() -> Config:
     return config
 
 
-def _build_assistant(config: Config, *, offline: bool = False) -> Assistant:
+def _build_assistant(
+    config: Config, *, offline: bool = False, voice: Optional[VoiceService] = None
+) -> Assistant:
     provider = OfflineProvider() if offline else None
-    return Assistant(config, provider=provider)
+    return Assistant(config, provider=provider, voice=voice)
+
+
+def _probe_microphone(recorder) -> Dict[str, Any]:
+    """Apre il microfono per un secondo e scarta subito l'audio.
+
+    Serve a distinguere «il modulo è installato» da «l'ingresso audio
+    funziona»: il 2026-11-01 il registratore risultava disponibile mentre
+    PortAudio restava bloccato nel HAL di CoreAudio. La registrazione dura un
+    secondo, non viene conservata e parte solo perché l'utente ha chiesto il
+    controllo dell'ambiente.
+    """
+    try:
+        audio = recorder.record(1.0)
+    except Exception as exc:  # noqa: BLE001 - qualunque errore è un esito del controllo
+        return {"ok": False, "detail": str(exc)[:200]}
+    try:
+        Path(audio).unlink()
+    except OSError:
+        pass
+    return {"ok": True, "detail": "un secondo di ingresso letto e scartato"}
 
 
 def _risk_badge(risk: str) -> str:
@@ -229,6 +251,9 @@ def cmd_doctor(args: argparse.Namespace) -> int:
             add("TTS test su file", False, str(exc), "ATTENZIONE")
     add("STT", bool(voice_status["stt"].get("available")), "%s · %s" % (voice_status["stt"].get("engine"), voice_status["stt"].get("model", "")))
     add("Registratore audio", bool(voice_status["recorder"].get("available")), "%s" % voice_status["recorder"].get("engine"))
+    if voice_status["recorder"].get("available"):
+        mic = _probe_microphone(voice.recorder)
+        add("Microfono", mic["ok"], mic["detail"], "OK" if mic["ok"] else "ATTENZIONE")
 
     # AppleScript di sola lettura.
     try:
@@ -645,6 +670,8 @@ def cmd_voice(args: argparse.Namespace) -> int:
                 print("Testo mancante.", file=sys.stderr)
                 return 2
             print(_json(voice.speak(" ".join(args.text), block=True)))
+        elif args.action == "greet":
+            print(_json(voice.greet()))
         elif args.action == "listen":
             text = voice.listen_once(args.seconds)
             print(text or "(nessun parlato rilevato)")
@@ -662,26 +689,35 @@ def cmd_voice(args: argparse.Namespace) -> int:
         elif args.action == "loop":
             print("Ascolto continuo della wake word. Ctrl-C per terminare.")
 
+            # Un solo assistente per tutto il ciclo, con la stessa
+            # `VoiceService`: la sintesi deve restare viva mentre parla, così
+            # l'echo guard vede davvero quando Amy sta parlando.
+            shared = {"assistant": None}
+
             def on_command(text: str) -> None:
                 print("Tu (voce) › %s" % text)
                 if not args.execute:
                     print("(comando trascritto; usa --execute per eseguirlo)")
                     return
-                assistant = _build_assistant(config, offline=args.offline)
-                try:
-                    result = assistant.handle(text)
-                    print("Amy › %s" % result.reply)
-                    if result.pending:
-                        print("Conferma necessaria: usa 'amy chat' per autorizzare.")
-                    else:
-                        assistant.speak(result.reply)
-                finally:
-                    assistant.close()
+                if shared["assistant"] is None:
+                    shared["assistant"] = _build_assistant(
+                        config, offline=args.offline, voice=voice
+                    )
+                assistant = shared["assistant"]
+                result = assistant.handle(text)
+                print("Amy › %s" % result.reply)
+                if result.pending:
+                    print("Conferma necessaria: usa 'amy chat' per autorizzare.")
+                else:
+                    assistant.speak(result.reply)
 
             try:
                 voice.run_wake_loop(on_command)
             except KeyboardInterrupt:
                 print("\nAscolto terminato.")
+            finally:
+                if shared["assistant"] is not None:
+                    shared["assistant"].close()
         else:
             print("Azione voce non riconosciuta.", file=sys.stderr)
             return 2
@@ -787,6 +823,7 @@ def build_parser() -> argparse.ArgumentParser:
     voice_sub.add_parser("status")
     vs = voice_sub.add_parser("speak")
     vs.add_argument("text", nargs="+")
+    voice_sub.add_parser("greet", help="pronuncia il messaggio di avvio")
     vl = voice_sub.add_parser("listen")
     vl.add_argument("--seconds", type=float, default=5.0)
     va = voice_sub.add_parser("ask")

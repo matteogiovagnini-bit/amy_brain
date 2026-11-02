@@ -23,22 +23,23 @@ python3 -m amy memory sessions
 
 ## 2. Esito verificato
 
-Data della verifica: **31 ottobre 2026**.
+Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 189 tests in 11.8s
+Ran 255 tests in 19.0s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 189, tutti superati.
+`compileall` non produce errori. I test sono 255, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
+| `tests/test_battery.py` | 11 | parsing di `pmset -g batt`, Mac senza batteria, batteria carica senza «0:00», strumento in sola lettura, distinzione fra batteria del Mac e del robot |
 | `tests/test_config.py` | 16 | default gratuiti, endpoint remoto, fallback, schema URL, segreti, init |
 | `tests/test_files.py` | 9 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
 | `tests/test_free_only.py` | 6 | nessuna dipendenza obbligatoria, host commerciali, default locali |
-| `tests/test_native_app.py` | 8 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat |
+| `tests/test_native_app.py` | 10 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, avviso non modale |
 | `tests/test_memory.py` | 5 | sessioni, messaggi, conteggio, fatti, attività, redazione |
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
@@ -47,17 +48,20 @@ OK
 | `tests/test_prompt_budget.py` | 2 | prompt compatto entro il limite gratuito, catalogo senza campi riservati alla UI |
 | `tests/test_protocol.py` | 8 | envelope, versione, campi extra, ruoli, topic |
 | `tests/test_providers.py` | 6 | stato del fallback, endpoint locale/remoto, chiave opzionale |
+| `tests/test_recorder.py` | 12 | scelta del motore audio, WAV valido, stato senza modulo, blocco del HAL con limite di tempo, blocco dichiarato e non ritentato, sonda microfono del doctor |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
-| `tests/test_server_watchdog.py` | 3 | heartbeat assente o scaduto: il backend si chiude |
-| `tests/test_server.py` | 14 | API, conferme, stato con sistema e voce, bind remoto, header |
+| `tests/test_server_watchdog.py` | 4 | heartbeat assente o scaduto: il backend si chiude, con tolleranza 20 s |
+| `tests/test_server.py` | 18 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), bind remoto, header |
 | `tests/test_shell.py` | 5 | comandi ammessi, rifiuto arbitrario, git, timeout |
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
 | `tests/test_system_info.py` | 5 | dati locali reali, disco, nessun segreto o dato robot |
 | `tests/test_tts_cache.py` | 2 | elenco voci calcolato una sola volta |
-| `tests/test_ui_static.py` | 17 | otto stati, palco a strati, barra comandi separata, campo stellato locale, accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
-| `tests/test_voice_service.py` | 3 | `speaking` reale dal TTS, stop della sintesi |
-| `tests/test_voice.py` | 5 | TTS, stato, wake word testuale, STT assente |
-| **Totale** | **189** | |
+| `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
+| `tests/test_ui_static.py` | 19 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
+| `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
+| `tests/test_voice.py` | 6 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante |
+| `tests/test_voice_wake.py` | 21 | wake word tollerante, comando estratto, ciclo che non parte da solo, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
+| **Totale** | **255** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.
@@ -129,7 +133,11 @@ questa tabella.
 - Accessibilità statica: skip link, `:focus-visible`, `aria-live`, dialog, focus trap,
   `Esc`, stato non comunicato solo dal colore.
 - Gli header di sicurezza sono presenti.
-- La voce riporta correttamente l'assenza di STT e registratore.
+- La voce riporta correttamente disponibilità di STT e registratore.
+- Il pulsante «Ascolta «Amy»» esiste e chiama l'avvio solo dentro il gestore del
+  click: nessun ascolto automatico al caricamento.
+- Gli endpoint `/api/voice/wake/start` e `/stop` avviano e fermano il ciclo; senza
+  configurazione esplicita l'avvio restituisce `400`.
 - Lo stato `speaking` del servizio vocale riflette la sintesi reale e si azzera con
   `stop_speaking`.
 - L'elenco delle voci TTS viene calcolato una sola volta (cache): ogni richiesta di
@@ -147,7 +155,9 @@ questa tabella.
 | `python3 -m amy ask "che ore sono?" --offline` | Risposta italiana corretta |
 | `python3 -m amy ask "rispondi solo con: ciao"` | Risposta `ciao` dal modello Ollama reale |
 | `python3 -m amy robot status` | Simulatore in `TEST`, non calibrato, `simulated: true`, `physical_motion: false` |
-| `python3 -m amy voice status` | TTS disponibile, STT e registratore non disponibili |
+| `python3 -m amy voice status` | TTS, STT `faster-whisper` e registratore `sounddevice` disponibili; `ready_for_voice_commands: true` |
+| `POST /api/voice/listen` | Registrazione reale di 6 s con «Amy, che ore sono?» dagli altoparlanti → trascrizione «Emi, che ore sono?» |
+| `POST /api/voice/wake/start` | Wake word rilevata dal parlato, comando `che ore sono` eseguito, risposta «Sono le 17:21 del 31/10/2026.» pronunciata e scritta in chat |
 | `python3 -m amy memory sessions` | Sessione con conteggio messaggi reale |
 | `python3 apps/AmyCore/selftest.py` | App nativa: dashboard montata nella WebView, messaggio inviato dal DOM, risposta in chat, backend chiuso |
 | SIGKILL dell'app | Il backend si chiude entro ~10 s grazie al watchdog heartbeat: nessun processo orfano |
@@ -168,9 +178,9 @@ offline, senza fingere che il modello sia disponibile.
 | MQTT reale | Nessun broker | Broker, credenziali, dispatcher sul Pi |
 | ACK/NACK reali | Nessun nodo | ESP32-L e ESP32-T collegati |
 | Watchdog reale | Solo simulazione | Perdita heartbeat su hardware |
-| STT | Motore assente | `ffmpeg`/`sox` e modello locale |
-| Microfono | Registratore assente | Permesso Microfono e dispositivo |
-| Wake word audio | Solo testuale | Filtro acustico dedicato |
+| Qualità STT su più parlanti | Una sola voce di prova | Trascrizioni con voci diverse, rumore, accenti |
+| Wake word acustica | Solo testuale | Filtro acustico dedicato a basso consumo |
+| Consumo CPU prolungato | Test brevi | Misura su ore di ciclo continuo |
 | Dashboard remota | Volutamente non esposta | Autenticazione, se mai necessaria |
 | Uso prolungato | Solo test brevi | Prove di ore/giorni, memoria, log |
 | Sicurezza di rete | Solo loopback | Minaccia reale su rete locale |
@@ -213,6 +223,36 @@ python3 -m amy voice status
 ```
 
 La sintesi deve essere udibile. Se non lo è, controllare volume e voce configurata.
+
+Ascolto e wake word richiedono microfono e modello locale:
+
+```bash
+python3 -m amy voice listen --seconds 6   # se il comando è disponibile
+python3 -m amy voice loop                 # trascrive senza eseguire
+python3 -m amy voice loop --execute       # esegue e pronuncia la risposta
+```
+
+Nella dashboard il pulsante «Ascolta «Amy»» avvia lo stesso ciclo dell'app; il
+pulsante «Stop voce» interrompe solo la sintesi. Un ascolto non parte mai da solo:
+verificare che lo stato `running` resti falso finché non si preme il pulsante.
+
+`python3 -m amy doctor` apre il microfono per un secondo e scarta l'audio: la voce
+«Microfono» distingue «il modulo è installato» da «l'ingresso audio risponde
+davvero». Se Core Audio si blocca nel HAL, la verifica termina con una nota e il
+backend non resta appeso: la registrazione ha un limite di tempo
+(`durata + 6 s`, oppure il valore passato come `timeout`), oltre il quale Amy
+risponde «Il microfono non risponde» e sospende i tentativi per 60 secondi.
+
+Prova end-to-end con parlato reale, senza hardware aggiuntivo:
+
+```bash
+say -v Alice "Amy, che ore sono?"
+```
+
+Con il ciclo attivo il log deve contenere `Wake word rilevata`, la trascrizione deve
+mostrare la domanda e la risposta, e la risposta deve essere pronunciata. Attenzione:
+Amy sente anche i propri altoparlanti, quindi una frase trascritta male o un rumore
+può produrre un falso positivo; il log lo rende visibile.
 
 ### Robot simulato
 

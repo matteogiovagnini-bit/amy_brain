@@ -91,6 +91,55 @@ class AmyHandler(BaseHTTPRequestHandler):
     def log_message(self, fmt: str, *args: Any) -> None:
         _log.debug("%s - %s", self.address_string(), fmt % args)
 
+    # ---------------------------------------------------------- ascolto wake
+    def _start_wake_loop(self) -> None:
+        """Avvia l'ascolto continuo solo su richiesta esplicita della UI."""
+        voice = self.assistant.voice
+        status = voice.status()
+        if not bool(voice.config.get("voice.wake_word.enabled", False)):
+            self._send_json(
+                {
+                    "error": "Ascolto continuo disattivato nella configurazione.",
+                    "detail": "Imposta voice.wake_word.enabled = true in ~/.amy/config.json.",
+                },
+                400,
+            )
+            return
+        if not status["wake_word"]["available"]:
+            recorder = status.get("recorder") or {}
+            if recorder.get("stuck"):
+                self._send_json(
+                    {
+                        "error": "Il microfono non risponde: ascolto non avviato.",
+                        "detail": recorder.get("problem")
+                        or "Riavvia il servizio audio di macOS o il Mac, poi riprova.",
+                    },
+                    503,
+                )
+                return
+            self._send_json(
+                {"error": "Servono microfono e trascrizione locale per l'ascolto continuo."},
+                400,
+            )
+            return
+        voice.start_wake_loop(self._on_voice_command)
+        self._send_json({"ok": True, "voice": voice.status()})
+
+    def _on_voice_command(self, text: str) -> None:
+        """Esegue un comando dettato e pronuncia la risposta, in un thread separato."""
+        try:
+            with self.server.chat_lock:  # type: ignore[attr-defined]
+                result = self.assistant.handle(text, session_id=self.assistant.resume_session())
+        except Exception:  # noqa: BLE001
+            _log.exception("Comando vocale non riuscito")
+            return
+        reply = str(getattr(result, "reply", "") or "").strip()
+        if reply:
+            try:
+                self.assistant.speak(reply)
+            except Exception:  # noqa: BLE001
+                _log.warning("Sintesi della risposta vocale non riuscita")
+
     # -------------------------------------------------------------------- GET
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -165,11 +214,18 @@ class AmyHandler(BaseHTTPRequestHandler):
             elif path == "/api/voice/stop":
                 self.assistant.voice.stop_speaking()
                 self._send_json({"stopped": True})
+            elif path == "/api/voice/greet":
+                self._send_json(self.assistant.voice.greet())
             elif path == "/api/voice/listen":
                 seconds = float(body.get("seconds", 5.0))
                 with self.server.chat_lock:  # type: ignore[attr-defined]
                     text = self.assistant.voice.listen_once(seconds)
                 self._send_json({"text": text})
+            elif path == "/api/voice/wake/start":
+                self._start_wake_loop()
+            elif path == "/api/voice/wake/stop":
+                self.assistant.voice.stop_wake_loop()
+                self._send_json({"ok": True, "voice": self.assistant.voice.status()})
             elif path == "/api/robot/estop":
                 reason = str(body.get("reason", "dashboard"))
                 data = self.assistant.robot_link.estop(reason)
@@ -240,7 +296,7 @@ def _stop_dashboard(server: AmyHTTPServer, message: str) -> None:
 def _watch_heartbeat(
     server: AmyHTTPServer,
     path: str,
-    max_age_s: float = 8.0,
+    max_age_s: float = 20.0,
     interval_s: float = 3.0,
 ) -> None:
     """Chiude il server se il heartbeat del genitore non viene più aggiornato.
@@ -248,6 +304,11 @@ def _watch_heartbeat(
     Il file viene scritto periodicamente dall'app nativa. Se sparisce o
     invecchia, il backend deduce che il genitore è morto e si chiude: evita
     processi orfano dopo un crash o un SIGKILL.
+
+    La tolleranza è ampia (20 s) perché il file viene aggiornato ogni 2 s ma
+    l'app può essere momentaneamente bloccata (per esempio un alert modale o
+    un carico CPU alto durante una trascrizione vocale). Un backend lento non
+    deve essere scambiato per un backend morto.
     """
     while True:
         time.sleep(interval_s)
@@ -257,7 +318,11 @@ def _watch_heartbeat(
             _stop_dashboard(server, "Heartbeat del genitore assente: chiudo la dashboard.")
             return
         if age > max_age_s:
-            _stop_dashboard(server, "Heartbeat del genitore scaduto: chiudo la dashboard.")
+            _stop_dashboard(
+                server,
+                "Heartbeat del genitore scaduto: chiudo la dashboard. "
+                "(file %s, età %.1f s, tolleranza %.0f s)" % (path, age, max_age_s),
+            )
             return
 
 
@@ -289,6 +354,36 @@ def _watch_parent(server: AmyHTTPServer, parent_pid: int) -> None:
             return
 
 
+def _schedule_greeting(assistant: Assistant, delay: float = 1.2) -> None:
+    """Pronuncia il messaggio di avvio dopo che la dashboard è pronta.
+
+    Usa solo la sintesi locale: nessuna registrazione, nessun ascolto in
+    background. Se la voce è disabilitata o non disponibile, non succede
+    nulla e Amy non finge di aver parlato.
+
+    ``AMY_STARTUP_GREETING=0`` disattiva il saluto (usato dai test
+    automatici per non emettere audio).
+    """
+    flag = os.environ.get("AMY_STARTUP_GREETING", "").strip().lower()
+    if flag in {"0", "false", "no", "off"}:
+        _log.info("Messaggio di avvio disattivato da AMY_STARTUP_GREETING")
+        return
+
+    def _run() -> None:
+        time.sleep(max(0.0, delay))
+        try:
+            result = assistant.voice.greet()
+        except Exception:  # noqa: BLE001 - difensivo: l'avvio non deve fallire
+            _log.warning("Messaggio di avvio non riuscito", exc_info=True)
+            return
+        if result.get("spoken"):
+            _log.info("Amy: %s", result.get("text", ""))
+        else:
+            _log.info("Messaggio di avvio non pronunciato: %s", result.get("reason", ""))
+
+    threading.Thread(target=_run, name="amy-greeting", daemon=True).start()
+
+
 def run_server(config: Config, *, host: Optional[str] = None, port: Optional[int] = None, open_browser: bool = False) -> None:
     setup_logging(
         level=str(config.get("logging.level", "INFO")),
@@ -307,16 +402,19 @@ def run_server(config: Config, *, host: Optional[str] = None, port: Optional[int
     if not _is_loopback(listen_host):
         print("ATTENZIONE: dashboard esposta su %s senza autenticazione." % listen_host)
     assistant = Assistant(config)
+    assistant.voice.warm()  # modello STT e voci pronti, nessuna registrazione
     server = AmyHTTPServer((listen_host, listen_port), assistant)
     url = "http://%s:%d" % (listen_host, listen_port)
     print("Dashboard Amy: %s" % url)
     print("Premi Ctrl-C per terminare.")
     if open_browser or config.get("ui.open_browser", False):
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
+    _schedule_greeting(assistant)
     parent_pid = os.environ.get("AMY_PARENT_PID", "").strip()
     watch_stdin = os.environ.get("AMY_WATCH_STDIN", "") == "1"
     heartbeat = os.environ.get("AMY_HEARTBEAT_FILE", "").strip()
     if heartbeat:
+        _log.info("Watchdog del genitore attivo sul file %s", heartbeat)
         threading.Thread(
             target=_watch_heartbeat,
             args=(server, heartbeat),

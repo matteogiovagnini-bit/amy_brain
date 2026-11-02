@@ -74,25 +74,34 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     },
     "voice": {
         "enabled": False,
+        "startup_greeting": True,
+        "startup_greeting_text": "Amy è attiva e operativa.",
         "tts": {
             "engine": "say",
             "voice": "Alice",
             "rate": 185,
         },
         "stt": {
-            "engine": "whisper-cli",
+            "engine": "auto",
             "command": "whisper-cli",
             "model": "",
             "language": "it",
+            "download_root": "~/.amy/models/whisper",
         },
         "wake_word": {
             "enabled": False,
             "phrase": "amy",
             "sensitivity": 0.5,
+            "max_minutes": 20,
+            # Half-duplex: il microfono resta chiuso mentre Amy parla, così
+            # la sua voce non viene scambiata per un comando dell'utente.
+            "echo_guard": True,
+            "echo_guard_cooldown_s": 0.8,
         },
         "recorder": {
-            "engine": "ffmpeg",
-            "device": ":0",
+            "engine": "auto",
+            "device": "",
+            "samplerate": 16000,
             "seconds": 5,
         },
     },

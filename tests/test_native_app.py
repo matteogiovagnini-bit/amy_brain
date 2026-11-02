@@ -72,6 +72,35 @@ class NativeAppTests(unittest.TestCase):
         self.assertIn("AMY_HEARTBEAT_FILE", text)
         self.assertIn("app.heartbeat", text)
 
+    def test_heartbeat_does_not_depend_on_the_main_run_loop(self) -> None:
+        """L'heartbeat deve sopravvivere a un alert modale.
+
+        Un ``Timer`` sul main run loop smette di scattare mentre l'app mostra
+        un ``NSAlert`` modale: il backend interpretava il file fermo come
+        «genitore morto» e chiudeva la dashboard da solo. Serve un sorgente
+        su una coda dedicata.
+        """
+        text = SOURCES.read_text(encoding="utf-8")
+        self.assertIn("DispatchSource.makeTimerSource", text)
+        self.assertIn("heartbeatTimer: DispatchSourceTimer?", text)
+        self.assertNotIn("heartbeatTimer: Timer?", text)
+        self.assertNotIn("Timer.scheduledTimer(withTimeInterval: 2.0", text)
+
+    def test_backend_lost_alert_does_not_freeze_the_app(self) -> None:
+        """L'avviso «backend non risponde» non deve bloccare il thread principale.
+
+        Con `runModal` l'app restava congelata finché l'utente non rispondeva:
+        la finestra non si aggiornava e il caso è stato osservato per ore.
+        Serve una sheet, che lascia l'app viva.
+        """
+        text = SOURCES.read_text(encoding="utf-8")
+        start = text.index("private func presentBackendLost()")
+        end = text.index("private func restartBackend()", start)
+        body = text[start:end]
+        self.assertIn("beginSheetModal", body)
+        # L'unico `alert.runModal()` ammesso è il ripiego senza finestra.
+        self.assertLessEqual(body.count("alert.runModal()"), 1)
+
     def test_selftest_is_standard_library_only(self) -> None:
         text = SELFTEST.read_text(encoding="utf-8")
         imports = set(re.findall(r"^(?:import|from)\s+([A-Za-z_][\w.]*)", text, re.MULTILINE))

@@ -46,6 +46,8 @@
     motion: true,
     speak: false,
     voiceReady: false,
+    wakeRunning: false,
+    wakeAvailable: false,
   };
 
   // ------------------------------------------------------------------ utilità
@@ -449,6 +451,14 @@
         hint: "Puoi interrompere la voce con il pulsante «Stop voce».",
       };
     }
+    if (app.wakeRunning) {
+      return {
+        state: "listening",
+        label: "In ascolto",
+        activity: "Di' «Amy» seguito dal comando",
+        hint: "L'ascolto continuo parte solo da qui, si ferma con lo stesso pulsante e ha un limite di durata.",
+      };
+    }
     if (data && !provider.anyAvailable) {
       return {
         state: "offline",
@@ -619,6 +629,7 @@
       value("voiceStt", "Non disponibile", "muted");
       value("voiceRecorder", "Non disponibile", "muted");
       value("voiceWake", "Non configurata", "muted");
+      value("voiceGreeting", "Non configurato", "muted");
       tag("voiceTag", "non disponibile", "bad");
       text("voiceNote", "La chat testuale funziona anche senza voce.");
       app.voiceReady = false;
@@ -629,6 +640,7 @@
     const stt = isObject(voice.stt) ? voice.stt : {};
     const recorder = isObject(voice.recorder) ? voice.recorder : {};
     const wake = isObject(voice.wake_word) ? voice.wake_word : {};
+    const greeting = isObject(voice.startup_greeting) ? voice.startup_greeting : {};
     app.voiceReady = Boolean(voice.ready_for_voice_commands);
 
     value(
@@ -648,9 +660,11 @@
     value(
       "voiceRecorder",
       recorder.available
-        ? "Disponibile · " + (recorder.engine || "configurato")
+        ? (recorder.stuck
+          ? "Non risponde · " + (recorder.engine || "microfono")
+          : "Disponibile · " + (recorder.engine || "configurato"))
         : "Non disponibile",
-      recorder.available ? "ok" : "bad"
+      recorder.available && !recorder.stuck ? "ok" : "bad"
     );
 
     let wakeText = "Non configurata";
@@ -661,6 +675,15 @@
     }
     value("voiceWake", wakeText, wakeTone);
 
+    const greetingText = String(greeting.text || "").trim();
+    if (greeting.enabled && greetingText) {
+      value("voiceGreeting", "Attivo · " + greetingText, "ok");
+    } else if (greetingText) {
+      value("voiceGreeting", "Disattivato · " + greetingText, "muted");
+    } else {
+      value("voiceGreeting", "Non configurato", "muted");
+    }
+
     if (voice.ready_for_voice_commands) {
       tag("voiceTag", "pronta", "ok");
     } else if (tts.available) {
@@ -670,11 +693,19 @@
     }
 
     if (voice.speaking) {
-      text("voiceNote", "Sintesi vocale in corso. Puoi interromperla con «Stop voce».");
+      const duplex = wake.running && wake.echo_guard ? " Il microfono resta chiuso finché parla." : "";
+      text("voiceNote", "Sintesi vocale in corso. Puoi interromperla con «Stop voce»." + duplex);
+    } else if (recorder.stuck) {
+      text("voiceNote", "Il microfono non ha risposto e Amy ha sospeso le registrazioni. Riavvia il servizio audio di macOS o il Mac, poi riprova.");
+    } else if (wake.running) {
+      const duplex = wake.echo_guard ? " Mentre Amy parla il microfono è chiuso." : "";
+      text("voiceNote", "Ascolto continuo attivo: di' «Amy» seguito dal comando. Fermalo con «Ferma ascolto»." + duplex);
+    } else if (greeting.enabled && greetingText) {
+      text("voiceNote", "All'avvio Amy dice: «" + greetingText + "». Usa «Ripeti saluto» per riascoltarlo.");
     } else if (voice.ready_for_voice_commands) {
-      text("voiceNote", "Microfono e sintesi disponibili. La registrazione parte solo su richiesta.");
+      text("voiceNote", "Microfono e trascrizione locali disponibili. Usa il microfono o «Ascolta «Amy»»; nulla parte da solo.");
     } else {
-      text("voiceNote", "La chat testuale funziona. Per i comandi vocali servono STT e registratore (ffmpeg o sox).");
+      text("voiceNote", "La chat testuale funziona. Per i comandi vocali servono microfono e trascrizione locale (sounddevice e faster-whisper).");
     }
 
     pill(
@@ -937,6 +968,10 @@
       setSession(data.assistant.session_id);
     }
 
+    const wake = data.voice && isObject(data.voice.wake_word) ? data.voice.wake_word : {};
+    app.wakeRunning = Boolean(wake.running);
+    app.wakeAvailable = Boolean(wake.available);
+
     const voiceSpeaking = Boolean(data.voice && data.voice.speaking);
     if (voiceSpeaking) {
       app.speaking = true;
@@ -979,7 +1014,7 @@
   }
 
   function ensureFastPoll() {
-    const need = app.busy || app.listening || app.speaking || Boolean(runningActivity());
+    const need = app.busy || app.listening || app.speaking || app.wakeRunning || Boolean(runningActivity());
     if (need && !app.fastTimer) {
       app.fastTimer = window.setInterval(refreshState, FAST_POLL_MS);
     } else if (!need && app.fastTimer) {
@@ -1195,6 +1230,22 @@
     }
   }
 
+  async function greet() {
+    if (app.busy) return;
+    clearError();
+    try {
+      const data = await post("/api/voice/greet", {});
+      if (data && data.spoken) {
+        toast("Amy: " + (data.text || ""));
+      } else {
+        toast("Saluto non pronunciato: " + ((data && data.reason) || "sintesi non disponibile"), true);
+      }
+      await refreshState();
+    } catch (error) {
+      toast("Saluto non riuscito: " + error.message, true);
+    }
+  }
+
   async function listen() {
     if (app.busy) return;
     if (!app.voiceReady) {
@@ -1235,6 +1286,27 @@
       renderCore();
       await refreshState();
       ensureFastPoll();
+    }
+  }
+
+  async function toggleWake() {
+    if (app.busy) return;
+    const running = app.wakeRunning;
+    clearError();
+    try {
+      const data = await post(running ? "/api/voice/wake/stop" : "/api/voice/wake/start", {});
+      const wake = data && isObject(data.voice) && isObject(data.voice.wake_word) ? data.voice.wake_word : {};
+      app.wakeRunning = Boolean(wake.running);
+      toast(
+        app.wakeRunning
+          ? "Ascolto attivo: di' «Amy» seguito dal comando. Si ferma con lo stesso pulsante."
+          : "Ascolto continuo fermato."
+      );
+      await refreshState();
+    } catch (error) {
+      toast("Ascolto continuo non disponibile: " + error.message, true);
+      markError("Ascolto continuo non disponibile: " + error.message);
+      await refreshState();
     }
   }
 
@@ -1378,6 +1450,17 @@
     const send = $("sendBtn");
     const mic = $("micBtn");
     const newSessionButton = $("newSessionBtn");
+    const wake = $("wakeBtn");
+    if (wake) {
+      wake.textContent = app.wakeRunning ? "Ferma ascolto" : "Ascolta «Amy»";
+      wake.setAttribute("aria-pressed", app.wakeRunning ? "true" : "false");
+      wake.disabled = app.busy || (!app.wakeAvailable && !app.wakeRunning);
+      wake.title = app.wakeRunning
+        ? "Interrompi l'ascolto della parola «Amy»"
+        : app.wakeAvailable
+          ? "Ascolta la parola «Amy» dal microfono del Mac, poi il comando"
+          : "Servono microfono e trascrizione locale per l'ascolto continuo";
+    }
     if (send) send.disabled = app.busy;
     if (mic) {
       mic.disabled = app.busy || !app.voiceReady;
@@ -1423,8 +1506,14 @@
     const mic = $("micBtn");
     if (mic) mic.addEventListener("click", listen);
 
+    const wake = $("wakeBtn");
+    if (wake) wake.addEventListener("click", toggleWake);
+
     const stop = $("stopBtn");
     if (stop) stop.addEventListener("click", stopVoice);
+
+    const greetButton = $("greetBtn");
+    if (greetButton) greetButton.addEventListener("click", greet);
 
     const newSessionButton = $("newSessionBtn");
     if (newSessionButton) newSessionButton.addEventListener("click", newSession);

@@ -187,6 +187,77 @@ def _run_readonly(command: List[str], *, timeout: float = 5.0) -> str:
     return process.stdout.strip()
 
 
+_BATTERY_LINE = re.compile(
+    r"(?P<percent>\d{1,3})%;\s*(?P<state>[a-zA-Z][a-zA-Z ]*?)"
+    r"(?:;\s*(?P<remaining>[0-9]{1,2}:[0-9]{2})\s*remaining)?"
+    r"\s*present:\s*(?P<present>true|false)",
+    re.IGNORECASE,
+)
+
+_POWER_SOURCE = re.compile(r"drawing from '(?P<source>[^']+)'", re.IGNORECASE)
+
+_BATTERY_STATES = {
+    "discharging": "in scarica",
+    "charging": "in carica",
+    "charged": "carica",
+    "finishing charge": "in carica, quasi piena",
+    "ac attached": "collegata alla rete",
+}
+
+
+def parse_battery_output(text: str) -> Dict[str, Any]:
+    """Converte l'output di ``pmset -g batt`` in dati verificabili.
+
+    Non inventa valori: se la riga della batteria non c'è il dizionario
+    riporta ``presente: False`` e campi vuoti.
+    """
+    source_match = _POWER_SOURCE.search(text or "")
+    source = ""
+    if source_match:
+        raw_source = source_match.group("source").strip().lower()
+        source = "rete" if "ac power" in raw_source else "batteria"
+
+    line_match = _BATTERY_LINE.search(text or "")
+    if not line_match:
+        return {
+            "presente": False,
+            "percentuale": None,
+            "stato": None,
+            "tempo_rimanente": None,
+            "alimentazione": source or None,
+        }
+
+    raw_state = line_match.group("state").strip().lower()
+    return {
+        "presente": line_match.group("present").strip().lower() == "true",
+        "percentuale": int(line_match.group("percent")),
+        "stato": _BATTERY_STATES.get(raw_state, raw_state or None),
+        "tempo_rimanente": line_match.group("remaining"),
+        "alimentazione": source or None,
+    }
+
+
+def battery_status() -> Dict[str, Any]:
+    """Stato della batteria del Mac, letto con ``pmset`` (sola lettura)."""
+    output = _run_readonly(["pmset", "-g", "batt"], timeout=5)
+    return parse_battery_output(output)
+
+
+def battery_summary(data: Dict[str, Any]) -> str:
+    """Riassunto in italiano dello stato della batteria."""
+    if not data.get("presente"):
+        if data.get("alimentazione") == "rete":
+            return "Nessuna batteria integrata rilevata su questo Mac: è collegato alla rete."
+        return "Nessuna batteria rilevata su questo Mac."
+    parts = ["Batteria del Mac al %d%%" % int(data.get("percentuale") or 0)]
+    if data.get("stato"):
+        parts.append(str(data["stato"]))
+    remaining = data.get("tempo_rimanente")
+    if remaining and remaining != "0:00":
+        parts.append("%s rimanenti" % remaining)
+    return ", ".join(parts) + "."
+
+
 def system_info() -> Dict[str, Any]:
     mem_bytes = 0
     try:

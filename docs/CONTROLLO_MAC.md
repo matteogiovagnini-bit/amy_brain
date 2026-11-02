@@ -1,6 +1,6 @@
 # Controllo del Mac
 
-Amy espone 34 strumenti. Non sono comandi generici: ognuno ha uno schema JSON
+Amy espone 35 strumenti. Non sono comandi generici: ognuno ha uno schema JSON
 rigoroso, un livello di rischio e un comportamento verificabile. Questo documento
 elenca il catalogo effettivo, raggruppato per dominio.
 
@@ -22,6 +22,7 @@ lo stesso catalogo su `GET /api/tools`.
 | Strumento | Rischio | Cosa fa |
 | --- | --- | --- |
 | `system.info` | A | Versione macOS, architettura, CPU, RAM, disco, utente |
+| `system.battery` | A | Batteria del Mac: percentuale, carica o scarica, tempo residuo |
 | `system.processes` | A | Processi ordinati per CPU o memoria |
 | `system.settings` | A | Apre il pannello di Impostazioni di Sistema pertinente |
 | `time.now` | A | Data e ora locali |
@@ -30,9 +31,15 @@ Esempi:
 
 ```text
 Stato del sistema
+Quanto è carica la batteria del Mac?
 Quali processi usano più CPU?
 Che ore sono?
 ```
+
+`system.battery` legge `pmset -g batt`, un comando di sola lettura: non cambia
+nulla e non richiede permessi. Se il Mac non ha una batteria integrata, lo dice
+con chiarezza invece di restituire un valore inventato. È la batteria **del
+computer**: quella del robot si legge con `robot.status`.
 
 `system.settings` è pensato per guidare l'utente sui permessi (microfono, accessibilità,
 automazione). Non modifica impostazioni al posto suo.
@@ -217,6 +224,9 @@ pending scaduto non viene eseguito.
 python3 -m amy ask "stato del sistema" --offline
 python3 -m amy ask "che ore sono?" --offline
 
+# Batteria del Mac
+python3 -m amy ask "quanto è carica la batteria del mac?" --offline
+
 # File nelle radici autorizzate
 python3 -m amy ask "elenca i file in ~/Progetti" --offline
 
@@ -232,6 +242,7 @@ python3 -m amy voice speak "Ciao"
 
 - Non controlla il sistema a livello di kernel o amministratore.
 - Non installa software, non modifica permessi, non esegue script arbitrari.
+- Non modifica lo stato energetico del Mac: la batteria viene solo letta.
 - Non legge fuori dalle radici autorizzate.
 - Non cancella definitivamente file.
 - Non aggira i permessi di macOS: se l'utente nega Microfono o Automazione, la

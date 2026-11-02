@@ -102,25 +102,32 @@ python3 -m amy config path   # percorso del file in uso
   },
   "voice": {
     "enabled": false,
+    "startup_greeting": true,
+    "startup_greeting_text": "Amy è attiva e operativa.",
     "tts": {
       "engine": "say",
       "voice": "Alice",
       "rate": 185
     },
     "stt": {
-      "engine": "whisper-cli",
+      "engine": "auto",
       "command": "whisper-cli",
       "model": "",
-      "language": "it"
+      "language": "it",
+      "download_root": "~/.amy/models/whisper"
     },
     "wake_word": {
       "enabled": false,
       "phrase": "amy",
-      "sensitivity": 0.5
+      "sensitivity": 0.5,
+      "max_minutes": 20,
+      "echo_guard": true,
+      "echo_guard_cooldown_s": 0.8
     },
     "recorder": {
-      "engine": "ffmpeg",
-      "device": ":0",
+      "engine": "auto",
+      "device": "",
+      "samplerate": 16000,
       "seconds": 5
     }
   },
@@ -412,7 +419,23 @@ Configurazione vocale e robotica sono descritte in dettaglio in
 [VOCE.md](VOCE.md) e [ROBOTICA.md](ROBOTICA.md). In sintesi:
 
 - `voice.enabled` non apre il microfono: abilita solo il servizio.
-- `voice.stt.model` vuoto rende lo STT non disponibile.
+- `voice.startup_greeting` (default `true`) fa pronunciare il messaggio di avvio
+  all'avvio della dashboard; `voice.startup_greeting_text` ne imposta il testo.
+  Il saluto usa solo la sintesi locale e non avvia alcuna registrazione.
+  La variabile d'ambiente `AMY_STARTUP_GREETING=0` lo disattiva per una sessione.
+- `voice.stt.engine = "auto"` sceglie il motore migliore disponibile
+  (`faster-whisper`, poi `whisper-cli`); `voice.stt.model` vuoto rende lo STT non
+  disponibile con i motori che richiedono un modello esplicito.
+- `voice.stt.download_root` è la cartella dei modelli locali (default
+  `~/.amy/models/whisper`).
+- `voice.recorder.engine = "auto"` preferisce `sounddevice`, poi `ffmpeg`;
+  `voice.recorder.device` e `voice.recorder.samplerate` scelgono il microfono.
+- `voice.wake_word.max_minutes` (default 20, massimo 120) limita la durata
+  dell'ascolto continuo.
+- `voice.wake_word.echo_guard` (default `true`) tiene il microfono chiuso mentre
+  Amy parla: i frammenti che contengono la sua voce vengono scartati.
+  `voice.wake_word.echo_guard_cooldown_s` (default 0,8) è la pausa attesa dopo
+  la fine di una sintesi prima di riaprire il microfono.
 - `robot.transport = "simulated"` è il default sicuro.
 - `robot.transport = "mqtt"` è sperimentale e non verificato.
 - La password MQTT si legge da `robot.password_env`.

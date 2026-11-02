@@ -134,13 +134,19 @@ chiave nel repository, nei log o nei test. Se hai toccato la voce, verifica alme
 sintesi su file (`amy doctor` la esegue). Se hai toccato il robot, esegui i test del
 simulatore e **non** affermare che l'hardware funziona.
 
-Stato verificato il 31 ottobre 2026: 189 test superati, doctor con TTS funzionante,
-provider personale configurato su GroqCloud piano Free con chiave valida e risposta
-reale del modello `openai/gpt-oss-120b`, default del repository ancora Ollama locale,
-STT e registratore assenti, robot solo simulato, MQTT non verificato, applicazione
-macOS «Amy Core» compilata, installata in `~/Applications` e verificata con self-test
-end-to-end (dashboard montata, messaggio inviato dal DOM, risposta in chat, backend
-chiuso), senza verifica visiva a mano della finestra.
+Stato verificato il 2 novembre 2026: 255 test superati, doctor con TTS funzionante e
+sonda reale del microfono, provider personale configurato su GroqCloud piano Free con
+chiave valida e risposta reale del modello `openai/gpt-oss-120b`, default del
+repository ancora Ollama locale, voce completa e locale (`sounddevice` per il
+microfono, `faster-whisper` per la trascrizione, `say` per la sintesi, wake word «Amy»
+sul testo trascritto) verificata end-to-end con parlato reale (wake word rilevata,
+comando eseguito, risposta scritta e pronunciata), protezione dall'eco half-duplex
+verificata dal vivo (frammento sovrapposto alla sintesi scartato con il log atteso),
+strumento `system.battery` con lettura reale di `pmset -g batt`, registrazione con
+limite di tempo quando il HAL di Core Audio non risponde, robot solo simulato, MQTT
+non verificato, applicazione macOS «Amy Core» compilata, installata in `~/Applications`
+e verificata con self-test end-to-end (dashboard montata, messaggio inviato dal DOM,
+risposta in chat, backend chiuso), senza verifica visiva a mano della finestra.
 
 ## 7. Documentazione e continuità
 
