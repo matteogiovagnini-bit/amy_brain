@@ -48,6 +48,7 @@
     voiceReady: false,
     wakeRunning: false,
     wakeAvailable: false,
+    lastTranscriptCount: 0,
   };
 
   // ------------------------------------------------------------------ utilità
@@ -288,7 +289,26 @@
       (item) => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string"
     );
     renderTranscript(messages);
+    app.lastTranscriptCount = messages.length;
     return messages;
+  }
+
+  // Durante l'ascolto continuo i turni vocali avvengono in background: il
+  // pannello va aggiornato anche senza un invio dal campo di testo.
+  async function syncTranscriptIfNeeded() {
+    if (!app.sessionId || document.hidden) return;
+    try {
+      const data = await api("/api/transcript?session=" + encodeURIComponent(app.sessionId));
+      const messages = (data.messages || []).filter(
+        (item) => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string"
+      );
+      if (messages.length !== app.lastTranscriptCount) {
+        renderTranscript(messages);
+        app.lastTranscriptCount = messages.length;
+      }
+    } catch (error) {
+      // Silenzioso: il polling riproverà al ciclo successivo.
+    }
   }
 
   // ---------------------------------------------------------------- provider
@@ -1006,6 +1026,7 @@
     try {
       const data = await api("/api/state");
       applyState(data);
+      if (app.wakeRunning) await syncTranscriptIfNeeded();
     } catch (error) {
       markError("Stato non raggiungibile: " + error.message);
     } finally {
