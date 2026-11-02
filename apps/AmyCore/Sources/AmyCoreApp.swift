@@ -402,7 +402,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         } else {
             window?.makeKeyAndOrderFront(nil)
         }
-        webView.load(URLRequest(url: backend.baseURL))
+        if selfTestMode, var parts = URLComponents(url: backend.baseURL, resolvingAgainstBaseURL: false) {
+            // Il self-test non eredita la cronologia della sessione.
+            parts.queryItems = [URLQueryItem(name: "selftest", value: "1")]
+            if let url = parts.url {
+                webView.load(URLRequest(url: url))
+            } else {
+                webView.load(URLRequest(url: backend.baseURL))
+            }
+        } else {
+            webView.load(URLRequest(url: backend.baseURL))
+        }
         NSApp.activate(ignoringOtherApps: true)
 
         monitorTimer = Timer.scheduledTimer(withTimeInterval: 8.0, repeats: true) { [weak self] _ in
@@ -771,6 +781,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private func startSelfTest() {
         guard !selfTestStarted else { return }
         selfTestStarted = true
+        // Con `?selftest=1` la dashboard non carica la cronologia: la prima
+        // risposta che compare è davvero quella del test, non una vecchia
+        // risposta della sessione (osservato il 2 novembre 2026: «07:47»
+        // alle 08:04).
         let script = """
         (function () {
           var input = document.getElementById('composerInput');
@@ -826,7 +840,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                 self.finishSelfTest(ok: false, detail: "risposta non interpretabile")
                 return
             }
-            if last.contains("Sono le") {
+            let replies = payload["replies"] as? Int ?? 0
+            if replies > 0 && !last.isEmpty {
                 let state = payload["state"] as? String ?? "?"
                 self.finishSelfTest(ok: true, detail: "risposta in chat: \"\(last.prefix(80))\" · stato \(state)")
                 return

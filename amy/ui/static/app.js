@@ -1602,7 +1602,11 @@
     bind();
     initMotion();
     renderCore();
-    showEmptyState("Caricamento della sessione locale…");
+    // Il self-test dell'app nativa apre la dashboard con `?selftest=1`: la
+    // cronologia non viene caricata, così la prima risposta in chat è quella
+    // del test e non una risposta vecchia della sessione.
+    const selfTest = new URLSearchParams(window.location.search).get("selftest") === "1";
+    showEmptyState(selfTest ? "Verifica automatica in corso…" : "Caricamento della sessione locale…");
     text("footerStatus", "caricamento…");
 
     try {
@@ -1611,7 +1615,7 @@
       if (!app.sessionId && data.assistant && data.assistant.session_id) {
         setSession(data.assistant.session_id);
       }
-      if (app.sessionId) await loadTranscript(app.sessionId);
+      if (app.sessionId && !selfTest) await loadTranscript(app.sessionId);
       if (Number(data.pending_confirmations || 0) > 0) await loadPending();
       clearError();
     } catch (error) {

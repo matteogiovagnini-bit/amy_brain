@@ -107,6 +107,22 @@ class NativeAppTests(unittest.TestCase):
         allowed = {"__future__", "os", "subprocess", "sys", "pathlib"}
         self.assertEqual(imports - allowed, set(), "import non previsti: %s" % (imports - allowed))
 
+    def test_selftest_does_not_inherit_the_transcript(self) -> None:
+        """Il self-test non deve scambiare una risposta vecchia per quella nuova.
+
+        La dashboard carica la cronologia della sessione: senza isolamento,
+        l'ultima risposta precedente può far passare il test mentre l'app sta
+        ancora elaborando (osservato il 2 novembre 2026: «07:47» alle 08:04).
+        Il self-test apre quindi la UI con `?selftest=1` e salta la cronologia.
+        """
+        sources = SOURCES.read_text(encoding="utf-8")
+        app_js = (ROOT / "amy" / "ui" / "static" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('URLQueryItem(name: "selftest", value: "1")', sources)
+        self.assertIn('get("selftest") === "1"', app_js)
+        self.assertIn("&& !selfTest", app_js)
+        # La risposta deve comunque essere attesa, non data per scontata.
+        self.assertIn('replies > 0 && !last.isEmpty', sources)
+
 
 if __name__ == "__main__":
     unittest.main()

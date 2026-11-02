@@ -44,7 +44,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 255 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 256 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.
@@ -91,6 +91,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
   viene terminato e il risultato dichiara `spoken: false` con il motivo.
 - Il saluto di avvio registra «pronunciato» solo quando la sintesi è davvero
   conclusa; altrimenti lascia un avviso con il motivo.
+- **Self-test dell'app nativa più onesto**: apre la dashboard con `?selftest=1` e
+  salta il caricamento della cronologia, così non può scambiare una risposta
+  vecchia per quella nuova. Attende la prima risposta reale e riporta lo stato
+  della UI (osservato il 2 novembre 2026: il test dichiarava OK con «07:47»
+  alle 08:04, mentre l'app stava ancora elaborando).
 
 ### Verificato dal vivo
 
