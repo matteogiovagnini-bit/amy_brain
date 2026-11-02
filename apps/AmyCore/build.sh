@@ -59,6 +59,9 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BUILD/AmyCore" "$APP/Contents/MacOS/AmyCore"
 cp "$BUILD/AmyCore.icns" "$APP/Contents/Resources/AmyCore.icns"
 cp "$APP_DIR/Resources/Info.plist" "$APP/Contents/Info.plist"
+# Il bundle deve dichiarare la stessa versione mostrata dalla UI: senza questo
+# passaggio Finder e «Informazioni su» restano alla versione del template.
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 echo "==> Firma ad-hoc (nessun certificato, nessun costo)"

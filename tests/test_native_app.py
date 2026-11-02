@@ -61,6 +61,26 @@ class NativeAppTests(unittest.TestCase):
             self.assertIn(key, text, key)
         self.assertIn("AmyCore", text)
 
+    def test_bundle_version_is_synced_with_pyproject(self) -> None:
+        """Finder e «Informazioni su» devono mostrare la versione reale.
+
+        Il template Info.plist non può conoscere la versione: senza un passaggio
+        esplicito il bundle restava a 0.1.0 mentre la UI mostrava 0.3.0.
+        """
+        build = BUILD.read_text(encoding="utf-8")
+        self.assertIn("PlistBuddy", build)
+        self.assertIn("CFBundleShortVersionString", build)
+        self.assertIn("$VERSION", build)
+        info = INFO.read_text(encoding="utf-8")
+        self.assertIn("<string>0.0.0</string>", info)
+        dist = APP_DIR / "dist" / "Amy Core.app" / "Contents" / "Info.plist"
+        if dist.is_file():
+            pyproject = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+            match = re.search(r'^version = "([^"]+)"', pyproject, re.MULTILINE)
+            self.assertIsNotNone(match)
+            built = dist.read_text(encoding="utf-8")
+            self.assertIn("<string>%s</string>" % match.group(1), built)
+
     def test_backend_is_local_only(self) -> None:
         """Il backend deve restare legato al loopback."""
         text = SOURCES.read_text(encoding="utf-8")

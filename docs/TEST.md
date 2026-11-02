@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 256 tests in 19.0s
+Ran 257 tests in 19.0s
 
 OK
 ```
@@ -39,7 +39,7 @@ OK
 | `tests/test_config.py` | 16 | default gratuiti, endpoint remoto, fallback, schema URL, segreti, init |
 | `tests/test_files.py` | 9 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
 | `tests/test_free_only.py` | 6 | nessuna dipendenza obbligatoria, host commerciali, default locali |
-| `tests/test_native_app.py` | 11 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, avviso non modale, self-test isolato dalla cronologia |
+| `tests/test_native_app.py` | 12 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, avviso non modale, self-test isolato dalla cronologia, versione del bundle sincronizzata |
 | `tests/test_memory.py` | 5 | sessioni, messaggi, conteggio, fatti, attività, redazione |
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
@@ -61,7 +61,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 6 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante |
 | `tests/test_voice_wake.py` | 21 | wake word tollerante, comando estratto, ciclo che non parte da solo, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **256** | |
+| **Totale** | **257** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

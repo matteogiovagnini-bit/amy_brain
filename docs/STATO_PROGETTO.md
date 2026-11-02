@@ -17,7 +17,7 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 256 test, tutti superati, più il self-test dell'app nativa |
+| Test | 257 test, tutti superati, più il self-test dell'app nativa |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -54,7 +54,7 @@ ciò che è solo pianificato.
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 34 strumenti registrati e validati.
+- 35 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -112,7 +112,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 256 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 257 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
