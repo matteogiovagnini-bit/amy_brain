@@ -253,7 +253,9 @@ class MacSayTTS(TTS):
             "engine": "say",
             "voice": self.voice,
             "rate": self.rate,
-            "italian_voices": self.italian_voices(),
+            # Mai eseguire `say -v ?` dentro status(): è un sottoprocesso e
+            # può bloccare /api/state. La cache viene riempita da warm().
+            "italian_voices": list(self._italian_voices or []),
         }
 
 

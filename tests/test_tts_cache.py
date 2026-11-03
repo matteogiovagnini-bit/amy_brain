@@ -31,13 +31,19 @@ class MacSayTTSCacheTests(unittest.TestCase):
     def tearDown(self) -> None:
         MacSayTTS.voices = self.original  # type: ignore[assignment]
 
-    def test_status_computes_voices_only_once(self) -> None:
+    def test_status_does_not_run_say_when_the_cache_is_empty(self) -> None:
+        """`status()` non deve lanciare `say -v ?`: bloccherebbe /api/state."""
         tts = MacSayTTS("Alice", 185)
-        first = tts.status()
-        second = tts.status()
-        self.assertEqual(first["italian_voices"], ["Alice"])
-        self.assertEqual(second["italian_voices"], ["Alice"])
-        self.assertEqual(self.calls, 1, "l'elenco delle voci non va ricalcolato a ogni stato")
+        status = tts.status()
+        self.assertEqual(status["italian_voices"], [])
+        self.assertEqual(self.calls, 0)
+
+    def test_status_reads_the_cache_after_warm(self) -> None:
+        tts = MacSayTTS("Alice", 185)
+        tts.italian_voices()
+        self.assertEqual(tts.status()["italian_voices"], ["Alice"])
+        self.assertEqual(tts.status()["italian_voices"], ["Alice"])
+        self.assertEqual(self.calls, 1)
 
     def test_italian_voices_helper_is_cached(self) -> None:
         tts = MacSayTTS("Alice", 185)

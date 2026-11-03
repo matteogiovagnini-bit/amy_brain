@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 320 tests in 19.0s
+Ran 321 tests in 19.0s
 
 OK
 ```
@@ -58,13 +58,13 @@ OK
 | `tests/test_shell.py` | 5 | comandi ammessi, rifiuto arbitrario, git, timeout |
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
 | `tests/test_system_info.py` | 5 | dati locali reali, disco, nessun segreto o dato robot |
-| `tests/test_tts_cache.py` | 2 | elenco voci calcolato una sola volta |
+| `tests/test_tts_cache.py` | 3 | elenco voci calcolato una sola volta; status non lancia `say -v ?` |
 | `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
 | `tests/test_ui_static.py` | 19 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **320** | |
+| **Totale** | **321** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

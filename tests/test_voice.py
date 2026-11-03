@@ -51,7 +51,9 @@ class STTConfigurationTests(unittest.TestCase):
 @unittest.skipUnless(shutil.which("say"), "comando 'say' di macOS non disponibile")
 class MacSayTTSTests(unittest.TestCase):
     def test_status(self) -> None:
-        status = MacSayTTS().status()
+        tts = MacSayTTS()
+        tts.italian_voices()  # riempie la cache, come fa warm() all'avvio
+        status = tts.status()
         self.assertTrue(status["available"])
         self.assertEqual(status["engine"], "say")
         self.assertIn("Alice", status["italian_voices"])
