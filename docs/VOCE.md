@@ -14,7 +14,7 @@ la wake word lavora sul testo trascritto, non su un rilevatore acustico dedicato
 | STT | **Verificato** | `faster-whisper` 1.2.1, modello `small` multilingua, CPU, int8, prompt comandi italiano |
 | Registratore | **Verificato** | `sounddevice` 0.5.6 su Core Audio, WAV 16 kHz mono |
 | Wake word | **Verificata** | «Amy, che ore sono?» → comando eseguito e risposta pronunciata |
-| Ciclo continuo | **Verificato** | Avviato dalla dashboard, fermato dal pulsante, limite 20 minuti |
+| Ciclo continuo | **Verificato** | Avviato dalla dashboard o all'avvio, fermato dal pulsante; limite configurabile (0 = nessuno) |
 | Saluto di avvio | **Verificato** | «Amy è attiva e operativa.» pronunciato all'avvio della dashboard |
 | Protezione dall'eco | **Verificata** | Half-duplex: niente registrazione durante la sintesi, frammento contaminato scartato dal vivo il 2 novembre 2026 |
 
@@ -67,7 +67,7 @@ istanze del backend rimaste aperte.
   "tts": {"available": true, "engine": "say", "voice": "Alice", "rate": 185},
   "stt": {"available": true, "engine": "faster-whisper", "model": "small"},
   "recorder": {"available": true, "engine": "sounddevice", "device": "Microfono MacBook Pro", "stuck": false},
-  "wake_word": {"phrase": "amy", "enabled": true, "running": false, "available": true, "max_minutes": 20, "echo_guard": true, "echo_guard_cooldown_s": 0.8},
+  "wake_word": {"phrase": "amy", "enabled": true, "running": false, "available": true, "max_minutes": 0, "echo_guard": true, "echo_guard_cooldown_s": 0.8},
   "startup_greeting": {"enabled": true, "text": "Amy è attiva e operativa."},
   "ready_for_voice_commands": true
 }
@@ -274,7 +274,7 @@ Configurazione:
       "enabled": true,
       "phrase": "amy",
       "sensitivity": 0.5,
-      "max_minutes": 20,
+      "max_minutes": 0,
       "echo_guard": true,
       "echo_guard_cooldown_s": 0.8
     }
@@ -381,7 +381,7 @@ Garanzie:
 - il ciclo parte all'avvio solo se la configurazione lo richiede; il default del
   repository è attivo per scelta esplicita dell'utente;
 - si ferma al click, alla chiusura dell'app e comunque dopo
-  `voice.wake_word.max_minutes` minuti (20 di default, massimo 120);
+  `voice.wake_word.max_minutes` minuti (0 = nessun limite, massimo 120);
 - lo stato `running` passa a falso appena richiedi lo stop, anche se il thread è
   ancora dentro l'ultima registrazione;
 - è **half-duplex**: durante la sintesi il microfono resta chiuso e i frammenti
@@ -420,6 +420,7 @@ Configurazione (`voice.conversation`):
 | `barge_in` | `true` | ascolta il microfono anche durante la sintesi |
 | `barge_in_chunk_s` | `1.0` | durata dei frammenti di ascolto durante la sintesi |
 | `barge_in_model` | vuoto | modello STT per il barge-in; vuoto = stesso modello dei comandi |
+| `listen_seconds` | `3.5` | finestra di ascolto per le risposte in conversazione |
 
 Comportamento:
 

@@ -377,6 +377,11 @@ class VoiceService:
             raise VoiceError("Serve un motore STT locale per l'ascolto continuo.")
         _log.info("Ascolto wake word «%s» attivo", self.wake.phrase)
         seconds = float(self.config.get("voice.recorder.seconds", 5))
+        try:
+            follow_seconds = float(self.config.get("voice.conversation.listen_seconds", 3.5))
+        except (TypeError, ValueError):
+            follow_seconds = 3.5
+        follow_seconds = max(1.5, min(follow_seconds, seconds))
         barge_chunk = self._barge_chunk()
         self.state.set(VoiceState.IDLE, "in attesa della wake word")
 
@@ -418,9 +423,14 @@ class VoiceService:
                 self._handle_conversation_timeout()
                 continue
 
+            chunk_seconds = (
+                follow_seconds
+                if (self._conversation_active or self._confirmation_callback is not None)
+                else seconds
+            )
             started = time.monotonic()
             try:
-                text = self.listen_once(seconds)
+                text = self.listen_once(chunk_seconds)
             except VoiceError as exc:
                 _log.warning("Errore di ascolto: %s", exc.message)
                 if self.recorder.status().get("stuck"):
@@ -520,8 +530,9 @@ class VoiceService:
     ) -> threading.Thread:
         """Avvia il ciclo di ascolto solo su richiesta esplicita.
 
-        Dopo ``voice.wake_word.max_minutes`` minuti (20 di default) il ciclo si
-        ferma da solo: nessuna registrazione indefinita in background.
+        Con ``voice.wake_word.max_minutes`` maggiore di zero il ciclo si ferma
+        dopo quel numero di minuti; con 0 (default) resta attivo finché l'app è
+        aperta.
         """
         if self._loop_thread and self._loop_thread.is_alive():
             return self._loop_thread
@@ -536,11 +547,16 @@ class VoiceService:
         minutes = max_minutes
         if minutes is None:
             try:
-                minutes = float(self.config.get("voice.wake_word.max_minutes", 20))
+                minutes = float(self.config.get("voice.wake_word.max_minutes", 0))
             except (TypeError, ValueError):
-                minutes = 20.0
-        minutes = max(1.0, min(float(minutes), 120.0))
-        self._wake_deadline = time.monotonic() + minutes * 60.0
+                minutes = 0.0
+        minutes = float(minutes)
+        if minutes > 0:
+            minutes = max(1.0, min(minutes, 120.0))
+            self._wake_deadline = time.monotonic() + minutes * 60.0
+        else:
+            # 0 = nessun limite: l'ascolto resta attivo finché l'app è aperta.
+            self._wake_deadline = None
         self._wake_stop_reason = ""
         self._stop_event.clear()
         self._loop_thread = threading.Thread(
@@ -604,7 +620,7 @@ class VoiceService:
                     and recorder_status.get("available")
                     and not recorder_status.get("stuck")
                 ),
-                "max_minutes": float(self.config.get("voice.wake_word.max_minutes", 20) or 20),
+                "max_minutes": float(self.config.get("voice.wake_word.max_minutes", 0) or 0),
                 "echo_guard": self._echo_guard_enabled(),
                 "echo_guard_cooldown_s": self._echo_cooldown(),
                 "stop_reason": self._wake_stop_reason,

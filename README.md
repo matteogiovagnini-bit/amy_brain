@@ -133,7 +133,7 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 - Voce completa e locale: microfono con `sounddevice`, trascrizione con
   `faster-whisper`, sintesi con `say` e wake word «Amy». All'avvio Amy dice
   «Amy è attiva e operativa»; l'ascolto continuo si avvia automaticamente
-  all'avvio (disattivabile) e si ferma da solo dopo 20 minuti. Dopo «Amy» la
+  all'avvio (disattivabile) e resta attivo finché l'app è aperta. Dopo «Amy» la
   conversazione continua senza ripetere il nome, e dire «Amy» mentre parla la
   interrompe subito. Le conferme si danno a voce: basta rispondere «sì» o «no».
 - Protezione dall'eco **half-duplex** nel ciclo vocale: mentre Amy parla il

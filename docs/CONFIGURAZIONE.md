@@ -82,6 +82,7 @@ python3 -m amy config path   # percorso del file in uso
   "memory": {
     "db_path": "~/.amy/amy.db",
     "max_history_messages": 24,
+    "max_history_chars": 4000,
     "max_facts_in_prompt": 40,
     "retention_days": 365
   },
@@ -127,14 +128,16 @@ python3 -m amy config path   # percorso del file in uso
       "enabled": true,
       "timeout_s": 30,
       "barge_in": true,
-      "barge_in_chunk_s": 1.0
+      "barge_in_chunk_s": 1.0,
+      "barge_in_model": "",
+      "listen_seconds": 3.5
     },
     "wake_word": {
       "enabled": true,
       "start_on_launch": true,
       "phrase": "amy",
       "sensitivity": 0.5,
-      "max_minutes": 20,
+      "max_minutes": 0,
       "echo_guard": true,
       "echo_guard_cooldown_s": 0.8
     },
@@ -444,11 +447,15 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   `~/.amy/models/whisper`).
 - `voice.recorder.engine = "auto"` preferisce `sounddevice`, poi `ffmpeg`;
   `voice.recorder.device` e `voice.recorder.samplerate` scelgono il microfono.
+- `voice.conversation.listen_seconds` (default 3.5) è la finestra di ascolto delle
+  risposte in conversazione: più corta della wake word per ridurre la latenza.
 - `voice.conversation.timeout_s` (default 30) è il silenzio massimo prima di
   «Sei ancora lì?»; `barge_in` (default true) ascolta anche durante la sintesi per
   interrompere Amy con «Amy».
-- `voice.wake_word.max_minutes` (default 20, massimo 120) limita la durata
-  dell'ascolto continuo.
+- `memory.max_history_chars` (default 4000) limita lo storico inviato al modello:
+  evita che una risposta lunga faccia superare il limite gratuito di token.
+- `voice.wake_word.max_minutes` (default 0 = nessun limite, massimo 120) limita la
+  durata dell'ascolto continuo.
 - `voice.wake_word.echo_guard` (default `true`) tiene il microfono chiuso mentre
   Amy parla: i frammenti che contengono la sua voce vengono scartati.
   `voice.wake_word.echo_guard_cooldown_s` (default 0,8) è la pausa attesa dopo

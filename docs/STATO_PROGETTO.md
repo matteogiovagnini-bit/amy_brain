@@ -84,7 +84,7 @@ ciò che è solo pianificato.
   Verificata anche end-to-end: «Amy, che ore sono?» → comando eseguito e risposta
   pronunciata. L'ascolto continuo si avvia automaticamente all'avvio se
   `voice.wake_word.start_on_launch` è attivo (default: sì) e si ferma da solo
-  dopo 20 minuti; resta disattivabile.
+  finché l'app è aperta; resta disattivabile e il limite è configurabile.
 - Conversazione continua: dopo la wake word le risposte non richiedono più «Amy»;
   dopo 30 s di silenzio Amy chiede «Sei ancora lì?» e poi torna in standby.
   Dire «Amy» mentre parla interrompe la sintesi (barge-in) e apre l'ascolto.

@@ -272,9 +272,30 @@ class Assistant:
             robot_context=self._robot_context(),
         )
         messages = [{"role": "system", "content": system}]
-        for item in history:
-            if item["role"] in {"user", "assistant"}:
-                messages.append({"role": item["role"], "content": item["content"]})
+        selected = []
+        for item in reversed(history):
+            if item["role"] not in {"user", "assistant"}:
+                continue
+            selected.append(item)
+        selected.reverse()
+
+        # Budget in caratteri: una singola risposta molto lunga (per esempio
+        # l'elenco degli strumenti) non deve far superare il limite gratuito
+        # di token al minuto. Si tengono i messaggi più recenti.
+        budget = int(self.config.get("memory.max_history_chars", 4000))
+        trimmed = []
+        used = 0
+        for item in reversed(selected):
+            content = str(item["content"])
+            remaining = budget - used
+            if remaining <= 0:
+                break
+            if len(content) > remaining:
+                content = content[:remaining] + "…"
+            trimmed.append({"role": item["role"], "content": content})
+            used += len(content)
+        trimmed.reverse()
+        messages.extend(trimmed)
         messages.append({"role": "user", "content": user_text})
         return messages
 

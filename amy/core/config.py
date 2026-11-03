@@ -54,6 +54,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "memory": {
         "db_path": "~/.amy/amy.db",
         "max_history_messages": 24,
+        # Limite in caratteri dello storico inviato al modello: evita che una
+        # singola risposta lunga saturi il limite gratuito di token al minuto.
+        "max_history_chars": 4000,
         "max_facts_in_prompt": 40,
         "retention_days": 365,
     },
@@ -103,6 +106,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "barge_in": True,
             "barge_in_chunk_s": 1.0,
             "barge_in_model": "",
+            # Finestra di ascolto per le risposte in conversazione: più corta
+            # della finestra della wake word, per ridurre la latenza.
+            "listen_seconds": 3.5,
         },
         "wake_word": {
             # L'utente ha richiesto l'avvio automatico dell'ascolto continuo.
@@ -111,7 +117,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "start_on_launch": True,
             "phrase": "amy",
             "sensitivity": 0.5,
-            "max_minutes": 20,
+            "max_minutes": 0,
             # Half-duplex: il microfono resta chiuso mentre Amy parla, così
             # la sua voce non viene scambiata per un comando dell'utente.
             "echo_guard": True,

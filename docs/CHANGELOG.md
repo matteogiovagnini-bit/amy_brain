@@ -26,6 +26,12 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Corretto
 
+- **Latenza dopo l'interruzione**: la finestra di ascolto in conversazione scende a
+  3,5 s (da 5 s) e lo storico inviato al modello è limitato a 4.000 caratteri.
+  Una risposta lunga non fa più raggiungere il limite di 8.000 token/minuto e
+  Amy non passa più decine di secondi in attesa del provider.
+- **Ascolto che si fermava dopo 20 minuti**: `voice.wake_word.max_minutes` ora è
+  `0` per default (nessun limite); il ciclo resta attivo finché l'app è aperta.
 - **Backend chiuso da solo**: il watchdog dell'heartbeat chiudeva la dashboard
   quando App Nap sospendeva il timer dell'app, anche con l'app viva. Ora il
   backend controlla il PID del genitore e resta attivo se è ancora presente;
