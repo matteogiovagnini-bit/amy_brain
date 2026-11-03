@@ -191,12 +191,15 @@ disponibile un preset: `groq`.
 Limiti verificati il **31 ottobre 2026** sulle fonti ufficiali indicate sotto. Se il
 servizio cambia condizioni, il preset va riverificato o rimosso.
 
-Il tetto di **8.000 token al minuto** è il vincolo pratico più stretto: con un prompt
-di sistema di circa 3.100 token Amy riesce a gestire normalmente uno o due messaggi
-ravvicinati al minuto. Per questo il catalogo inviato al modello è ridotto a nome,
-descrizione e parametri, e un `429` viene ritentato una volta rispettando
-`Retry-After`. Se il limite resta superato, Amy risponde con il fallback locale e lo
-dichiara; la quota si libera da sola nel giro di un minuto.
+Il tetto di **8.000 token al minuto** è il vincolo pratico più stretto. Il catalogo
+degli strumenti viene inviato in forma testuale compatta (nome, argomenti e
+descrizione): il prompt di sistema scende da circa 3.100 a circa 1.700 token, così
+Amy gestisce più messaggi ravvicinati restando nel piano gratuito. Un `429` viene
+ritentato fino a due volte usando l'attesa indicata dal servizio nel corpo della
+risposta (`try again in Xs`) o nell'header `Retry-After`, con un tetto di 20 secondi.
+Una risposta vuota viene ritentata una volta. Se il limite resta superato, Amy
+risponde con il fallback locale e lo dichiara; la quota si libera da sola nel giro di
+un minuto.
 
 Regole applicate dal codice:
 

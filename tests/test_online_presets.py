@@ -181,7 +181,7 @@ class RemoteProbeTests(unittest.TestCase):
         self.assertEqual(opener.call_count, 2)
         sleeper.assert_called_once()
 
-    def test_rate_limit_twice_raises_and_falls_back(self) -> None:
+    def test_rate_limit_three_times_raises_and_falls_back(self) -> None:
         def limited() -> urllib.error.HTTPError:
             return urllib.error.HTTPError(
                 "https://api.groq.com/openai/v1/chat/completions",
@@ -191,7 +191,10 @@ class RemoteProbeTests(unittest.TestCase):
                 io.BytesIO(b'{"error":"rate limit"}'),
             )
 
-        with mock.patch("urllib.request.urlopen", side_effect=[limited(), limited()]):
+        # Tre tentativi: due attese con il suggerimento del servizio, poi il
+        # fallback. Groq usa 8.000 token/minuto e una richiesta può superare
+        # metà del budget, quindi un solo ritentativo non bastava.
+        with mock.patch("urllib.request.urlopen", side_effect=[limited(), limited(), limited()]):
             with mock.patch("amy.ai.openai_compat.time.sleep"):
                 provider = self._provider()
                 provider.api_key = "test-key-non-reale"

@@ -35,6 +35,50 @@ def model_tools_catalog(tools_catalog: List[Dict[str, Any]]) -> List[Dict[str, A
     return slim
 
 
+def _type_label(spec: Dict[str, Any]) -> str:
+    """Tipo compatto per il catalogo testuale inviato al modello."""
+    if not isinstance(spec, dict):
+        return "any"
+    if spec.get("enum"):
+        return "|".join(str(item) for item in spec["enum"])
+    kind = str(spec.get("type", "") or "any")
+    if kind == "array":
+        return "[%s]" % _type_label(spec.get("items") or {})
+    if kind == "object":
+        props = spec.get("properties") or {}
+        if not props:
+            return "object"
+        required = set(spec.get("required") or [])
+        parts = []
+        for name, child in props.items():
+            mark = "" if name in required else "?"
+            parts.append("%s%s:%s" % (name, mark, _type_label(child)))
+        return "{%s}" % ", ".join(parts)
+    return kind
+
+
+def model_tools_text(tools_catalog: List[Dict[str, Any]]) -> str:
+    """Catalogo compatto in testo: nomi, argomenti e descrizione.
+
+    Il JSON Schema completo costa circa 2.700 token per ogni richiesta; su un
+    piano gratuito da 8.000 token/minuto bastano due messaggi per esaurirlo.
+    Il testo conserva le informazioni necessarie al modello e lascia la
+    validazione degli argomenti al codice.
+    """
+    lines = []
+    for tool in tools_catalog:
+        params = tool.get("parameters") or {}
+        props = params.get("properties") or {}
+        required = set(params.get("required") or [])
+        args = ", ".join(
+            "%s%s:%s" % (name, "" if name in required else "?", _type_label(spec))
+            for name, spec in props.items()
+        )
+        description = " ".join(str(tool.get("description", "")).split())
+        lines.append("- %s(%s) — %s" % (tool.get("name", ""), args, description))
+    return "\n".join(lines)
+
+
 def _facts_block(facts: List[Dict[str, Any]]) -> str:
     if not facts:
         return "Nessun fatto memorizzato."
@@ -53,11 +97,7 @@ def build_system_prompt(
     robot_context: str = "",
 ) -> str:
     now = datetime.now().astimezone()
-    tool_json = json.dumps(
-        model_tools_catalog(tools_catalog),
-        ensure_ascii=False,
-        separators=(",", ":"),
-    )
+    tools_text = model_tools_text(tools_catalog)
     user_line = user_name.strip() or "l'utente"
     return f"""Sei {assistant_name}, un assistente personale autonomo per macOS, ispirato a JARVIS.
 Parli italiano naturale, con tono competente, diretto e umano. Non sei un chatbot generico:
@@ -97,7 +137,7 @@ Regole:
 - per richieste complesse, esegui un passo alla volta e aggiorna il piano.
 
 ## Strumenti disponibili
-{tool_json}
+{tools_text}
 
 ## Memoria dell'utente
 {_facts_block(facts)}

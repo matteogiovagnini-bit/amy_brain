@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import io
 import unittest
+import urllib.error
+from email.message import Message
 
 from amy.ai.factory import FallbackProvider
 from amy.ai.offline import OfflineProvider
@@ -76,6 +79,44 @@ class OpenAICompatibleProviderTests(unittest.TestCase):
             api_key_env="AMY_TEST_MISSING_OPENAI_KEY",
         )
         self.assertFalse(provider.status()["available"])
+
+
+class RetryHintTests(unittest.TestCase):
+    """L'attesa indicata dal provider non deve essere ignorata.
+
+    Groq mette il suggerimento nel corpo JSON, non sempre nell'header: con
+    l'attesa predefinita di 2 s il secondo tentativo falliva e Amy scivolava
+    subito nel fallback offline.
+    """
+
+    def _error(self, header=None):
+        headers = Message()
+        if header is not None:
+            headers["Retry-After"] = str(header)
+        return urllib.error.HTTPError(
+            "https://example.invalid/v1", 429, "Too Many Requests", headers, io.BytesIO(b"")
+        )
+
+    def test_body_hint_in_seconds_is_used(self) -> None:
+        wait = OpenAICompatibleProvider._retry_wait_seconds(
+            self._error(),
+            '{"error":{"message":"Please try again in 6.3s"}}',
+        )
+        self.assertAlmostEqual(wait, 6.3, places=1)
+
+    def test_body_hint_in_milliseconds_is_used(self) -> None:
+        wait = OpenAICompatibleProvider._retry_wait_seconds(
+            self._error(),
+            '{"error":{"message":"Please try again in 420ms"}}',
+        )
+        self.assertAlmostEqual(wait, 0.42, places=2)
+
+    def test_header_is_capped(self) -> None:
+        wait = OpenAICompatibleProvider._retry_wait_seconds(self._error("999"), "")
+        self.assertEqual(wait, 20.0)
+
+    def test_default_without_hints(self) -> None:
+        self.assertEqual(OpenAICompatibleProvider._retry_wait_seconds(self._error(), ""), 2.0)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import socket
 import time
 import urllib.error
@@ -12,7 +13,10 @@ from typing import Any, Dict, List, Optional
 from .. import __version__
 from ..core.config import get_secret, is_local_endpoint
 from ..core.errors import AIError, AITimeoutError, AIUnavailableError
+from ..core.logging_setup import get_logger
 from .base import AIProvider, normalize_messages
+
+_log = get_logger("ai.openai")
 
 # Alcuni servizi online (Cloudflare) rifiutano con HTTP 403 il User-Agent
 # predefinito di urllib. Dichiararsi esplicitamente evita il blocco e rende
@@ -102,35 +106,54 @@ class OpenAICompatibleProvider(AIProvider):
         headers = {"Content-Type": "application/json", "User-Agent": _USER_AGENT}
         if key:
             headers["Authorization"] = "Bearer " + key
-        request = urllib.request.Request(
-            self.base_url + "/chat/completions",
-            data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
-            method="POST",
-        )
-        data = self._post_with_retry(request)
-
-        try:
-            content = data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError, TypeError) as exc:
-            raise AIError("La risposta del provider non contiene testo.", detail=str(exc)) from exc
-        if not isinstance(content, str) or not content.strip():
-            raise AIError("Il provider remoto ha restituito una risposta vuota.")
-        return content.strip()
+        body = json.dumps(payload).encode("utf-8")
+        # Una risposta vuota è spesso transitoria: un secondo tentativo evita di
+        # scivolare nel fallback offline per un singolo pacchetto andato male.
+        for attempt in (1, 2):
+            request = urllib.request.Request(
+                self.base_url + "/chat/completions",
+                data=body,
+                headers=headers,
+                method="POST",
+            )
+            data = self._post_with_retry(request)
+            try:
+                content = data["choices"][0]["message"]["content"]
+            except (KeyError, IndexError, TypeError) as exc:
+                raise AIError("La risposta del provider non contiene testo.", detail=str(exc)) from exc
+            if isinstance(content, str) and content.strip():
+                return content.strip()
+            if attempt == 1:
+                _log.info("Risposta vuota dal provider: riprovo una volta.")
+                time.sleep(0.5)
+        raise AIError("Il provider remoto ha restituito una risposta vuota.")
 
     @staticmethod
-    def _retry_after_seconds(error: urllib.error.HTTPError) -> float:
-        """Legge ``Retry-After`` senza fidarsi di valori enormi."""
-        raw = ""
+    def _retry_wait_seconds(error: urllib.error.HTTPError, body: str = "") -> float:
+        """Legge l'attesa consigliata dal servizio, senza fidarsi di valori enormi.
+
+        Groq indica l'attesa nel corpo JSON («try again in 6.3s»), non sempre
+        nell'header ``Retry-After``: ignorarlo faceva scattare il fallback
+        offline dopo appena 2 secondi.
+        """
+        candidates = []
         try:
             raw = error.headers.get("Retry-After", "") if error.headers else ""
         except AttributeError:
             raw = ""
         try:
-            value = float(str(raw).strip())
+            candidates.append(float(str(raw).strip()))
         except (TypeError, ValueError):
+            pass
+        match = re.search(r"try again in\s+([0-9]+(?:\.[0-9]+)?)\s*(ms|s)", body or "", re.IGNORECASE)
+        if match:
+            value = float(match.group(1))
+            if match.group(2).lower() == "ms":
+                value /= 1000.0
+            candidates.append(value)
+        if not candidates:
             return 2.0
-        return max(0.0, min(value, _MAX_RETRY_WAIT_S))
+        return max(0.0, min(max(candidates), _MAX_RETRY_WAIT_S))
 
     def _post_with_retry(self, request: urllib.request.Request) -> Dict[str, Any]:
         """Esegue la richiesta, ritentando una volta se il limite è per minuto.
@@ -139,7 +162,7 @@ class OpenAICompatibleProvider(AIProvider):
         possono superarlo. Un solo tentativo con l'attesa indicata dal servizio evita
         di scivolare subito nel fallback, senza mascherare un limite giornaliero.
         """
-        for attempt in (1, 2):
+        for attempt in (1, 2, 3):
             try:
                 with urllib.request.urlopen(request, timeout=self.timeout_s) as response:
                     return json.loads(response.read().decode("utf-8"))
@@ -151,8 +174,14 @@ class OpenAICompatibleProvider(AIProvider):
                         detail=body,
                     ) from exc
                 if exc.code == 429:
-                    if attempt == 1:
-                        time.sleep(self._retry_after_seconds(exc))
+                    if attempt < 3:
+                        wait = self._retry_wait_seconds(exc, body)
+                        _log.info(
+                            "Limite del provider raggiunto: attendo %.1f s e riprovo (%d/3).",
+                            wait,
+                            attempt,
+                        )
+                        time.sleep(wait)
                         continue
                     raise AIError(
                         "Limite di utilizzo del provider raggiunto. Riprova più tardi.",

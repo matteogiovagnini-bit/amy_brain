@@ -17,6 +17,20 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `PlistBuddy` in `build.sh` (prima restava a 0.1.0).
 - **Conteggio strumenti** corretto da 34 a 35 (era sfuggito `system.battery`).
 
+### Corretto
+
+- **Trascrizione italiana**: modello `small` e prompt iniziale italiano. Prima
+  «apri mail» diventava «apre i mail» e «Amy» spariva; ora la stessa frase è
+  trascritta correttamente.
+- **Falsi risvegli**: la wake word non viene più attivata da parole comuni come
+  «ha», «mai» o «mia».
+- **Limite gratuito del provider online**: il catalogo degli strumenti è inviato
+  in forma testuale compatta (da ~12.500 a ~6.700 caratteri di prompt) e, in caso
+  di HTTP 429, Amy usa l'attesa indicata dal servizio (fino a tre tentativi)
+  invece di scivolare subito nel fallback offline.
+- **Risposta vuota**: un secondo tentativo evita il fallback offline per un
+  singolo pacchetto perso.
+
 ## [0.3.0] — 2026-10-31
 
 ### Aggiunto
@@ -58,7 +72,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 261 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 265 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.
