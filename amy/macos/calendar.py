@@ -211,7 +211,7 @@ set found to (every event whose start date is greater than or equal to startDate
 repeat with e in found
 set sd to start date of e
 set ed to end date of e
-set out to out & (year of sd as string) & us & (month of sd as integer as string) & us & (day of sd as string) & us & (hours of sd as string) & us & (minutes of sd as string) & us & (year of ed as string) & us & (month of ed as integer as string) & us & (day of ed as string) & us & (hours of ed as string) & us & (minutes of ed as string) & us & (summary of e) & rs
+set out to out & (year of sd as string) & us & (month of sd as integer as string) & us & (day of sd as string) & us & (hours of sd as string) & us & (minutes of sd as string) & us & (year of ed as string) & us & (month of ed as integer as string) & us & (day of ed as string) & us & (hours of ed as string) & us & (minutes of ed as string) & us & (summary of e) & us & (uid of e) & rs
 end repeat
 end tell
 return out
@@ -225,7 +225,7 @@ end tell""".format(
         if not record:
             continue
         parts = record.split("\x1f")
-        if len(parts) < 11:
+        if len(parts) < 12:
             continue
         try:
             started = datetime(
@@ -238,6 +238,7 @@ end tell""".format(
             continue
         events.append(
             {
+                "uid": parts[11],
                 "title": parts[10],
                 "start": started.strftime("%Y-%m-%dT%H:%M"),
                 "end": ended.strftime("%Y-%m-%dT%H:%M"),
@@ -246,3 +247,52 @@ end tell""".format(
         )
     events.sort(key=lambda item: item["start"])
     return {"date": moment.strftime("%Y-%m-%d"), "calendar": calendar["name"], "events": events}
+
+def delete_event(
+    *,
+    uid: str = "",
+    title: str = "",
+    date: str = "",
+    calendar_name: str = "",
+    default_calendar: str = "Calendario",
+) -> Dict[str, Any]:
+    """Elimina un evento per UID oppure per titolo e giorno.
+
+    La cancellazione è di livello C nel registro degli strumenti: questa
+    funzione deve essere chiamata solo dopo una conferma esplicita.
+    """
+    calendar = resolve_calendar(calendar_name, default_name=default_calendar)
+    target_uid = str(uid or "").strip()
+
+    if not target_uid:
+        if not title or not date:
+            raise CalendarError(
+                "Serve l'UID dell'evento oppure il titolo e la data.",
+            )
+        day = list_events(date=date, calendar_name=calendar["name"], default_calendar=default_calendar)
+        matches = [
+            event for event in day["events"]
+            if str(event.get("title", "")).strip().lower() == str(title).strip().lower()
+        ]
+        if not matches:
+            raise CalendarError(
+                "Nessun evento «%s» trovato il %s." % (title, day["date"]),
+                detail="Controlla il titolo con calendar.events.",
+            )
+        if len(matches) > 1:
+            raise CalendarError(
+                "Ci sono %d eventi con questo titolo: indica l'UID." % len(matches),
+                detail="UID: " + ", ".join(event["uid"] for event in matches),
+            )
+        target_uid = matches[0]["uid"]
+
+    script = """tell application "Calendar"
+tell calendar "{calendar}"
+set found to (every event whose uid is "{uid}")
+if (count of found) is 0 then error "Evento non trovato."
+delete (item 1 of found)
+end tell
+return "eliminato"
+end tell""".format(calendar=_text(calendar["name"]), uid=_text(target_uid))
+    run_osascript(script, timeout=30.0)
+    return {"uid": target_uid, "calendar": calendar["name"], "deleted": True}

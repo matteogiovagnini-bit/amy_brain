@@ -75,6 +75,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "calendar": {
         "default_name": "Calendario",
     },
+    "reminders": {
+        "default_list": "",
+    },
     "voice": {
         "enabled": False,
         "startup_greeting": True,

@@ -356,7 +356,10 @@ tornano i falsi positivi descritti sopra.
 
 ## 6. Ciclo vocale continuo
 
-Due modi per avviarlo, entrambi espliciti:
+L'ascolto continuo si avvia **automaticamente all'avvio** quando
+`voice.wake_word.start_on_launch` è attivo (default). Resta disattivabile con
+`voice.wake_word.enabled = false` o `start_on_launch = false`, e si può avviare o
+fermare a mano:
 
 ```bash
 python3 -m amy voice loop
@@ -375,8 +378,8 @@ STT non disponibili.
 
 Garanzie:
 
-- il ciclo parte **solo** da quel comando o dalla CLI: nessuna registrazione
-  all'avvio della dashboard;
+- il ciclo parte all'avvio solo se la configurazione lo richiede; il default del
+  repository è attivo per scelta esplicita dell'utente;
 - si ferma al click, alla chiusura dell'app e comunque dopo
   `voice.wake_word.max_minutes` minuti (20 di default, massimo 120);
 - lo stato `running` passa a falso appena richiedi lo stop, anche se il thread è
@@ -387,6 +390,21 @@ Garanzie:
 Se mancano registratore o STT, il ciclo si rifiuta di partire con un errore chiaro
 (`400` con messaggio in italiano) e la UI lo mostra nel toast.
 
+### Conferma vocale
+
+Quando un comando richiede conferma (per esempio l'eliminazione di un evento),
+Amy pronuncia la domanda e resta in attesa per **30 secondi**. In quella finestra
+la wake word non serve: basta dire «sì», «confermo», «ok», «procedi» oppure «no»,
+«annulla», «lascia stare».
+
+- Una risposta non chiara fa ripetere «Rispondi sì oppure no.» senza chiudere la
+  conferma.
+- Allo scadere dei 30 secondi Amy dice «Conferma scaduta: operazione annullata.»
+- La conferma resta comunque visibile nella dashboard: puoi rispondere a voce o
+  con i pulsanti.
+- Le eliminazioni restano di livello C: la voce è un modo per confermare, non un
+  modo per saltare la conferma.
+
 ## 7. Privacy
 
 - L'audio viene registrato in un file temporaneo e cancellato dopo la trascrizione.
@@ -395,7 +413,7 @@ Se mancano registratore o STT, il ciclo si rifiuta di partire con un errore chia
   servizi esterni. L'unica rete è il download iniziale del modello.
 - Se si configura un provider IA remoto, il **testo** della richiesta può essere
   inviato a quel provider: è una scelta dell'utente, non un comportamento nascosto.
-- Il microfono è attivo solo durante un ascolto o un ciclo avviato esplicitamente.
+- Il microfono è attivo durante un ascolto o un ciclo avviato esplicitamente, oppure all'avvio se `start_on_launch` è attivo.
 - Il saluto di avvio non usa il microfono: è solo sintesi locale.
 - Il ciclo continuo tiene il microfono aperto: la UI lo dichiara con lo stato
   «In ascolto» e con il pulsante premuto.

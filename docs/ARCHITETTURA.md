@@ -38,13 +38,13 @@ livello. Il robot reale ha una propria catena di sicurezza hardware descritta in
 | `amy/memory/store.py` | SQLite: sessioni, messaggi, fatti, attività, eventi |
 | `amy/security/policy.py` | livelli A/B/C, path guard, richieste di conferma |
 | `amy/security/audit.py` | registro append-only delle decisioni |
-| `amy/tools/` | 38 strumenti registrati e validati |
+| `amy/tools/` | 44 strumenti registrati e validati |
 | `amy/voice/` | TTS macOS, STT locale, registratore, wake word testuale |
 | `amy/robot/` | protocollo v1, simulatore, link simulato e MQTT |
 | `amy/ui/server.py` | API HTTP locale, file statici, CSP |
 | `amy/ui/static/` | interfaccia «Amy Core» senza dipendenze esterne |
 | `amy/core/system_info.py` | informazioni locali di sistema, sola libreria standard |
-| `amy/macos/` | integrazione AppleScript, incluse applicazioni, batteria e Calendar |
+| `amy/macos/` | integrazione AppleScript, incluse applicazioni, batteria, Calendar e Promemoria |
 | `apps/AmyCore/` | applicazione macOS nativa (Swift, AppKit, WebKit), build e self-test |
 
 ## 3. Flusso di un turno

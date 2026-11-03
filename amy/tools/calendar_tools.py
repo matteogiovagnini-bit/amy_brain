@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from ..macos import create_event, list_calendars, list_events
+from ..macos import create_event, delete_event, list_calendars, list_events
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
 
@@ -40,6 +40,17 @@ def _list_events(args: Dict[str, Any], context: ToolContext) -> ToolResult:
     )
 
 
+def _delete_event(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    data = delete_event(
+        uid=str(args.get("uid", "") or ""),
+        title=str(args.get("title", "") or ""),
+        date=str(args.get("date", "") or ""),
+        calendar_name=str(args.get("calendar", "") or ""),
+        default_calendar=_default_calendar(context),
+    )
+    return ToolResult.success(data, "Evento eliminato dal calendario %s." % data["calendar"])
+
+
 def _create_event(args: Dict[str, Any], context: ToolContext) -> ToolResult:
     data = create_event(
         title=str(args["title"]),
@@ -62,6 +73,7 @@ CALENDAR_LIST = ToolSpec(
     parameters={"type": "object", "properties": {}, "additionalProperties": False},
     risk=RiskLevel.A,
     reason="Lettura dei nomi dei calendari locali.",
+    timeout_s=30.0,
     tags=("macos", "calendario"),
 )
 
@@ -82,6 +94,7 @@ CALENDAR_EVENTS = ToolSpec(
     },
     risk=RiskLevel.A,
     reason="Lettura degli eventi del calendario.",
+    timeout_s=30.0,
     consequences="Nessuna modifica: Calendar viene solo interrogato.",
     tags=("macos", "calendario"),
 )
@@ -108,6 +121,7 @@ CALENDAR_CREATE = ToolSpec(
     },
     risk=RiskLevel.B,
     reason="Scrittura di un evento nel calendario dell'utente.",
+    timeout_s=45.0,
     consequences=(
         "L'evento compare in Calendar e può sincronizzarsi con gli altri dispositivi "
         "collegati allo stesso account."
@@ -117,7 +131,34 @@ CALENDAR_CREATE = ToolSpec(
 )
 
 
+
+
+CALENDAR_DELETE = ToolSpec(
+    name="calendar.delete",
+    description=(
+        "Elimina un evento dal calendario. Indica l'UID ottenuto da "
+        "calendar.events, oppure il titolo e la data (YYYY-MM-DD)."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "uid": {"type": "string", "maxLength": 200},
+            "title": {"type": "string", "maxLength": 200},
+            "date": {"type": "string", "maxLength": 40},
+            "calendar": {"type": "string", "maxLength": 100},
+        },
+        "additionalProperties": False,
+    },
+    risk=RiskLevel.C,
+    reason="Cancellazione definitiva di un evento del calendario.",
+    timeout_s=45.0,
+    consequences="L'evento sparisce da Calendar e, se sincronizzato, anche dagli altri dispositivi.",
+    undo="Nessuno automatico: l'evento va ricreato a mano.",
+    tags=("macos", "calendario", "cancellazione"),
+)
+
 def register(registry) -> None:
     registry.register(FunctionTool(CALENDAR_LIST, _list_calendars))
     registry.register(FunctionTool(CALENDAR_EVENTS, _list_events))
     registry.register(FunctionTool(CALENDAR_CREATE, _create_event))
+    registry.register(FunctionTool(CALENDAR_DELETE, _delete_event))

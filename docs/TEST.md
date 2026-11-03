@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 280 tests in 19.0s
+Ran 307 tests in 19.0s
 
 OK
 ```
@@ -36,7 +36,7 @@ OK
 | File | Test | Copertura |
 | --- | --- | --- |
 | `tests/test_battery.py` | 11 | parsing di `pmset -g batt`, Mac senza batteria, batteria carica senza «0:00», strumento in sola lettura, distinzione fra batteria del Mac e del robot |
-| `tests/test_calendar.py` | 14 | date ISO, scelta del calendario, escaping AppleScript, evento di un giorno intero, durata limitata, lettura e ordinamento eventi, rischio B per la creazione |
+| `tests/test_calendar.py` | 18 | date ISO, scelta del calendario, escaping AppleScript, evento di un giorno intero, durata limitata, lettura e ordinamento eventi, rischio B per la creazione |
 | `tests/test_config.py` | 16 | default gratuiti, endpoint remoto, fallback, schema URL, segreti, init |
 | `tests/test_files.py` | 9 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
 | `tests/test_free_only.py` | 6 | nessuna dipendenza obbligatoria, host commerciali, default locali |
@@ -50,9 +50,10 @@ OK
 | `tests/test_protocol.py` | 8 | envelope, versione, campi extra, ruoli, topic |
 | `tests/test_providers.py` | 11 | stato del fallback, endpoint locale/remoto, chiave opzionale, attesa consigliata dal servizio |
 | `tests/test_recorder.py` | 12 | scelta del motore audio, WAV valido, stato senza modulo, blocco del HAL con limite di tempo, blocco dichiarato e non ritentato, sonda microfono del doctor |
+| `tests/test_reminders.py` | 12 | liste, creazione con scadenza, parsing di scadenze assenti, completamento ed eliminazione, rischio B/C |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 4 | heartbeat assente o scaduto: il backend si chiude, con tolleranza 20 s |
-| `tests/test_server.py` | 18 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), bind remoto, header |
+| `tests/test_server.py` | 25 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header |
 | `tests/test_shell.py` | 5 | comandi ammessi, rifiuto arbitrario, git, timeout |
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
 | `tests/test_system_info.py` | 5 | dati locali reali, disco, nessun segreto o dato robot |
@@ -61,8 +62,8 @@ OK
 | `tests/test_ui_static.py` | 19 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
-| `tests/test_voice_wake.py` | 23 | wake word tollerante, comando estratto, avvio automatico disattivabile, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **280** | |
+| `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
+| **Totale** | **307** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

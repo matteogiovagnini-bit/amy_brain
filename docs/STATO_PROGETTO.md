@@ -17,7 +17,7 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 280 test, tutti superati, più il self-test dell'app nativa |
+| Test | 307 test, tutti superati, più il self-test dell'app nativa |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -54,7 +54,7 @@ ciò che è solo pianificato.
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 38 strumenti registrati e validati.
+- 44 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -85,6 +85,9 @@ ciò che è solo pianificato.
   pronunciata. L'ascolto continuo si avvia automaticamente all'avvio se
   `voice.wake_word.start_on_launch` è attivo (default: sì) e si ferma da solo
   dopo 20 minuti; resta disattivabile.
+- Conferma vocale: quando un comando richiede autorizzazione, Amy pronuncia la
+  domanda e accetta «sì»/«no» senza ripetere la wake word, per 30 secondi. Le
+  eliminazioni restano di livello C: la voce conferma, non aggira la conferma.
 - Protezione dall'eco **half-duplex** nel ciclo vocale: durante la sintesi il
   microfono non registra, i frammenti che contengono la voce di Amy vengono
   scartati e dopo la risposta segue una pausa di 0,8 s
@@ -97,8 +100,13 @@ ciò che è solo pianificato.
   residuo; su un Mac senza batteria dichiara l'assenza senza inventare valori.
 - Calendario: `calendar.list` e `calendar.events` leggono calendari ed eventi,
   `calendar.create` crea un appuntamento reale in Calendar.app via AppleScript
-  (rischio B, conferma obbligatoria). Verificato il 3 novembre 2026 con un evento
-  creato, riletto e rimosso; il primo uso richiede il permesso Automazione.
+  (rischio B) e `calendar.delete` lo elimina (rischio C, sempre con conferma).
+  Verificato il 3 novembre 2026 con un evento creato, riletto e rimosso.
+- Promemoria: `reminders.lists` e `reminders.list` leggono liste e promemoria,
+  `reminders.create` crea un promemoria con scadenza (rischio B),
+  `reminders.complete` lo segna completato (rischio B) e `reminders.delete` lo
+  elimina (rischio C). Verificato il 3 novembre 2026 con un promemoria creato,
+  completato e rimosso; il primo uso richiede il permesso Automazione.
 - Registrazione con limite di tempo: se PortAudio si blocca nel HAL di Core Audio,
   la chiamata fallisce dopo `durata + 6 s` con «Il microfono non risponde», lo stato
   espone `stuck: true` e il ciclo di wake word si ferma dichiarando il motivo.
@@ -117,7 +125,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 280 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 307 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

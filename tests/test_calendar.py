@@ -14,6 +14,7 @@ from unittest import mock
 from amy.macos.calendar import (
     CalendarError,
     create_event,
+    delete_event,
     list_events,
     parse_start,
     resolve_calendar,
@@ -117,13 +118,60 @@ class ListEventsTests(unittest.TestCase):
         us = "\x1f"
         rs = "\x1e"
         # Dieci campi numerici, titolo, record separato.
-        first = us.join(["2026", "11", "4", "9", "0", "2026", "11", "4", "10", "0", "Presto"]) + rs
-        second = us.join(["2026", "11", "4", "17", "0", "2026", "11", "4", "18", "0", "Tardi"]) + rs
+        first = us.join(["2026", "11", "4", "9", "0", "2026", "11", "4", "10", "0", "Presto", "UID-A"]) + rs
+        second = us.join(["2026", "11", "4", "17", "0", "2026", "11", "4", "18", "0", "Tardi", "UID-B"]) + rs
         with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
             with mock.patch("amy.macos.calendar.run_osascript", return_value=first + second):
                 data = list_events(date="2026-11-04")
         self.assertEqual([item["title"] for item in data["events"]], ["Presto", "Tardi"])
         self.assertEqual(data["events"][0]["start"], "2026-11-04T09:00")
+        self.assertEqual(data["events"][0]["uid"], "UID-A")
+
+
+
+
+class DeleteEventTests(unittest.TestCase):
+    def test_deletes_by_uid(self) -> None:
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with mock.patch("amy.macos.calendar.run_osascript", return_value="eliminato") as runner:
+                data = delete_event(uid="UID-1")
+        self.assertTrue(data["deleted"])
+        self.assertIn('whose uid is "UID-1"', runner.call_args[0][0])
+
+    def test_deletes_by_title_and_date(self) -> None:
+        day = {
+            "date": "2026-11-04",
+            "calendar": "Calendario",
+            "events": [{"uid": "UID-2", "title": "Dentista", "start": "2026-11-04T16:00", "end": "2026-11-04T17:00"}],
+        }
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with mock.patch("amy.macos.calendar.list_events", return_value=day):
+                with mock.patch("amy.macos.calendar.run_osascript", return_value="eliminato") as runner:
+                    data = delete_event(title="dentista", date="2026-11-04")
+        self.assertEqual(data["uid"], "UID-2")
+        self.assertIn('whose uid is "UID-2"', runner.call_args[0][0])
+
+    def test_missing_event_is_reported(self) -> None:
+        day = {"date": "2026-11-04", "calendar": "Calendario", "events": []}
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with mock.patch("amy.macos.calendar.list_events", return_value=day):
+                with self.assertRaises(CalendarError):
+                    delete_event(title="Dentista", date="2026-11-04")
+
+    def test_ambiguous_title_requires_uid(self) -> None:
+        day = {
+            "date": "2026-11-04",
+            "calendar": "Calendario",
+            "events": [
+                {"uid": "UID-1", "title": "Dentista", "start": "2026-11-04T09:00", "end": "2026-11-04T10:00"},
+                {"uid": "UID-2", "title": "Dentista", "start": "2026-11-04T16:00", "end": "2026-11-04T17:00"},
+            ],
+        }
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with mock.patch("amy.macos.calendar.list_events", return_value=day):
+                with self.assertRaises(CalendarError) as context:
+                    delete_event(title="Dentista", date="2026-11-04")
+        self.assertIn("UID", str(context.exception))
 
 
 class CalendarToolSpecTests(unittest.TestCase):

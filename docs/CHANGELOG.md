@@ -15,6 +15,17 @@ iniziale: non tutte le voci sono state verificate su hardware.
   con un evento creato, riletto e rimosso.
 - `calendar.default_name` (default `"Calendario"`) sceglie il calendario di
   destinazione; i calendari di sistema vengono esclusi.
+- **Eliminazione di eventi.** `calendar.delete` cancella per UID oppure per titolo
+  e data; è di livello C e richiede sempre conferma.
+- **Conferma vocale.** Quando un comando richiede conferma, Amy pronuncia la
+  domanda e ascolta «sì»/«no» per 30 secondi senza richiedere di nuovo «Amy».
+  Una risposta non chiara fa ripetere la domanda; allo scadere l'operazione viene
+  annullata. Le azioni di livello C restano sempre soggette a conferma.
+- **Promemoria completi.** `reminders.lists`, `reminders.list`, `reminders.create`,
+  `reminders.complete` e `reminders.delete` gestiscono Promemoria.app: elenco,
+  creazione con scadenza (B), completamento (B) ed eliminazione (C).
+  `reminders.default_list` sceglie la lista. Verificato il 3 novembre 2026 con un
+  promemoria creato, completato e rimosso.
 
 ## [0.3.1] — 2026-11-02
 
@@ -88,7 +99,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 280 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 307 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

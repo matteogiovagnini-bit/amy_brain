@@ -3,10 +3,20 @@
 from .calendar import (
     CalendarError,
     create_event,
+    delete_event,
     list_calendars,
     list_events,
     parse_start,
     resolve_calendar,
+)
+from .reminders import (
+    RemindersError,
+    complete_reminder,
+    create_reminder,
+    delete_reminder,
+    list_reminder_lists,
+    list_reminders,
+    resolve_list,
 )
 from .applescript import (
     MacOSError,
@@ -30,10 +40,18 @@ from .applescript import (
 __all__ = [
     "CalendarError",
     "create_event",
+    "delete_event",
     "list_calendars",
     "list_events",
     "parse_start",
     "resolve_calendar",
+    "RemindersError",
+    "complete_reminder",
+    "create_reminder",
+    "delete_reminder",
+    "list_reminder_lists",
+    "list_reminders",
+    "resolve_list",
     "MacOSError",
     "activate_application",
     "application_is_running",

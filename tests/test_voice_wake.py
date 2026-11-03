@@ -373,3 +373,104 @@ class EchoGuardTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class SequenceSTT(SilentSTT):
+    """Restituisce le trascrizioni in ordine, poi stringa vuota."""
+
+    def __init__(self, texts) -> None:
+        self.texts = list(texts)
+        self.calls = 0
+
+    def transcribe(self, audio_path: Path) -> str:
+        self.calls += 1
+        return self.texts.pop(0) if self.texts else ""
+
+
+class VoiceConfirmationTests(unittest.TestCase):
+    """La conferma vocale: si risponde sì/no senza ripetere «Amy»."""
+
+    def setUp(self) -> None:
+        self.temp = TempAmy()
+        self.service = VoiceService(self.temp.config)
+        self.recorder = FakeRecorder()
+        self.service.recorder = self.recorder
+        self.service.tts = FakeTTS()
+
+    def tearDown(self) -> None:
+        self.service.stop_wake_loop()
+        self.recorder.close()
+        self.temp.close()
+
+    def _wait(self, predicate, timeout: float = 4.0) -> bool:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if predicate():
+                return True
+            time.sleep(0.02)
+        return False
+
+    def test_answer_is_read_without_the_wake_word(self) -> None:
+        answers = []
+
+        def on_command(text: str) -> None:
+            self.service.await_confirmation(
+                lambda answer: answers.append(answer) or answer.strip().lower() == "si",
+                timeout_s=10,
+            )
+
+        self.service.stt = SequenceSTT(["Amy elimina l'evento", "si"])
+        thread = self.service.start_wake_loop(on_command, max_minutes=1)
+        self.assertTrue(self._wait(lambda: answers == ["si"]), answers)
+        self.assertFalse(self.service.awaiting_confirmation)
+        self.service.stop_wake_loop()
+        thread.join(timeout=3)
+
+    def test_unclear_answer_keeps_waiting(self) -> None:
+        answers = []
+
+        def on_command(text: str) -> None:
+            def callback(answer: str) -> bool:
+                answers.append(answer)
+                return answer.strip().lower() == "no"
+            self.service.await_confirmation(callback, timeout_s=10)
+
+        self.service.stt = SequenceSTT(["Amy elimina l'evento", "boh", "no"])
+        thread = self.service.start_wake_loop(on_command, max_minutes=1)
+        self.assertTrue(self._wait(lambda: len(answers) >= 2), answers)
+        self.assertEqual(answers[:2], ["boh", "no"])
+        self.assertFalse(self.service.awaiting_confirmation)
+        self.service.stop_wake_loop()
+        thread.join(timeout=3)
+
+    def test_expired_confirmation_is_cancelled(self) -> None:
+        called = []
+
+        def on_command(text: str) -> None:
+            self.service.await_confirmation(lambda answer: called.append(answer) or True, timeout_s=10)
+            # Scadenza forzata: il prossimo frammento deve trovare la conferma scaduta.
+            self.service._confirmation_deadline = time.monotonic() - 1
+
+        self.service.stt = SequenceSTT(["Amy elimina l'evento", "si"])
+        thread = self.service.start_wake_loop(on_command, max_minutes=1)
+        self.assertTrue(
+            self._wait(lambda: any("Conferma scaduta" in said for said in self.service.tts.spoken))
+        )
+        self.assertEqual(called, [])
+        self.assertFalse(self.service.awaiting_confirmation)
+        self.service.stop_wake_loop()
+        thread.join(timeout=3)
+
+    def test_stop_cancels_a_pending_confirmation(self) -> None:
+        def on_command(text: str) -> None:
+            self.service.await_confirmation(lambda answer: True)
+
+        self.service.stt = SequenceSTT(["Amy elimina l'evento"])
+        thread = self.service.start_wake_loop(on_command, max_minutes=1)
+        self.assertTrue(self._wait(lambda: self.service.awaiting_confirmation))
+        self.service.stop_wake_loop()
+        thread.join(timeout=3)
+        self.assertFalse(self.service.awaiting_confirmation)
+
+
+if __name__ == "__main__":
+    unittest.main()

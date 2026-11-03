@@ -124,6 +124,17 @@ Misure applicate:
   di Sistema → Privacy e Sicurezza → Automazione. Se manca, l'errore lo dice.
 
 `calendar.list` e `calendar.events` sono di livello A e non modificano nulla.
+`calendar.delete` è di livello **C**: richiede sempre una conferma esplicita e non
+può essere auto-approvato. La conferma può essere data a voce («sì»/«no»), ma
+questo cambia solo il canale della risposta, non il requisito: la domanda viene
+pronunciata e la conferma resta visibile anche nella dashboard.
+
+Lo stesso schema vale per Promemoria:
+
+- `reminders.lists` e `reminders.list` sono di livello A;
+- `reminders.create` e `reminders.complete` sono di livello B;
+- `reminders.delete` è di livello C e richiede sempre conferma;
+- i testi sono escapati e le date costruite per componenti, come per il calendario.
 
 ## 6. Web e prompt injection
 

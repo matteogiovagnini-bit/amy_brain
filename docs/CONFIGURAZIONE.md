@@ -103,6 +103,9 @@ python3 -m amy config path   # percorso del file in uso
   "calendar": {
     "default_name": "Calendario"
   },
+  "reminders": {
+    "default_list": ""
+  },
   "voice": {
     "enabled": false,
     "startup_greeting": true,
@@ -451,8 +454,10 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   `calendar.create` quando la richiesta non ne indica uno.
 - Se il nome configurato non esiste, Amy elenca i calendari scrivibili e non
   scrive in quelli di sistema (festività, compleanni, suggerimenti di Siri).
-- La creazione di un evento è di livello B: richiede la conferma. Il primo uso
-  richiede il permesso Automazione per Calendar.
+- La creazione di un evento è di livello B, l'eliminazione è di livello C: entrambe
+  richiedono la conferma. Il primo uso richiede il permesso Automazione per Calendar.
+- `reminders.default_list` (default vuoto = prima lista disponibile) sceglie la lista
+  usata da `reminders.create`, `reminders.complete` e `reminders.delete`.
 
 ## 10. Log
 

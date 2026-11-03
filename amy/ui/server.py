@@ -24,6 +24,7 @@ from ..core.assistant import Assistant
 from ..core.config import Config
 from ..core.errors import AmyError, ConfigError
 from ..core.logging_setup import get_logger, setup_logging
+from ..voice.wakeword import normalize
 
 _log = get_logger("ui.server")
 STATIC = Path(__file__).parent / "static"
@@ -253,11 +254,65 @@ class AmyHTTPServer(ThreadingHTTPServer):
             _log.exception("Comando vocale non riuscito")
             return
         reply = str(getattr(result, "reply", "") or "").strip()
+        pending = getattr(result, "pending", None)
+        if pending is not None:
+            question = reply or "Confermi l'operazione?"
+            try:
+                self.assistant.voice.speak(question, block=False)
+                self.assistant.voice.await_confirmation(
+                    lambda answer: self._resolve_voice_confirmation(answer, pending.pending_id),
+                    timeout_s=30.0,
+                )
+            except Exception:  # noqa: BLE001
+                _log.warning("Conferma vocale non avviata", exc_info=True)
+            return
         if reply:
             try:
                 self.assistant.voice.speak(reply, block=False)
             except Exception:  # noqa: BLE001
                 _log.warning("Sintesi della risposta vocale non riuscita")
+
+    @staticmethod
+    def _voice_answer(text: str) -> Optional[bool]:
+        """Interpreta un sì/no italiano; None se la risposta non è chiara."""
+        words = normalize(text).split()
+        if not words:
+            return None
+        yes = {
+            "si", "s", "certo", "confermo", "conferma", "ok", "okay",
+            "procedi", "vai", "fallo", "autorizzo", "approvo", "accetto",
+        }
+        no = {
+            "no", "n", "annulla", "annullare", "lascia", "stare", "stop",
+            "rifiuto", "nega", "cancel", "cancella",
+        }
+        if words[0] in yes:
+            return True
+        if words[0] in no:
+            return False
+        return None
+
+    def _resolve_voice_confirmation(self, text: str, pending_id: str) -> bool:
+        """Risolve una conferma con la risposta vocale; True se ha risposto."""
+        answer = self._voice_answer(text)
+        if answer is None:
+            try:
+                self.assistant.voice.speak("Rispondi sì oppure no.", block=False)
+            except Exception:  # noqa: BLE001
+                pass
+            return False
+        try:
+            resolved = self.assistant.resolve_confirmation(pending_id, answer)
+            message = str(getattr(resolved, "reply", "") or "").strip()
+        except Exception:  # noqa: BLE001
+            message = "La conferma non è più valida."
+        if not message:
+            message = "Fatto." if answer else "Operazione annullata."
+        try:
+            self.assistant.voice.speak(message, block=False)
+        except Exception:  # noqa: BLE001
+            _log.warning("Sintesi della conferma non riuscita")
+        return True
 
     def start_wake_loop_on_launch(self) -> bool:
         """Avvia l'ascolto continuo se la configurazione lo richiede."""

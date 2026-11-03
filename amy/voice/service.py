@@ -46,6 +46,10 @@ class VoiceService:
         self._loop_thread: Optional[threading.Thread] = None
         self._wake_deadline: Optional[float] = None
         self._wake_stop_reason = ""
+        # Conferma vocale: mentre è attiva, il frammento successivo viene
+        # interpretato come risposta (sì/no) anche senza la wake word.
+        self._confirmation_callback: Optional[Callable[[str], bool]] = None
+        self._confirmation_deadline = 0.0
 
     def warm(self) -> None:
         """Precarica voci e modello STT in background.
@@ -226,6 +230,20 @@ class VoiceService:
                 # Il frammento contiene la voce di Amy: non è un comando.
                 _log.info("Frammento scartato: Amy stava parlando (protezione dall'eco).")
                 continue
+            if self._confirmation_callback is not None:
+                if time.monotonic() >= self._confirmation_deadline:
+                    self.cancel_confirmation()
+                    _log.info("Conferma vocale scaduta: operazione annullata")
+                    self.tts.speak("Conferma scaduta: operazione annullata.")
+                    continue
+                try:
+                    handled = bool(self._confirmation_callback(text))
+                except Exception:  # noqa: BLE001 - la conferma non deve fermare il ciclo
+                    _log.warning("Conferma vocale non riuscita", exc_info=True)
+                    handled = True
+                if handled:
+                    self.cancel_confirmation()
+                continue
             command = self.wake.extract_command(text)
             if command:
                 self.tts.stop()  # barge-in: l'utente interrompe Amy
@@ -253,6 +271,30 @@ class VoiceService:
                     continue
                 if follow_up.strip():
                     on_command(follow_up.strip())
+
+    def await_confirmation(
+        self,
+        callback: Callable[[str], bool],
+        *,
+        timeout_s: float = 30.0,
+    ) -> None:
+        """Attende una risposta vocale a una conferma già pronunciata.
+
+        ``callback`` riceve il testo trascritto e restituisce True se ha
+        risolto la conferma, False se la risposta non è chiara e va atteso un
+        altro frammento. Scaduto il tempo, la conferma viene annullata.
+        """
+        self._confirmation_callback = callback
+        self._confirmation_deadline = time.monotonic() + max(5.0, float(timeout_s))
+        _log.info("In attesa di una conferma vocale")
+
+    def cancel_confirmation(self) -> None:
+        self._confirmation_callback = None
+        self._confirmation_deadline = 0.0
+
+    @property
+    def awaiting_confirmation(self) -> bool:
+        return self._confirmation_callback is not None
 
     def start_wake_loop(
         self,
@@ -297,6 +339,7 @@ class VoiceService:
     def stop_wake_loop(self) -> None:
         self._stop_event.set()
         self._wake_deadline = None
+        self.cancel_confirmation()
         self.stop_speaking()
 
     @property

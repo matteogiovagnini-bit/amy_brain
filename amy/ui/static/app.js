@@ -1030,7 +1030,10 @@
     ensureFastPoll();
 
     const pendingCount = Number(data.pending_confirmations || 0);
-    if (!app.pending && !app.busy && !app.resolving && pendingCount > 0) {
+    if (app.pending && pendingCount === 0) {
+      // La conferma è stata risolta altrove (per esempio a voce).
+      closeConfirm();
+    } else if (!app.pending && !app.busy && !app.resolving && pendingCount > 0) {
       loadPending();
     }
   }

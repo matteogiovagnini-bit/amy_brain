@@ -67,6 +67,22 @@ class FakeVoice:
         return "che ore sono"
 
 
+class VoiceAnswerTests(unittest.TestCase):
+    """La conferma vocale deve capire sì e no senza ambiguità."""
+
+    def test_yes_answers(self) -> None:
+        for text in ("sì", "Sì, procedi", "confermo", "ok", "fallo"):
+            self.assertIs(AmyHTTPServer._voice_answer(text), True, text)
+
+    def test_no_answers(self) -> None:
+        for text in ("no", "annulla", "lascia stare", "stop"):
+            self.assertIs(AmyHTTPServer._voice_answer(text), False, text)
+
+    def test_unclear_answers(self) -> None:
+        for text in ("forse", "", "che ore sono"):
+            self.assertIsNone(AmyHTTPServer._voice_answer(text), text)
+
+
 class ServerTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = TempAmy()
@@ -255,6 +271,41 @@ class ServerTests(unittest.TestCase):
         with self.assertRaises(urllib.error.HTTPError) as context:
             self.call("GET", "/api/inesistente")
         self.assertEqual(context.exception.code, 404)
+
+
+if __name__ == "__main__":
+    unittest.main()
+
+class VoiceConfirmationServerTests(unittest.TestCase):
+    def _server(self):
+        server = object.__new__(AmyHTTPServer)
+        server.assistant = mock.Mock()
+        server.assistant.voice = mock.Mock()
+        server.assistant.resolve_confirmation.return_value = mock.Mock(reply="Eliminato.")
+        return server
+
+    def test_yes_resolves_and_speaks(self) -> None:
+        server = self._server()
+        self.assertTrue(server._resolve_voice_confirmation("sì", "cfm_1"))
+        server.assistant.resolve_confirmation.assert_called_once_with("cfm_1", True)
+        server.assistant.voice.speak.assert_called_once()
+
+    def test_no_rejects(self) -> None:
+        server = self._server()
+        self.assertTrue(server._resolve_voice_confirmation("no", "cfm_1"))
+        server.assistant.resolve_confirmation.assert_called_once_with("cfm_1", False)
+
+    def test_unclear_keeps_waiting(self) -> None:
+        server = self._server()
+        self.assertFalse(server._resolve_voice_confirmation("forse", "cfm_1"))
+        server.assistant.resolve_confirmation.assert_not_called()
+        self.assertIn("sì oppure no", server.assistant.voice.speak.call_args[0][0])
+
+    def test_expired_pending_is_reported(self) -> None:
+        server = self._server()
+        server.assistant.resolve_confirmation.side_effect = RuntimeError("scaduta")
+        self.assertTrue(server._resolve_voice_confirmation("sì", "cfm_1"))
+        self.assertIn("non è più valida", server.assistant.voice.speak.call_args[0][0])
 
 
 if __name__ == "__main__":
