@@ -10,7 +10,7 @@ from email.message import Message
 from amy.ai.factory import FallbackProvider
 from amy.ai.offline import OfflineProvider
 from amy.ai.openai_compat import OpenAICompatibleProvider
-from amy.core.errors import AIUnavailableError
+from amy.core.errors import AIError, AIUnavailableError
 
 
 class _FakePrimary:
@@ -79,6 +79,31 @@ class OpenAICompatibleProviderTests(unittest.TestCase):
             api_key_env="AMY_TEST_MISSING_OPENAI_KEY",
         )
         self.assertFalse(provider.status()["available"])
+
+
+class FallbackMessageTests(unittest.TestCase):
+    def test_offline_fallback_explains_the_online_failure(self) -> None:
+        """Se il provider online cade, non suggerire Ollama all'utente.
+
+        Osservato il 3 novembre 2026: «come va?» finiva nel messaggio offline
+        che invitava ad avviare Ollama, mentre l'utente vuole solo servizi
+        online gratuiti.
+        """
+
+        class Broken:
+            name = "groq"
+            model = "openai/gpt-oss-120b"
+
+            def chat(self, messages, **kwargs):
+                raise AIError("Limite di utilizzo del provider raggiunto.")
+
+            def status(self):
+                return {"available": False}
+
+        provider = FallbackProvider(Broken(), OfflineProvider())
+        reply = provider.chat([{"role": "user", "content": "come va?"}])
+        self.assertIn("provider online non è disponibile", reply)
+        self.assertNotIn("Ollama", reply)
 
 
 class RetryHintTests(unittest.TestCase):

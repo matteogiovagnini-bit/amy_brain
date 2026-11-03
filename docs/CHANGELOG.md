@@ -30,6 +30,9 @@ iniziale: non tutte le voci sono state verificate su hardware.
   invece di scivolare subito nel fallback offline.
 - **Risposta vuota**: un secondo tentativo evita il fallback offline per un
   singolo pacchetto perso.
+- **Messaggio di fallback più onesto**: se il provider online non risponde e
+  l'interprete offline non capisce, Amy dice che il servizio non è disponibile e
+  invita a riprovare, senza suggerire Ollama.
 
 ## [0.3.0] — 2026-10-31
 
@@ -72,7 +75,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 265 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 266 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

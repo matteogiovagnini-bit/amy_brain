@@ -48,7 +48,20 @@ class FallbackProvider(AIProvider):
                     exc.message,
                     self.fallback.name,
                 )
-            return self.fallback.chat(messages, temperature=temperature, max_tokens=max_tokens)
+            reply = self.fallback.chat(messages, temperature=temperature, max_tokens=max_tokens)
+            # L'interprete offline, quando non capisce, suggerisce Ollama. Se il
+            # fallback è scattato per un guasto del provider online, è più utile
+            # dire che il servizio non è raggiungibile e invitare a riprovare.
+            if isinstance(self.fallback, OfflineProvider) and str(reply).startswith(
+                "In modalità offline non ho capito"
+            ):
+                reply = (
+                    "Il provider online non è disponibile in questo momento (%s). "
+                    "Posso eseguire comandi semplici su applicazioni, file, web, "
+                    "memoria e robot. Riprova tra poco per il dialogo completo."
+                    % (exc.message or "servizio non raggiungibile")
+                )
+            return reply
 
     def status(self) -> Dict[str, Any]:
         primary_status = self.primary.status()

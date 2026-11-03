@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 265 tests in 19.0s
+Ran 266 tests in 19.0s
 
 OK
 ```
@@ -47,7 +47,7 @@ OK
 | `tests/test_policy.py` | 12 | livelli A/B/C, allow-list, E-stop non bloccato, TTL |
 | `tests/test_prompt_budget.py` | 2 | prompt compatto entro il limite gratuito, catalogo testuale senza campi riservati alla UI |
 | `tests/test_protocol.py` | 8 | envelope, versione, campi extra, ruoli, topic |
-| `tests/test_providers.py` | 10 | stato del fallback, endpoint locale/remoto, chiave opzionale, attesa consigliata dal servizio |
+| `tests/test_providers.py` | 11 | stato del fallback, endpoint locale/remoto, chiave opzionale, attesa consigliata dal servizio |
 | `tests/test_recorder.py` | 12 | scelta del motore audio, WAV valido, stato senza modulo, blocco del HAL con limite di tempo, blocco dichiarato e non ritentato, sonda microfono del doctor |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 4 | heartbeat assente o scaduto: il backend si chiude, con tolleranza 20 s |
@@ -61,7 +61,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 23 | wake word tollerante, comando estratto, ciclo che non parte da solo, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **265** | |
+| **Totale** | **266** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.
