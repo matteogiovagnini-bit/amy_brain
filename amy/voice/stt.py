@@ -20,6 +20,12 @@ from typing import Any, Dict, Optional
 
 from ..core.errors import VoiceError
 
+#: Prompt iniziale per faster-whisper: orienta il decoder verso i comandi
+#: italiani e riduce gli errori su frasi brevi («apri mail»).
+DEFAULT_INITIAL_PROMPT = (
+    "Comandi in italiano per Amy: apri mail, che ore sono, accendi la luce."
+)
+
 
 class STT:
     def transcribe(self, audio_path: Path) -> str:  # pragma: no cover - interfaccia
@@ -43,10 +49,12 @@ class FasterWhisperSTT(STT):
         model: str = "base",
         language: str = "it",
         download_root: Optional[str] = None,
+        initial_prompt: str = "",
     ) -> None:
         self.model_name = model or "base"
         self.language = language
         self.download_root = download_root
+        self.initial_prompt = initial_prompt
         self._model = None
 
     def installed(self) -> bool:
@@ -75,7 +83,18 @@ class FasterWhisperSTT(STT):
                 detail="Installa con: pip3 install --user faster-whisper",
             )
         model = self._load()
-        segments, _ = model.transcribe(str(audio_path), language=self.language, vad_filter=True)
+        options = {
+            "language": self.language,
+            "vad_filter": True,
+            "beam_size": 5,
+            # Con frasi brevi il contesto precedente può produrre allucinazioni.
+            "condition_on_previous_text": False,
+        }
+        if self.initial_prompt:
+            # Biasa il decoder verso i comandi italiani: senza questo, «apri
+            # mail» diventa «apre i mail» e «Amy» può sparire.
+            options["initial_prompt"] = self.initial_prompt
+        segments, _ = model.transcribe(str(audio_path), **options)
         return " ".join(segment.text.strip() for segment in segments).strip()
 
     def status(self) -> Dict[str, Any]:
@@ -202,7 +221,13 @@ def build_stt(config) -> STT:
     if engine == "auto":
         engine = "faster-whisper" if importlib.util.find_spec("faster_whisper") else "whisper-cli"
     if engine == "faster-whisper":
-        return FasterWhisperSTT(model or "base", language, str(Path(download_root).expanduser()))
+        prompt = str(config.get("voice.stt.initial_prompt", DEFAULT_INITIAL_PROMPT) or "")
+        return FasterWhisperSTT(
+            model or "base",
+            language,
+            str(Path(download_root).expanduser()),
+            initial_prompt=prompt,
+        )
     if engine == "whisper":
         return WhisperCliSTT(str(config.get("voice.stt.command", "whisper")), str(config.get("voice.stt.model", "base")), language)
     return WhisperCppSTT(

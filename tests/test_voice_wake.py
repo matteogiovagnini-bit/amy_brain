@@ -48,6 +48,13 @@ class WakeWordTests(unittest.TestCase):
         for phrase in ("che ore sono", "grazie mille", "amaca nuova"):
             self.assertFalse(self.detector.matches(phrase), phrase)
 
+    def test_real_transcription_variants_are_accepted(self) -> None:
+        """Con `small` «Amy» può diventare «Remy» o «Remi»."""
+        detector = WakeWordDetector("amy", 0.5)
+        for phrase in ("Remy, apri mail", "Remi che ore sono", "Emi accendi la luce"):
+            self.assertTrue(detector.matches(phrase), phrase)
+            self.assertIsNotNone(detector.extract_command(phrase), phrase)
+
     def test_short_unrelated_words_do_not_trigger_the_wake_word(self) -> None:
         """«ha» dista due caratteri da «amy» ma non è la wake word.
 

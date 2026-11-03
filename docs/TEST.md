@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 258 tests in 19.0s
+Ran 261 tests in 19.0s
 
 OK
 ```
@@ -59,9 +59,9 @@ OK
 | `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
 | `tests/test_ui_static.py` | 19 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
-| `tests/test_voice.py` | 6 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante |
-| `tests/test_voice_wake.py` | 22 | wake word tollerante, comando estratto, ciclo che non parte da solo, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **258** | |
+| `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
+| `tests/test_voice_wake.py` | 23 | wake word tollerante, comando estratto, ciclo che non parte da solo, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
+| **Totale** | **261** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

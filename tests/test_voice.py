@@ -7,6 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from amy.voice.stt import FasterWhisperSTT, build_stt
 from amy.voice.tts import MacSayTTS
 from amy.voice.wakeword import WakeWordDetector, normalize
 
@@ -29,6 +30,22 @@ class WakeWordTests(unittest.TestCase):
         high = WakeWordDetector("amy", 0.9)
         self.assertFalse(low.matches("Ami che ore sono"))
         self.assertTrue(high.matches("Ami che ore sono"))
+
+
+class STTConfigurationTests(unittest.TestCase):
+    def test_initial_prompt_reaches_faster_whisper(self) -> None:
+        """Il prompt italiano deve arrivare al decoder.
+
+        Senza prompt «apri mail» diventava «apre i mail» e «Amy» spariva.
+        """
+        stt = build_stt({"voice.stt.engine": "faster-whisper"})
+        self.assertIsInstance(stt, FasterWhisperSTT)
+        self.assertIn("apri mail", stt.initial_prompt)
+        self.assertIn("Amy", stt.initial_prompt)
+
+    def test_empty_prompt_disables_the_bias(self) -> None:
+        stt = build_stt({"voice.stt.engine": "faster-whisper", "voice.stt.initial_prompt": ""})
+        self.assertEqual(stt.initial_prompt, "")
 
 
 @unittest.skipUnless(shutil.which("say"), "comando 'say' di macOS non disponibile")

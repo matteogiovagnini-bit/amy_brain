@@ -144,7 +144,7 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 | --- | --- |
 | Movimento fisico del robot | Non verificato: nessun hardware collegato in questo ambiente |
 | Collegamento MQTT reale | Sperimentale: implementato, ma senza broker/robot verificato |
-| Riconoscimento vocale | Verificato il 31 ottobre 2026: `faster-whisper` 1.2.1 con modello `base` locale, `sounddevice` 0.5.6 sul microfono. Verificata anche la trascrizione di parlato reale |
+| Riconoscimento vocale | Verificato il 3 novembre 2026: `faster-whisper` 1.2.1 con modello `small` locale e prompt comandi italiano, `sounddevice` 0.5.6 sul microfono. Verificata anche la trascrizione di parlato reale |
 | Provider online gratuito | Verificato il 31 ottobre 2026: chiave in `~/.amy/secrets.json` (`600`), risposta reale del modello GroqCloud Free. Il modello locale resterebbe il default del repository |
 | Wake word audio | Non è un motore audio dedicato: rileva la parola dopo la trascrizione. Consumi CPU e falsi positivi restano possibili |
 | Qualità vocale su più parlanti | Verificato solo con una voce di prova | Trascrizioni con voci diverse, rumore e accenti |
@@ -175,7 +175,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (258 test)
+tests/        suite unittest (261 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -189,7 +189,7 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 2 novembre 2026: **258 test, tutti superati**, più il
+Risultato verificato il 2 novembre 2026: **261 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il

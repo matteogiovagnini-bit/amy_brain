@@ -13,11 +13,11 @@ ciò che è solo pianificato.
 | Python | 3.9.6 |
 | Provider IA | `groq` (GroqCloud piano Free, `openai/gpt-oss-120b`) con chiave valida e risposta reale verificata; fallback `offline` |
 | TTS | comando `say`, voce italiana `Alice` |
-| STT | `faster-whisper` 1.2.1 locale, modello `base`, CPU int8 |
+| STT | `faster-whisper` 1.2.1 locale, modello `small`, CPU int8, prompt comandi italiano |
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 258 test, tutti superati, più il self-test dell'app nativa |
+| Test | 261 test, tutti superati, più il self-test dell'app nativa |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -113,7 +113,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 258 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 261 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

@@ -87,6 +87,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "model": "",
             "language": "it",
             "download_root": "~/.amy/models/whisper",
+            # Orienta il decoder verso i comandi italiani. Vuoto = nessun prompt.
+            "initial_prompt": "Comandi in italiano per Amy: apri mail, che ore sono, accendi la luce.",
         },
         "wake_word": {
             # L'utente ha richiesto l'avvio automatico dell'ascolto continuo.

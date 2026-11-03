@@ -59,6 +59,10 @@ class WakeWordDetector:
         variants = {self.phrase}
         if self.sensitivity >= 0.5:
             variants.update({"ehi %s" % self.phrase, "hey %s" % self.phrase, "ok %s" % self.phrase})
+            # Trascrizioni reali osservate con faster-whisper: «Remy» e «Remi»
+            # al posto di «Amy». Sono parole rare in italiano, quindi il rischio
+            # di falso risveglio resta basso.
+            variants.update({"remy", "remi"})
         if self.sensitivity >= 0.8:
             variants.update({"ami", "ammy", "emmi", "emi", "emmy"})
         return sorted(variants, key=len, reverse=True)

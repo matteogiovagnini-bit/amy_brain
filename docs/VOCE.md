@@ -11,7 +11,7 @@ la wake word lavora sul testo trascritto, non su un rilevatore acustico dedicato
 | --- | --- | --- |
 | TTS macOS | **Verificato** | Comando `say`, voce italiana `Alice`, sintesi su file riuscita |
 | Interruzione TTS | **Verificato** | `voice.stop` termina il processo `say`; usato anche come barge-in |
-| STT | **Verificato** | `faster-whisper` 1.2.1, modello `base` multilingua, CPU, int8 |
+| STT | **Verificato** | `faster-whisper` 1.2.1, modello `small` multilingua, CPU, int8, prompt comandi italiano |
 | Registratore | **Verificato** | `sounddevice` 0.5.6 su Core Audio, WAV 16 kHz mono |
 | Wake word | **Verificata** | «Amy, che ore sono?» → comando eseguito e risposta pronunciata |
 | Ciclo continuo | **Verificato** | Avviato dalla dashboard, fermato dal pulsante, limite 20 minuti |
@@ -65,7 +65,7 @@ istanze del backend rimaste aperte.
 {
   "enabled": true,
   "tts": {"available": true, "engine": "say", "voice": "Alice", "rate": 185},
-  "stt": {"available": true, "engine": "faster-whisper", "model": "base"},
+  "stt": {"available": true, "engine": "faster-whisper", "model": "small"},
   "recorder": {"available": true, "engine": "sounddevice", "device": "Microfono MacBook Pro", "stuck": false},
   "wake_word": {"phrase": "amy", "enabled": true, "running": false, "available": true, "max_minutes": 20, "echo_guard": true, "echo_guard_cooldown_s": 0.8},
   "startup_greeting": {"enabled": true, "text": "Amy è attiva e operativa."},
@@ -174,7 +174,7 @@ pip3 install --user faster-whisper
 ```
 
 Il modello non è incluso nel repository: al primo uso `faster-whisper` lo scarica
-in `~/.amy/models/whisper` (circa 145 MB per `base`). Il download avviene una sola
+in `~/.amy/models/whisper` (circa 145 MB per `base`, 460 MB per `small`). Il download avviene una sola
 volta; dopo, la trascrizione funziona anche senza rete.
 
 Configurazione:
@@ -184,9 +184,10 @@ Configurazione:
   "voice": {
     "stt": {
       "engine": "faster-whisper",
-      "model": "base",
+      "model": "small",
       "language": "it",
-      "download_root": "~/.amy/models/whisper"
+      "download_root": "~/.amy/models/whisper",
+      "initial_prompt": "Comandi in italiano per Amy: apri mail, che ore sono, accendi la luce."
     }
   }
 }
@@ -200,8 +201,8 @@ Configurazione:
 - Se nessun motore è disponibile, `voice listen` restituisce un errore esplicito e
   non inventa una trascrizione.
 
-Prestazioni misurate su questo Intel: circa 1–2 secondi per una frase breve dopo il
-primo caricamento, con modello `base` in int8.
+Prestazioni misurate su questo Intel: circa 1–2 secondi per una frase breve con
+`base`, 2–3 secondi con `small`, dopo il primo caricamento in int8.
 
 ## 4. Registratore
 
@@ -410,8 +411,9 @@ Se mancano registratore o STT, il ciclo si rifiuta di partire con un errore chia
    contengono la voce di Amy vengono scartati, ma **non lo elimina del tutto**
    (per esempio quando Amy parla a volume basso o l'audio è heavily distorto).
 3. Un solo parlante alla volta; nessuna separazione delle voci.
-4. La latenza su Intel dipende dal modello: `base` è il compromesso usato,
-   `small` è più preciso ma più lento. Con il ciclo attivo la rilevazione può
+4. La latenza su Intel dipende dal modello: `base` è più veloce, `small` è più
+   preciso ma più lento. Su questo Mac è stato scelto `small` con un prompt
+   iniziale italiano, perché `base` sbagliava comandi come «apri mail». Con il ciclo attivo la rilevazione può
    arrivare alcuni secondi dopo la frase, perché ogni frammento viene prima
    registrato e poi trascritto.
 5. I frammenti non si sovrappongono: una frase a cavallo tra due blocchi da 5 s può
