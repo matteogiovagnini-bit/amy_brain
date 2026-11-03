@@ -100,6 +100,9 @@ python3 -m amy config path   # percorso del file in uso
     "audit_path": "~/.amy/audit.jsonl",
     "backup_dir": "~/.amy/backups"
   },
+  "calendar": {
+    "default_name": "Calendario"
+  },
   "voice": {
     "enabled": false,
     "startup_greeting": true,
@@ -114,10 +117,12 @@ python3 -m amy config path   # percorso del file in uso
       "command": "whisper-cli",
       "model": "",
       "language": "it",
-      "download_root": "~/.amy/models/whisper"
+      "download_root": "~/.amy/models/whisper",
+      "initial_prompt": "Comandi in italiano per Amy: apri mail, che ore sono, accendi la luce."
     },
     "wake_word": {
-      "enabled": false,
+      "enabled": true,
+      "start_on_launch": true,
       "phrase": "amy",
       "sensitivity": 0.5,
       "max_minutes": 20,
@@ -439,6 +444,15 @@ Configurazione vocale e robotica sono descritte in dettaglio in
 - `robot.transport = "simulated"` è il default sicuro.
 - `robot.transport = "mqtt"` è sperimentale e non verificato.
 - La password MQTT si legge da `robot.password_env`.
+
+### Calendario
+
+- `calendar.default_name` (default `"Calendario"`) è il calendario usato da
+  `calendar.create` quando la richiesta non ne indica uno.
+- Se il nome configurato non esiste, Amy elenca i calendari scrivibili e non
+  scrive in quelli di sistema (festività, compleanni, suggerimenti di Siri).
+- La creazione di un evento è di livello B: richiede la conferma. Il primo uso
+  richiede il permesso Automazione per Calendar.
 
 ## 10. Log
 

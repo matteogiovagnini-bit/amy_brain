@@ -108,6 +108,23 @@ percorso esplicito dentro le radici.
 Non esistono strumenti per installare pacchetti, modificare permessi, eseguire
 script o lanciare comandi con pipe/redirezione.
 
+## 5.1 Calendario e Automazione
+
+`calendar.create` scrive un evento reale in Calendar.app tramite `osascript`.
+Misure applicate:
+
+- livello di rischio **B**: richiede la conferma dell'utente prima di scrivere;
+- testi escapati per AppleScript, date costruite per componenti (nessuna stringa
+  di shell, nessuna interpolazione libera);
+- calendario di destinazione scelto per nome, con `calendar.default_name`
+  configurabile e nessuna scrittura nei calendari di sistema (festività,
+  compleanni, suggerimenti);
+- risultato verificabile: UID dell'evento, calendario, inizio e fine;
+- il primo uso richiede il permesso **Automazione** per Calendar in Impostazioni
+  di Sistema → Privacy e Sicurezza → Automazione. Se manca, l'errore lo dice.
+
+`calendar.list` e `calendar.events` sono di livello A e non modificano nulla.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:

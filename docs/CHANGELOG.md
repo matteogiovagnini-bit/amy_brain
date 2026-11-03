@@ -3,6 +3,19 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [0.4.0] — 2026-11-03
+
+### Aggiunto
+
+- **Creazione di appuntamenti in Calendar.app.** Nuovi strumenti
+  `calendar.list`, `calendar.events` e `calendar.create`: Amy legge i calendari
+  e gli eventi e crea un appuntamento reale con titolo, data, ora, durata,
+  note e luogo. La creazione è di livello B e richiede la conferma; il primo uso
+  richiede il permesso Automazione per Calendar. Verificato il 3 novembre 2026
+  con un evento creato, riletto e rimosso.
+- `calendar.default_name` (default `"Calendario"`) sceglie il calendario di
+  destinazione; i calendari di sistema vengono esclusi.
+
 ## [0.3.1] — 2026-11-02
 
 ### Modificato
@@ -75,7 +88,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 266 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 280 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

@@ -72,6 +72,9 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "audit_path": "~/.amy/audit.jsonl",
         "backup_dir": "~/.amy/backups",
     },
+    "calendar": {
+        "default_name": "Calendario",
+    },
     "voice": {
         "enabled": False,
         "startup_greeting": True,

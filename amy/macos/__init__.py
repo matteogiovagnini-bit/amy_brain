@@ -1,5 +1,13 @@
 """Integrazione macOS."""
 
+from .calendar import (
+    CalendarError,
+    create_event,
+    list_calendars,
+    list_events,
+    parse_start,
+    resolve_calendar,
+)
 from .applescript import (
     MacOSError,
     activate_application,
@@ -20,6 +28,12 @@ from .applescript import (
 )
 
 __all__ = [
+    "CalendarError",
+    "create_event",
+    "list_calendars",
+    "list_events",
+    "parse_start",
+    "resolve_calendar",
     "MacOSError",
     "activate_application",
     "application_is_running",
