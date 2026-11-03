@@ -319,6 +319,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private var backend: Backend?
     private var monitorTimer: Timer?
     private var heartbeatTimer: DispatchSourceTimer?
+    /// Impedisce ad App Nap di sospendere l'app quando è in secondo piano:
+    /// senza, l'heartbeat si ferma e il backend crede che l'app sia morta.
+    private var backgroundActivity: NSObjectProtocol?
     private var signalSources: [DispatchSourceSignal] = []
     private var failedHealthChecks = 0
     private var didReportCrash = false
@@ -363,6 +366,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         // qui, non dopo l'avvio del backend: durante l'attesa il file deve
         // restare aggiornato, altrimenti il watchdog lo considera scaduto.
         startHeartbeat()
+        backgroundActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiatedAllowingIdleSystemSleep],
+            reason: "Amy Core deve restare in ascolto e aggiornare l'heartbeat"
+        )
 
         let repoPath = resolveRepositoryPath()
         guard let repoPath = repoPath else {

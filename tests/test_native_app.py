@@ -81,6 +81,17 @@ class NativeAppTests(unittest.TestCase):
             built = dist.read_text(encoding="utf-8")
             self.assertIn("<string>%s</string>" % match.group(1), built)
 
+    def test_app_nap_does_not_stop_the_heartbeat(self) -> None:
+        """App Nap non deve sospendere il timer dell'heartbeat.
+
+        Il backend chiudeva la dashboard quando il file restava fermo: l'app
+        deve dichiararsi attiva per tutta la durata dell'ascolto.
+        """
+        text = SOURCES.read_text(encoding="utf-8")
+        self.assertIn("beginActivity", text)
+        self.assertIn(".userInitiatedAllowingIdleSystemSleep", text)
+        self.assertIn("backgroundActivity", text)
+
     def test_backend_is_local_only(self) -> None:
         """Il backend deve restare legato al loopback."""
         text = SOURCES.read_text(encoding="utf-8")

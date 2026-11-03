@@ -405,14 +405,30 @@ def _watch_heartbeat(
     un carico CPU alto durante una trascrizione vocale). Un backend lento non
     deve essere scambiato per un backend morto.
     """
+    parent_pid = os.environ.get("AMY_PARENT_PID", "").strip()
     while True:
         time.sleep(interval_s)
         try:
             age = time.time() - os.path.getmtime(path)
         except OSError:
+            if parent_pid.isdigit() and _parent_alive(int(parent_pid)):
+                _log.warning("Heartbeat assente ma il genitore è vivo: continuo.")
+                continue
             _stop_dashboard(server, "Heartbeat del genitore assente: chiudo la dashboard.")
             return
         if age > max_age_s:
+            # App Nap può sospendere il timer dell'app quando è in secondo
+            # piano: il file resta fermo ma il processo è vivo. In quel caso
+            # chiudere il backend è un falso positivo (osservato il 3 novembre
+            # 2026, con riavvii ogni minuto). Il PID del genitore è la prova
+            # decisiva; il file serve solo quando il PID non è disponibile.
+            if parent_pid.isdigit() and _parent_alive(int(parent_pid)):
+                _log.debug(
+                    "Heartbeat in ritardo (%.1f s) ma il genitore %s è vivo: continuo.",
+                    age,
+                    parent_pid,
+                )
+                continue
             _stop_dashboard(
                 server,
                 "Heartbeat del genitore scaduto: chiudo la dashboard. "
