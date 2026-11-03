@@ -42,6 +42,31 @@ class FakeModule:
         return {"name": "Microfono di prova"}
 
 
+class RecorderStatusTests(unittest.TestCase):
+    def test_status_queries_the_device_only_once(self) -> None:
+        """Il controllo di salute non deve interrogare PortAudio ogni volta.
+
+        Con il microfono aperto `query_devices` può bloccarsi: l'app vedeva
+        /api/state lento e riavviava il backend mentre era vivo.
+        """
+
+        class CountingModule(FakeModule):
+            def __init__(self) -> None:
+                self.calls = 0
+
+            def query_devices(self, kind="input"):
+                self.calls += 1
+                return {"name": "Microfono di prova"}
+
+        module = CountingModule()
+        with mock.patch.object(SoundDeviceRecorder, "module", return_value=module):
+            recorder = SoundDeviceRecorder()
+            for _ in range(5):
+                status = recorder.status()
+        self.assertEqual(module.calls, 1)
+        self.assertEqual(status["device"], "Microfono di prova")
+
+
 class HangingStream:
     """Stream che resta bloccato nell'apertura, come ``Pa_OpenStream``.
 

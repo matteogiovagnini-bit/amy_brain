@@ -81,6 +81,17 @@ class NativeAppTests(unittest.TestCase):
             built = dist.read_text(encoding="utf-8")
             self.assertIn("<string>%s</string>" % match.group(1), built)
 
+    def test_health_check_uses_the_lightweight_endpoint(self) -> None:
+        """Il controllo di salute non deve passare da /api/state.
+
+        `/api/state` interroga voce e microfono: se PortAudio è occupato può
+        superare il timeout di 1 s e far credere all'app che il backend sia
+        morto (osservato il 3 novembre 2026).
+        """
+        text = SOURCES.read_text(encoding="utf-8")
+        self.assertIn("GET /api/health", text)
+        self.assertNotIn("GET /api/state", text)
+
     def test_app_nap_does_not_stop_the_heartbeat(self) -> None:
         """App Nap non deve sospendere il timer dell'heartbeat.
 

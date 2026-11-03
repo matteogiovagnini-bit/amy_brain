@@ -115,6 +115,17 @@ class SoundDeviceRecorder:
         self._stuck_until = 0.0
         self._last_error = ""
         self._busy = threading.Lock()
+        # Il nome del dispositivo viene letto una sola volta: interrogare
+        # PortAudio a ogni /api/state può bloccarsi mentre il microfono è
+        # aperto e faceva fallire il controllo di salute del backend.
+        self._device_label = ""
+        module = self.module()
+        if module is not None:
+            try:
+                info = module.query_devices(kind="input")
+                self._device_label = str(info.get("name", "") or "")
+            except Exception:  # pragma: no cover - dipende dal HAL
+                self._device_label = ""
 
     @staticmethod
     def module():
@@ -140,14 +151,7 @@ class SoundDeviceRecorder:
     def status(self) -> Dict[str, Any]:
         module = self.module()
         available = module is not None
-        name = ""
-        if available:
-            try:
-                info = module.query_devices(kind="input")
-                name = str(info.get("name", "") or "")
-                available = bool(name)
-            except Exception:
-                available = False
+        name = self._device_label
         stuck = self.is_stuck()
         if available and stuck:
             nota = (

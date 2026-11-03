@@ -151,7 +151,7 @@ func localServerResponds(port: Int, timeout: TimeInterval = 1.0) -> Bool {
     }
     guard connected == 0 else { return false }
 
-    let request = "GET /api/state HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+    let request = "GET /api/health HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
     _ = request.withCString { pointer in
         send(handle, pointer, strlen(pointer), 0)
     }

@@ -32,6 +32,10 @@ iniziale: non tutte le voci sono state verificate su hardware.
   Amy non passa più decine di secondi in attesa del provider.
 - **Ascolto che si fermava dopo 20 minuti**: `voice.wake_word.max_minutes` ora è
   `0` per default (nessun limite); il ciclo resta attivo finché l'app è aperta.
+- **Backend riavviato dall'app mentre era vivo**: il controllo di salute usava
+  `/api/state`, che interroga PortAudio; con il microfono aperto poteva superare
+  il timeout di 1 s. Ora usa `/api/health` e il nome del dispositivo viene letto
+  una sola volta.
 - **Backend chiuso da solo**: il watchdog dell'heartbeat chiudeva la dashboard
   quando App Nap sospendeva il timer dell'app, anche con l'app viva. Ora il
   backend controlla il PID del genitore e resta attivo se è ancora presente;
@@ -139,7 +143,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 318 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 320 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

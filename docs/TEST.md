@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **2 novembre 2026**.
 
 ```text
-Ran 318 tests in 19.0s
+Ran 320 tests in 19.0s
 
 OK
 ```
@@ -41,7 +41,7 @@ OK
 | `tests/test_conversation.py` | 9 | stati vocali, conversazione continua senza wake word, «basta», timeout con verifica presenza, barge-in durante la sintesi, filtro dell'eco |
 | `tests/test_files.py` | 9 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
 | `tests/test_free_only.py` | 6 | nessuna dipendenza obbligatoria, host commerciali, default locali |
-| `tests/test_native_app.py` | 13 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, App Nap disattivata, avviso non modale, self-test isolato dalla cronologia, versione del bundle sincronizzata |
+| `tests/test_native_app.py` | 14 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, App Nap disattivata, controllo di salute su /api/health, avviso non modale, self-test isolato dalla cronologia, versione del bundle sincronizzata |
 | `tests/test_memory.py` | 5 | sessioni, messaggi, conteggio, fatti, attività, redazione |
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
@@ -50,7 +50,7 @@ OK
 | `tests/test_prompt_budget.py` | 2 | prompt compatto entro il limite gratuito, catalogo testuale senza campi riservati alla UI |
 | `tests/test_protocol.py` | 8 | envelope, versione, campi extra, ruoli, topic |
 | `tests/test_providers.py` | 11 | stato del fallback, endpoint locale/remoto, chiave opzionale, attesa consigliata dal servizio |
-| `tests/test_recorder.py` | 12 | scelta del motore audio, WAV valido, stato senza modulo, blocco del HAL con limite di tempo, blocco dichiarato e non ritentato, sonda microfono del doctor |
+| `tests/test_recorder.py` | 13 | scelta del motore audio, WAV valido, stato senza modulo, blocco del HAL con limite di tempo, blocco dichiarato e non ritentato, sonda microfono del doctor, nome del dispositivo letto una sola volta |
 | `tests/test_reminders.py` | 12 | liste, creazione con scadenza, parsing di scadenze assenti, completamento ed eliminazione, rischio B/C |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 5 | heartbeat assente o scaduto: il backend si chiude solo se il processo padre è morto; con padre vivo resta attivo (App Nap) |
@@ -64,7 +64,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **318** | |
+| **Totale** | **320** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.
