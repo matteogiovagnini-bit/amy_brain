@@ -256,11 +256,12 @@ class VoiceLoopTests(unittest.TestCase):
 
 
 class EchoGuardTests(unittest.TestCase):
-    """Half-duplex: il microfono non registra mentre Amy parla."""
+    """Half-duplex: senza barge-in il microfono non registra mentre Amy parla."""
 
     def setUp(self) -> None:
         self.temp = TempAmy()
         self.service = VoiceService(self.temp.config)
+        self.service.config.data["voice"]["conversation"]["barge_in"] = False
         self.recorder = FakeRecorder()
         self.service.recorder = self.recorder
         self.service.stt = SilentSTT()

@@ -24,6 +24,7 @@ from ..core.assistant import Assistant
 from ..core.config import Config
 from ..core.errors import AmyError, ConfigError
 from ..core.logging_setup import get_logger, setup_logging
+from ..voice.state import VoiceState
 from ..voice.wakeword import normalize
 
 _log = get_logger("ui.server")
@@ -246,20 +247,28 @@ class AmyHTTPServer(ThreadingHTTPServer):
         super().__init__(address, AmyHandler)
 
     def handle_voice_command(self, text: str) -> None:
-        """Esegue un comando dettato e pronuncia la risposta (usato anche all'avvio)."""
+        """Esegue un comando dettato e pronuncia la risposta.
+
+        Il servizio vocale lo chiama in un thread dedicato: qui si può restare
+        sincroni senza bloccare l'ascolto del barge-in.
+        """
+        voice = self.assistant.voice
+        voice.begin_processing()
         try:
             with self.chat_lock:
                 result = self.assistant.handle(text, session_id=self.assistant.resume_session())
         except Exception:  # noqa: BLE001
             _log.exception("Comando vocale non riuscito")
+            voice.state.set(VoiceState.ERROR, "comando vocale non riuscito")
             return
         reply = str(getattr(result, "reply", "") or "").strip()
         pending = getattr(result, "pending", None)
         if pending is not None:
             question = reply or "Confermi l'operazione?"
+            voice.state.set(VoiceState.WAITING_FOR_CONFIRMATION, "conferma richiesta")
             try:
-                self.assistant.voice.speak(question, block=False)
-                self.assistant.voice.await_confirmation(
+                voice.speak(question, block=False)
+                voice.await_confirmation(
                     lambda answer: self._resolve_voice_confirmation(answer, pending.pending_id),
                     timeout_s=30.0,
                 )
@@ -268,9 +277,13 @@ class AmyHTTPServer(ThreadingHTTPServer):
             return
         if reply:
             try:
-                self.assistant.voice.speak(reply, block=False)
+                voice.speak(reply, block=False)
+                voice.begin_speaking()
             except Exception:  # noqa: BLE001
                 _log.warning("Sintesi della risposta vocale non riuscita")
+                voice.begin_conversation("risposta senza sintesi")
+        else:
+            voice.begin_conversation("risposta vuota")
 
     @staticmethod
     def _voice_answer(text: str) -> Optional[bool]:
@@ -301,6 +314,8 @@ class AmyHTTPServer(ThreadingHTTPServer):
             except Exception:  # noqa: BLE001
                 pass
             return False
+        voice = self.assistant.voice
+        voice.begin_processing()
         try:
             resolved = self.assistant.resolve_confirmation(pending_id, answer)
             message = str(getattr(resolved, "reply", "") or "").strip()
@@ -309,9 +324,11 @@ class AmyHTTPServer(ThreadingHTTPServer):
         if not message:
             message = "Fatto." if answer else "Operazione annullata."
         try:
-            self.assistant.voice.speak(message, block=False)
+            voice.speak(message, block=False)
+            voice.begin_speaking()
         except Exception:  # noqa: BLE001
             _log.warning("Sintesi della conferma non riuscita")
+            voice.begin_conversation("conferma senza sintesi")
         return True
 
     def start_wake_loop_on_launch(self) -> bool:

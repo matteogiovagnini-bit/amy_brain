@@ -25,6 +25,7 @@ from .robot.links import build_robot_link
 from .robot.protocol import JOINT_NAMES, LEG_JOINTS
 from .security.policy import ConfirmationRequest
 from .security.risk import RiskLevel
+from .voice.state import VoiceState
 from .voice.service import VoiceService
 
 
@@ -698,18 +699,22 @@ def cmd_voice(args: argparse.Namespace) -> int:
                 print("Tu (voce) › %s" % text)
                 if not args.execute:
                     print("(comando trascritto; usa --execute per eseguirlo)")
+                    voice.begin_conversation("solo trascrizione")
                     return
                 if shared["assistant"] is None:
                     shared["assistant"] = _build_assistant(
                         config, offline=args.offline, voice=voice
                     )
                 assistant = shared["assistant"]
+                voice.begin_processing()
                 result = assistant.handle(text)
                 print("Amy › %s" % result.reply)
                 if result.pending:
+                    voice.state.set(VoiceState.WAITING_FOR_CONFIRMATION, "conferma richiesta")
                     print("Conferma necessaria: usa 'amy chat' per autorizzare.")
                 else:
                     assistant.speak(result.reply)
+                    voice.begin_speaking()
 
             try:
                 voice.run_wake_loop(on_command)

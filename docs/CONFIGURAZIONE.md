@@ -123,6 +123,12 @@ python3 -m amy config path   # percorso del file in uso
       "download_root": "~/.amy/models/whisper",
       "initial_prompt": "Comandi in italiano per Amy: apri mail, che ore sono, accendi la luce."
     },
+    "conversation": {
+      "enabled": true,
+      "timeout_s": 30,
+      "barge_in": true,
+      "barge_in_chunk_s": 1.0
+    },
     "wake_word": {
       "enabled": true,
       "start_on_launch": true,
@@ -438,6 +444,9 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   `~/.amy/models/whisper`).
 - `voice.recorder.engine = "auto"` preferisce `sounddevice`, poi `ffmpeg`;
   `voice.recorder.device` e `voice.recorder.samplerate` scelgono il microfono.
+- `voice.conversation.timeout_s` (default 30) è il silenzio massimo prima di
+  «Sei ancora lì?»; `barge_in` (default true) ascolta anche durante la sintesi per
+  interrompere Amy con «Amy».
 - `voice.wake_word.max_minutes` (default 20, massimo 120) limita la durata
   dell'ascolto continuo.
 - `voice.wake_word.echo_guard` (default `true`) tiene il microfono chiuso mentre

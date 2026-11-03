@@ -132,7 +132,7 @@ chiave nel repository, nei log o nei test. Se hai toccato la voce, verifica alme
 sintesi su file (`amy doctor` la esegue). Se hai toccato il robot, esegui i test del
 simulatore e **non** affermare che l'hardware funziona.
 
-Stato verificato il 2 novembre 2026: 307 test superati, doctor con TTS funzionante e
+Stato verificato il 3 novembre 2026: 316 test superati, doctor con TTS funzionante e
 sonda reale del microfono, provider personale configurato su GroqCloud piano Free con
 chiave valida e risposta reale del modello `openai/gpt-oss-120b`, default del
 repository ancora Ollama locale, voce completa e locale (`sounddevice` per il
@@ -145,6 +145,11 @@ limite di tempo quando il HAL di Core Audio non risponde, robot solo simulato, M
 non verificato, applicazione macOS «Amy Core» compilata, installata in `~/Applications`
 e verificata con self-test end-to-end (dashboard montata, messaggio inviato dal DOM,
 risposta in chat, backend chiuso), senza verifica visiva a mano della finestra.
+Conversazione continua, timeout con «Sei ancora lì?», stop vocale e macchina a stati
+verificati con test automatici. Il barge-in durante la sintesi è implementato e
+verificato solo con voce simulata: **con gli altoparlanti è inaffidabile** perché
+non c'è cancellazione acustica dell'eco e la voce di Amy copre «Amy». Da provare
+con cuffie; l'AEC via AVAudioEngine/PyObjC non è integrata.
 
 ## 7. Documentazione e continuità
 

@@ -405,6 +405,62 @@ la wake word non serve: basta dire «sì», «confermo», «ok», «procedi» op
 - Le eliminazioni restano di livello C: la voce è un modo per confermare, non un
   modo per saltare la conferma.
 
+### Conversazione continua e interruzione
+
+Dopo la wake word Amy resta in conversazione: le risposte successive **non
+richiedono** di ripetere «Amy». Vale per domande di chiarimento, correzioni e
+conferme.
+
+Configurazione (`voice.conversation`):
+
+| Chiave | Default | Significato |
+| --- | --- | --- |
+| `enabled` | `true` | conversazione continua attiva |
+| `timeout_s` | `30` | silenzio massimo prima di chiedere «Sei ancora lì?» |
+| `barge_in` | `true` | ascolta il microfono anche durante la sintesi |
+| `barge_in_chunk_s` | `1.0` | durata dei frammenti di ascolto durante la sintesi |
+| `barge_in_model` | vuoto | modello STT per il barge-in; vuoto = stesso modello dei comandi |
+
+Comportamento:
+
+- Allo scadere del timeout Amy chiede «Sei ancora lì?» e concede un altro
+  intervallo; se resta silenzio dice «Torno in standby.» e torna in attesa della
+  wake word.
+- «Basta», «stop», «fine conversazione», «chiudi» terminano la conversazione
+  senza inviare il testo al modello.
+- La conferma di un'operazione resta un caso a parte: la voce risponde «sì»/«no»
+  e l'operazione è sempre legata alla conferma in sospeso.
+
+**Interruzione durante la sintesi.** Con `barge_in` attivo il microfono continua
+a registrare mentre Amy parla. Se il frammento trascritto contiene «Amy» e non è
+l'eco della sintesi, Amy ferma subito `say`, passa allo stato `interrupted` e
+ascolta il nuovo comando senza chiedere di nuovo la wake word.
+
+Limiti onesti di questa implementazione:
+
+- **Non c'è cancellazione acustica dell'eco (AEC).** Il filtro confronta il testo
+  trascritto con quello che Amy sta pronunciando: se il frammento è contenuto nel
+  testo della sintesi viene scartato. È un filtro testuale, non acustico.
+- Se Amy sta pronunciando la parola «Amy» (per esempio nel saluto «Amy è attiva e
+  operativa»), un'interruzione in quel preciso momento può essere scartata come
+  eco. È il compromesso che evita di fermare Amy sulla propria voce.
+- La latenza dipende dallo STT: con modello `small` su CPU Intel l'interruzione
+  arriva in genere dopo 1–3 secondi, non all'istante.
+- Il rumore ambientale forte può produrre trascrizioni casuali; la wake word
+  deve comunque comparire nel testo.
+- **Con gli altoparlanti il barge-in è inaffidabile**: la voce di Amy arriva al
+  microfono allo stesso livello della tua e può coprire «Amy». Con cuffie o un
+  microfono direzionale funziona molto meglio. La cancellazione acustica vera
+  richiederebbe il voice processing di Core Audio (AVAudioEngine via PyObjC),
+  non ancora integrato: è la strada per un'interruzione immediata con gli
+  altoparlanti.
+
+La macchina a stati (`amy/voice/state.py`) espone lo stato reale alla dashboard:
+`idle`, `wake_word_detected`, `listening`, `processing`, `speaking`,
+`conversation_active`, `waiting_for_input`, `waiting_for_confirmation`,
+`interrupted`, `error`, `offline`. Le transizioni non ammesse vengono registrate
+nei log e corrette, non propagate in silenzio.
+
 ## 7. Privacy
 
 - L'audio viene registrato in un file temporaneo e cancellato dopo la trascrizione.
@@ -420,7 +476,9 @@ la wake word non serve: basta dire «sì», «confermo», «ok», «procedi» op
 
 ## 8. Limiti noti
 
-1. Il ciclo continuo consuma CPU: trascrive anche i frammenti senza wake word.
+1. Il ciclo continuo consuma CPU: trascrive anche i frammenti senza wake word e,
+   con il barge-in attivo, anche quelli registrati durante la sintesi.
+   L'interruzione non usa AEC: il filtro anti-eco è testuale.
 2. Possibili falsi positivi su frasi che iniziano con parole simili ad «Amy».
    Osservato il 1 novembre 2026: una trascrizione rumorosa («Emi io vado da fare»)
    ha attivato il ciclo mentre Amy stava parlando: Amy sente anche i propri

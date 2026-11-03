@@ -3,6 +3,33 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [0.5.0] — 2026-11-03
+
+### Aggiunto
+
+- **Conversazione continua.** Dopo la wake word l'utente non deve più ripetere
+  «Amy»: le risposte successive vengono interpretate nel contesto della sessione.
+  Dopo 30 secondi di silenzio Amy chiede «Sei ancora lì?» e poi torna in standby;
+  «basta», «stop» e «fine conversazione» chiudono lo scambio.
+- **Interruzione durante la sintesi (barge-in).** Con
+  `voice.conversation.barge_in` attivo il microfono resta in ascolto mentre Amy
+  parla: se sente «Amy» ferma subito `say`, passa allo stato `interrupted` e
+  accetta il nuovo comando senza wake word. Il filtro anti-eco è testuale
+  (confronto con il testo in pronuncia), non cancellazione acustica.
+- **Macchina a stati vocale** (`amy/voice/state.py`): `idle`,
+  `wake_word_detected`, `listening`, `processing`, `speaking`,
+  `conversation_active`, `waiting_for_input`, `waiting_for_confirmation`,
+  `interrupted`, `error`, `offline`, con transizioni dichiarate e stato esposto
+  alla dashboard.
+- **Dashboard**: nuovi indicatori «Conversazione» e «Interrotta», sincronizzati
+  con lo stato reale.
+
+### Limiti dichiarati
+
+- L'interruzione non usa AEC: se Amy sta pronunciando la parola «Amy», il filtro
+  può scartare l'interruzione come eco.
+- La latenza del barge-in dipende dallo STT locale (1–3 s con `small` su Intel).
+
 ## [0.4.0] — 2026-11-03
 
 ### Aggiunto
@@ -99,7 +126,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 307 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 316 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

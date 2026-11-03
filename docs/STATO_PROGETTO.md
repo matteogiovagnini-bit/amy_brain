@@ -17,7 +17,7 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 307 test, tutti superati, più il self-test dell'app nativa |
+| Test | 316 test, tutti superati, più il self-test dell'app nativa |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -85,6 +85,10 @@ ciò che è solo pianificato.
   pronunciata. L'ascolto continuo si avvia automaticamente all'avvio se
   `voice.wake_word.start_on_launch` è attivo (default: sì) e si ferma da solo
   dopo 20 minuti; resta disattivabile.
+- Conversazione continua: dopo la wake word le risposte non richiedono più «Amy»;
+  dopo 30 s di silenzio Amy chiede «Sei ancora lì?» e poi torna in standby.
+  Dire «Amy» mentre parla interrompe la sintesi (barge-in) e apre l'ascolto.
+  Verificato con test automatici; il filtro anti-eco è testuale, non AEC.
 - Conferma vocale: quando un comando richiede autorizzazione, Amy pronuncia la
   domanda e accetta «sì»/«no» senza ripetere la wake word, per 30 secondi. Le
   eliminazioni restano di livello C: la voce conferma, non aggira la conferma.
@@ -125,7 +129,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 307 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 316 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

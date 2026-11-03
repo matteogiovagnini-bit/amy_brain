@@ -96,6 +96,14 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             # Orienta il decoder verso i comandi italiani. Vuoto = nessun prompt.
             "initial_prompt": "Comandi in italiano per Amy: apri mail, che ore sono, accendi la luce.",
         },
+        "conversation": {
+            # Conversazione continua: dopo la wake word non serve ripeterla.
+            "enabled": True,
+            "timeout_s": 30,
+            "barge_in": True,
+            "barge_in_chunk_s": 1.0,
+            "barge_in_model": "",
+        },
         "wake_word": {
             # L'utente ha richiesto l'avvio automatico dell'ascolto continuo.
             # Resta disattivabile con `enabled = false` o `start_on_launch = false`.

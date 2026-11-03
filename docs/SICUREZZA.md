@@ -129,6 +129,10 @@ può essere auto-approvato. La conferma può essere data a voce («sì»/«no»)
 questo cambia solo il canale della risposta, non il requisito: la domanda viene
 pronunciata e la conferma resta visibile anche nella dashboard.
 
+Il barge-in (dire «Amy» mentre parla) interrompe solo la sintesi: non annulla una
+conferma in sospeso e non autorizza nulla. La conferma resta legata alla specifica
+operazione e scade con le regole già descritte.
+
 Lo stesso schema vale per Promemoria:
 
 - `reminders.lists` e `reminders.list` sono di livello A;

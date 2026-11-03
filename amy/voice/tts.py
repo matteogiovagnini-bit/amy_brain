@@ -50,6 +50,9 @@ class MacSayTTS(TTS):
         self._speech_lock = threading.Lock()
         self._speech_start: Optional[float] = None
         self._speech_end: Optional[float] = None
+        # Testo in pronuncia: serve al barge-in per distinguere la voce
+        # dell'utente dall'eco della sintesi.
+        self._current_text = ""
         # L'elenco delle voci non cambia durante la sessione: `say -v ?` costa
         # alcuni secondi e non va rieseguito a ogni richiesta di stato.
         self._italian_voices: Optional[List[str]] = None
@@ -109,6 +112,7 @@ class MacSayTTS(TTS):
         with self._speech_lock:
             if self._speech_start is not None and self._speech_end is None:
                 self._speech_end = time.monotonic()
+            self._current_text = ""
 
     def _watch_speech(self, process: subprocess.Popen) -> None:
         """Segue il processo `say` e chiude l'intervallo di sintesi."""
@@ -118,6 +122,11 @@ class MacSayTTS(TTS):
             pass
         finally:
             self._mark_speech_end()
+
+    @property
+    def current_text(self) -> str:
+        with self._speech_lock:
+            return self._current_text if self.is_speaking() else ""
 
     def speech_overlaps(self, start: float, end: float) -> bool:
         if self.is_speaking():
@@ -134,6 +143,8 @@ class MacSayTTS(TTS):
             raise VoiceError("Il comando 'say' di macOS non è disponibile.")
         value = self._clean(text)
         self.stop()
+        with self._speech_lock:
+            self._current_text = value
         with self._lock:
             try:
                 process = subprocess.Popen(

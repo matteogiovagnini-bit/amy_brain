@@ -799,6 +799,32 @@ kbd {
   --accent-glow: rgba(255, 196, 107, 0.2);
 }
 
+
+.core-stage[data-state="conversation"] {
+  --accent: #6beeff;
+  --accent-2: var(--cyan);
+  --accent-glow: rgba(63, 227, 255, 0.2);
+}
+
+.core-stage[data-state="conversation"] .core-pulse {
+  opacity: 0.4;
+  animation: corePulse 2.4s ease-out infinite;
+}
+
+.core-stage[data-state="conversation"] .core-hub {
+  animation: coreBreathe 2s ease-in-out infinite;
+}
+
+.core-stage[data-state="interrupted"] {
+  --accent: var(--warn);
+  --accent-2: #ff9f43;
+  --accent-glow: rgba(255, 196, 107, 0.18);
+}
+
+.core-stage[data-state="interrupted"] .core-hub {
+  animation: coreBreathe 1.2s ease-in-out infinite;
+}
+
 .core-stage[data-state="error"] {
   --accent: var(--bad);
   --accent-2: #ff9f43;

@@ -470,6 +470,31 @@
         hint: "La registrazione dura " + LISTEN_SECONDS + " secondi e parte solo su tua richiesta.",
       };
     }
+    const voiceState = String((data && data.voice && data.voice.state) || "");
+    if (voiceState === "processing") {
+      return {
+        state: "processing",
+        label: "Elaborazione",
+        activity: "Il motore IA sta elaborando la richiesta",
+        hint: "La chat resta utilizzabile: attendo la risposta e mostro solo esiti reali.",
+      };
+    }
+    if (voiceState === "conversation_active" || voiceState === "waiting_for_input") {
+      return {
+        state: "conversation",
+        label: "Conversazione",
+        activity: "Amy ti ascolta senza chiedere di nuovo «Amy»",
+        hint: "Rispondi pure con poche parole. Di' «basta» per chiudere la conversazione.",
+      };
+    }
+    if (voiceState === "interrupted") {
+      return {
+        state: "interrupted",
+        label: "Interrotta",
+        activity: "Hai richiamato Amy mentre parlava",
+        hint: "Amy ha fermato la voce. Di' il nuovo comando senza ripetere il suo nome.",
+      };
+    }
     if (app.busy) {
       return {
         state: "processing",
@@ -489,9 +514,9 @@
     if (app.wakeRunning) {
       return {
         state: "listening",
-        label: "In ascolto",
-        activity: "Di' «Amy» seguito dal comando",
-        hint: "L'ascolto continuo parte solo da qui, si ferma con lo stesso pulsante e ha un limite di durata.",
+        label: "In attesa di «Amy»",
+        activity: "Di' «Amy» per iniziare una conversazione",
+        hint: "Dopo la wake word non serve ripeterla. Di' «Amy» mentre parla per interromperla.",
       };
     }
     if (data && !provider.anyAvailable) {
@@ -734,11 +759,11 @@
       text("voiceNote", "Il microfono non ha risposto e Amy ha sospeso le registrazioni. Riavvia il servizio audio di macOS o il Mac, poi riprova.");
     } else if (wake.running) {
       const duplex = wake.echo_guard ? " Mentre Amy parla il microfono è chiuso." : "";
-      text("voiceNote", "Ascolto continuo attivo: di' «Amy» seguito dal comando. Fermalo con «Ferma ascolto»." + duplex);
+      text("voiceNote", "Ascolto continuo attivo: di' «Amy» per iniziare, poi rispondi senza ripeterlo. Di' «Amy» mentre parla per interromperla. Fermalo con «Ferma ascolto»." + duplex);
     } else if (greeting.enabled && greetingText) {
       text("voiceNote", "All'avvio Amy dice: «" + greetingText + "». Usa «Ripeti saluto» per riascoltarlo.");
     } else if (voice.ready_for_voice_commands) {
-      text("voiceNote", "Microfono e trascrizione locali disponibili. Usa il microfono o «Ascolta «Amy»»; nulla parte da solo.");
+      text("voiceNote", "Microfono e trascrizione locali disponibili. L'ascolto continuo è spento: avvialo con «Ascolta «Amy»».");
     } else {
       text("voiceNote", "La chat testuale funziona. Per i comandi vocali servono microfono e trascrizione locale (sounddevice e faster-whisper).");
     }

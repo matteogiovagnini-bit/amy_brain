@@ -10,9 +10,10 @@ from typing import Any, Callable, Dict, Optional
 from ..core.errors import VoiceError
 from ..core.logging_setup import get_logger
 from .recorder import build_recorder
-from .stt import STT, build_stt
+from .stt import FasterWhisperSTT, STT, build_stt
 from .tts import MacSayTTS, NullTTS, TTS
-from .wakeword import WakeWordDetector
+from .state import VoiceState, VoiceStateMachine
+from .wakeword import WakeWordDetector, normalize
 
 _log = get_logger("voice")
 
@@ -36,6 +37,18 @@ class VoiceService:
         else:
             self.tts = NullTTS()
         self.stt: STT = build_stt(config)
+        # Modello leggero per il barge-in: deve trascrivere frammenti brevi
+        # mentre Amy parla, quindi la latenza conta più della precisione.
+        barge_model = str(config.get("voice.conversation.barge_in_model", "") or "").strip()
+        if isinstance(self.stt, FasterWhisperSTT) and barge_model and barge_model != self.stt.model_name:
+            self.barge_stt: STT = FasterWhisperSTT(
+                barge_model,
+                self.stt.language,
+                self.stt.download_root,
+                initial_prompt="Amy",
+            )
+        else:
+            self.barge_stt = self.stt
         self.recorder = build_recorder(config)
 
         self.wake = WakeWordDetector(
@@ -50,6 +63,11 @@ class VoiceService:
         # interpretato come risposta (sì/no) anche senza la wake word.
         self._confirmation_callback: Optional[Callable[[str], bool]] = None
         self._confirmation_deadline = 0.0
+        # Conversazione continua e macchina a stati.
+        self.state = VoiceStateMachine()
+        self._conversation_active = False
+        self._conversation_deadline = 0.0
+        self._presence_prompted = False
 
     def warm(self) -> None:
         """Precarica voci e modello STT in background.
@@ -180,20 +198,177 @@ class VoiceService:
         except Exception:  # noqa: BLE001 - la protezione non deve bloccare il ciclo
             return False
 
+    # ------------------------------------------------------ conversazione
+    def _conversation_enabled(self) -> bool:
+        return bool(self.config.get("voice.conversation.enabled", True))
+
+    def _conversation_timeout(self) -> float:
+        try:
+            value = float(self.config.get("voice.conversation.timeout_s", 30))
+        except (TypeError, ValueError):
+            value = 30.0
+        return max(5.0, min(value, 300.0))
+
+    def _barge_in_enabled(self) -> bool:
+        return bool(self.config.get("voice.conversation.barge_in", True))
+
+    def _barge_chunk(self) -> float:
+        try:
+            value = float(self.config.get("voice.conversation.barge_in_chunk_s", 1.0))
+        except (TypeError, ValueError):
+            value = 1.0
+        return max(0.5, min(value, 3.0))
+
+    def _reset_conversation_deadline(self) -> None:
+        self._conversation_deadline = time.monotonic() + self._conversation_timeout()
+        self._presence_prompted = False
+
+    def begin_processing(self) -> None:
+        self.state.set(VoiceState.PROCESSING, "elaborazione della richiesta")
+
+    def begin_speaking(self) -> None:
+        self.state.set(VoiceState.SPEAKING, "sintesi vocale")
+
+    def begin_conversation(self, reason: str = "conversazione attiva") -> None:
+        """Attiva la conversazione continua senza richiedere la wake word."""
+        self._conversation_active = bool(self._conversation_enabled())
+        self._reset_conversation_deadline()
+        if self._conversation_active:
+            self.state.set(VoiceState.CONVERSATION_ACTIVE, reason)
+        else:
+            self.state.set(VoiceState.IDLE, "conversazione disattivata")
+
+    def end_conversation(self, reason: str = "conversazione terminata") -> None:
+        self._conversation_active = False
+        self._conversation_deadline = 0.0
+        self._presence_prompted = False
+        self.state.set(VoiceState.IDLE, reason)
+
+    @staticmethod
+    def _is_stop_phrase(text: str) -> bool:
+        value = normalize(text)
+        return value in {
+            "basta", "stop", "fine", "fine conversazione", "chiudi",
+            "chiudi la conversazione", "fermati", "silenzio",
+            "non ho altro", "per ora basta",
+        } or value.startswith("basta ")
+
+    def _tts_echoes(self, text: str) -> bool:
+        """Vero se il frammento sembra l'eco della sintesi in corso.
+
+        Non è cancellazione acustica: confronta il testo trascritto con quello
+        che Amy sta pronunciando. Se la wake word non compare nel testo di Amy,
+        una sua presenza nel frammento è quasi certamente dell'utente.
+        """
+        spoken = normalize(getattr(self.tts, "current_text", "") or "")
+        heard = normalize(text)
+        if not spoken or not heard:
+            return False
+        if heard in spoken:
+            return True
+        heard_tokens = set(heard.split())
+        spoken_tokens = set(spoken.split())
+        if not heard_tokens:
+            return False
+        overlap = len(heard_tokens & spoken_tokens) / float(len(heard_tokens))
+        return overlap >= 0.6
+
+    def _listen_raw(self, seconds: float) -> str:
+        """Registra e trascrive senza attendere la fine della sintesi."""
+        if not self.recorder.status().get("available"):
+            raise VoiceError("Nessun registratore audio disponibile.")
+        if not self.barge_stt.available:
+            raise VoiceError("Nessun motore di riconoscimento vocale configurato.")
+        audio = self.recorder.record(seconds)
+        try:
+            return self.barge_stt.transcribe(audio)
+        finally:
+            try:
+                audio.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    def _forward(self, text: str, on_command: Callable[[str], None]) -> None:
+        """Passa il comando al gestore senza bloccare il ciclo di ascolto."""
+        self.state.set(VoiceState.PROCESSING, "comando vocale")
+        worker = threading.Thread(
+            target=self._run_command,
+            args=(text, on_command),
+            name="amy-voice-command",
+            daemon=True,
+        )
+        worker.start()
+
+    def _run_command(self, text: str, on_command: Callable[[str], None]) -> None:
+        try:
+            on_command(text)
+        except Exception:  # noqa: BLE001 - un turno rotto non deve fermare l'ascolto
+            _log.exception("Comando vocale non riuscito")
+            self.state.set(VoiceState.ERROR, "comando vocale non riuscito")
+            return
+        # Un gestore che non aggiorna lo stato (per esempio un test o la sola
+        # trascrizione) non deve lasciare il ciclo bloccato in PROCESSING.
+        if self.state.state == VoiceState.PROCESSING and not self.tts.is_speaking():
+            self.begin_conversation("comando concluso")
+
+    def _barge_in_step(
+        self,
+        stop: threading.Event,
+        on_command: Callable[[str], None],
+        chunk: float,
+    ) -> None:
+        """Ascolta un frammento mentre Amy parla e reagisce alla wake word."""
+        if stop.is_set():
+            return
+        try:
+            text = self._listen_raw(chunk)
+        except VoiceError as exc:
+            _log.debug("Barge-in non disponibile: %s", exc.message)
+            time.sleep(0.2)
+            return
+        if not text.strip():
+            return
+        if self._tts_echoes(text):
+            return
+        if not self.wake.matches(text):
+            return
+        _log.info("Wake word durante la sintesi: interruzione richiesta")
+        try:
+            self.tts.stop()
+        except Exception:  # noqa: BLE001
+            pass
+        self.state.set(VoiceState.INTERRUPTED, "wake word durante la sintesi")
+        self.begin_conversation("interruzione vocale")
+        command = self.wake.extract_command(text)
+        if command:
+            self._forward(command, on_command)
+
+    def _handle_conversation_timeout(self) -> None:
+        if not self._presence_prompted:
+            self._presence_prompted = True
+            self._conversation_deadline = time.monotonic() + self._conversation_timeout()
+            self.state.set(VoiceState.WAITING_FOR_INPUT, "verifica presenza")
+            self.speak("Sei ancora lì?", block=False)
+        else:
+            self.speak("Torno in standby.", block=False)
+            self.end_conversation("timeout della conversazione")
+
     def run_wake_loop(
         self,
         on_command: Callable[[str], None],
         *,
         stop_event: Optional[threading.Event] = None,
     ) -> None:
-        """Ascolta in modo continuo la wake word.
+        """Ciclo vocale: wake word, conversazione continua e barge-in.
 
-        Deve essere avviato solo su richiesta esplicita dell'utente: Amy non
-        registra in background all'insaputa dell'utente.
+        - In attesa ascolta «Amy»; dopo la wake word non la richiede più.
+        - Durante la sintesi continua a registrare: se sente «Amy» interrompe.
+        - Dopo ``voice.conversation.timeout_s`` secondi di silenzio torna in
+          standby, chiedendo prima «Sei ancora lì?».
         """
         stop = stop_event or self._stop_event
         if not self.recorder.status().get("available"):
-            raise VoiceError("Serve ffmpeg o sox per l'ascolto continuo.")
+            raise VoiceError("Serve un registratore audio per l'ascolto continuo.")
         if self.recorder.status().get("stuck"):
             raise VoiceError(
                 "Il microfono non risponde: riavvia il servizio audio di macOS o il Mac, poi riprova."
@@ -202,75 +377,116 @@ class VoiceService:
             raise VoiceError("Serve un motore STT locale per l'ascolto continuo.")
         _log.info("Ascolto wake word «%s» attivo", self.wake.phrase)
         seconds = float(self.config.get("voice.recorder.seconds", 5))
+        barge_chunk = self._barge_chunk()
+        self.state.set(VoiceState.IDLE, "in attesa della wake word")
+
         while not stop.is_set():
             if self._wake_deadline is not None and time.monotonic() >= self._wake_deadline:
                 self._wake_stop_reason = "limite di durata raggiunto"
                 _log.info("Ascolto wake word terminato: %s", self._wake_stop_reason)
+                self.state.set(VoiceState.IDLE, "limite di durata")
                 stop.set()
                 break
-            # Half-duplex: se Amy sta parlando non si registra.
-            if not self._wait_quiet(stop):
-                break
+
+            # Elaborazione in corso: non registrare comandi nuovi.
+            if self.state.state == VoiceState.PROCESSING:
+                time.sleep(0.1)
+                continue
+
+            # Amy sta parlando: barge-in o attesa half-duplex.
+            if self.tts.is_speaking():
+                if self.state.state in (VoiceState.IDLE, VoiceState.CONVERSATION_ACTIVE):
+                    self.state.set(VoiceState.SPEAKING, "sintesi in corso")
+                if self._barge_in_enabled():
+                    self._barge_in_step(stop, on_command, barge_chunk)
+                else:
+                    if not self._wait_quiet(stop):
+                        break
+                continue
+
+            # La sintesi è finita: la conversazione può continuare.
+            if self.state.state == VoiceState.SPEAKING:
+                self.begin_conversation("risposta conclusa")
+                continue
+
+            # Timeout della conversazione: sospeso mentre attende una conferma.
+            if (
+                self._conversation_active
+                and self._confirmation_callback is None
+                and time.monotonic() >= self._conversation_deadline
+            ):
+                self._handle_conversation_timeout()
+                continue
+
             started = time.monotonic()
             try:
                 text = self.listen_once(seconds)
             except VoiceError as exc:
                 _log.warning("Errore di ascolto: %s", exc.message)
                 if self.recorder.status().get("stuck"):
-                    # Il dispositivo è bloccato nel HAL: continuare produrrebbe
-                    # solo errori e thread fermi. Mi fermo e lo dico alla UI.
                     self._wake_stop_reason = "microfono non rispondente"
                     _log.warning("Ascolto wake word terminato: %s", self._wake_stop_reason)
+                    self.state.set(VoiceState.OFFLINE, "microfono non rispondente")
                     stop.set()
                     break
                 time.sleep(1.0)
                 continue
             ended = time.monotonic()
             if self._echo_overlapped(started, ended):
-                # Il frammento contiene la voce di Amy: non è un comando.
                 _log.info("Frammento scartato: Amy stava parlando (protezione dall'eco).")
                 continue
+
+            # Conferma vocale in attesa.
             if self._confirmation_callback is not None:
                 if time.monotonic() >= self._confirmation_deadline:
                     self.cancel_confirmation()
                     _log.info("Conferma vocale scaduta: operazione annullata")
-                    self.tts.speak("Conferma scaduta: operazione annullata.")
+                    self.state.set(VoiceState.CONVERSATION_ACTIVE, "conferma scaduta")
+                    self.speak("Conferma scaduta: operazione annullata.")
                     continue
                 try:
                     handled = bool(self._confirmation_callback(text))
-                except Exception:  # noqa: BLE001 - la conferma non deve fermare il ciclo
+                except Exception:  # noqa: BLE001
                     _log.warning("Conferma vocale non riuscita", exc_info=True)
                     handled = True
                 if handled:
                     self.cancel_confirmation()
                 continue
+
+            # Conversazione attiva: nessuna wake word necessaria.
+            if self._conversation_active:
+                if not text.strip():
+                    continue
+                self._reset_conversation_deadline()
+                if self._is_stop_phrase(text):
+                    _log.info("Conversazione terminata su richiesta dell'utente")
+                    self.speak("Va bene.", block=False)
+                    self.end_conversation("richiesta dell'utente")
+                    continue
+                if self.wake.matches(text):
+                    command = self.wake.extract_command(text)
+                    if command:
+                        self._forward(command, on_command)
+                    else:
+                        self.state.set(VoiceState.LISTENING, "solo wake word")
+                        self.speak("Dimmi.", block=False)
+                    continue
+                self._forward(text.strip(), on_command)
+                continue
+
+            # Standby: serve la wake word.
             command = self.wake.extract_command(text)
             if command:
-                self.tts.stop()  # barge-in: l'utente interrompe Amy
-                _log.info("Wake word rilevata")
-                on_command(command)
-            elif self.wake.matches(text):
-                # Solo "Amy": ascolta il comando successivo.
+                self.state.set(VoiceState.WAKE_WORD_DETECTED, "wake word rilevata")
                 self.tts.stop()
-                if not self._wait_quiet(stop, force_cooldown=True):
-                    break
-                started = time.monotonic()
-                try:
-                    follow_up = self.listen_once(seconds)
-                except VoiceError as exc:
-                    _log.warning("Errore nel secondo ascolto: %s", exc.message)
-                    if self.recorder.status().get("stuck"):
-                        self._wake_stop_reason = "microfono non rispondente"
-                        _log.warning("Ascolto wake word terminato: %s", self._wake_stop_reason)
-                        stop.set()
-                        break
-                    continue
-                ended = time.monotonic()
-                if self._echo_overlapped(started, ended):
-                    _log.info("Secondo ascolto scartato: Amy stava parlando (protezione dall'eco).")
-                    continue
-                if follow_up.strip():
-                    on_command(follow_up.strip())
+                self.begin_conversation("wake word con comando")
+                self._forward(command, on_command)
+            elif self.wake.matches(text):
+                self.state.set(VoiceState.WAKE_WORD_DETECTED, "solo wake word")
+                self.tts.stop()
+                self.begin_conversation("wake word senza comando")
+                self.state.set(VoiceState.LISTENING, "attesa del comando")
+                self.speak("Dimmi.", block=False)
 
     def await_confirmation(
         self,
@@ -340,6 +556,7 @@ class VoiceService:
         self._stop_event.set()
         self._wake_deadline = None
         self.cancel_confirmation()
+        self.end_conversation("ciclo fermato")
         self.stop_speaking()
 
     @property
@@ -391,6 +608,14 @@ class VoiceService:
                 "echo_guard": self._echo_guard_enabled(),
                 "echo_guard_cooldown_s": self._echo_cooldown(),
                 "stop_reason": self._wake_stop_reason,
+            },
+            "state": self.state.state.value,
+            "state_reason": self.state.reason,
+            "conversation": {
+                "enabled": self._conversation_enabled(),
+                "active": self._conversation_active,
+                "timeout_s": self._conversation_timeout(),
+                "barge_in": self._barge_in_enabled(),
             },
             "ready_for_voice_commands": bool(
                 tts_status.get("available")

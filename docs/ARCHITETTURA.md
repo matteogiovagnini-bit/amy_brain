@@ -39,7 +39,7 @@ livello. Il robot reale ha una propria catena di sicurezza hardware descritta in
 | `amy/security/policy.py` | livelli A/B/C, path guard, richieste di conferma |
 | `amy/security/audit.py` | registro append-only delle decisioni |
 | `amy/tools/` | 44 strumenti registrati e validati |
-| `amy/voice/` | TTS macOS, STT locale, registratore, wake word testuale |
+| `amy/voice/` | TTS macOS, STT locale, registratore, wake word testuale, macchina a stati e conversazione continua |
 | `amy/robot/` | protocollo v1, simulatore, link simulato e MQTT |
 | `amy/ui/server.py` | API HTTP locale, file statici, CSP |
 | `amy/ui/static/` | interfaccia «Amy Core» senza dipendenze esterne |
