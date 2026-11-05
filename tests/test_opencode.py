@@ -112,6 +112,31 @@ class OpenCodeTests(unittest.TestCase):
         with self.assertRaises(Exception):
             opencode_tools.run_request("ciao", directory="/tmp", context=self.context)
 
+    def test_restart_after_schedules_the_restart(self) -> None:
+        payload = {
+            "session_id": "ses_abc",
+            "directory": str(self.project),
+            "text": "Fatto.",
+            "truncated": False,
+            "steps_text": 1,
+            "cost": 0,
+            "tokens": {},
+            "returncode": 0,
+            "new_session": False,
+        }
+        with mock.patch("amy.tools.opencode_tools.run_request", return_value=payload):
+            with mock.patch(
+                "amy.tools.opencode_tools.schedule_restart",
+                return_value={"scheduled": True, "delay_s": 12},
+            ) as scheduler:
+                result = opencode_tools._run(
+                    {"request": "implementa", "restart_after": True}, self.context
+                )
+        self.assertTrue(result.ok)
+        self.assertTrue(result.data["restart"]["scheduled"])
+        scheduler.assert_called_once()
+        self.assertIn("riavvia", result.message)
+
     def test_sending_requires_confirmation(self) -> None:
         self.assertEqual(opencode_tools.OPENCODE_RUN.risk, RiskLevel.C)
         self.assertEqual(opencode_tools.OPENCODE_STATUS.risk, RiskLevel.A)

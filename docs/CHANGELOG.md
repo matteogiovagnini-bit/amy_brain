@@ -15,6 +15,12 @@ iniziale: non tutte le voci sono state verificate su hardware.
   riletto un file di prova.
 - `opencode.enabled` è spento per default; `opencode.project_dir` sceglie la
   cartella (sempre dentro le radici autorizzate).
+- **Riavvio dell'app dopo le modifiche.** `app.restart` e
+  `opencode.run restart_after=true` programmano il riavvio di Amy Core con un
+  helper staccato: attende l'uscita, riapre il bundle e verifica `/api/health`.
+  Livello C, conferma obbligatoria; log in `~/.amy/restart.log`.
+- **Ciclo di auto-sviluppo**: Amy può chiedere a OpenCode di implementare una
+  modifica, aspettare l'esito e riavviarsi per caricarla.
 
 ## [0.6.0] — 2026-11-05
 
@@ -178,7 +184,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 345 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 351 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

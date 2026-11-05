@@ -244,6 +244,8 @@ final class Backend {
         // Il backend deve chiudersi se questa app termina in modo improvviso.
         environment["AMY_PARENT_PID"] = String(getpid())
         environment["AMY_HEARTBEAT_FILE"] = heartbeatPath
+        // Percorso del bundle: serve al riavvio programmato di Amy.
+        environment["AMY_APP_BUNDLE"] = Bundle.main.bundlePath
         if !startupGreeting {
             environment["AMY_STARTUP_GREETING"] = "0"
         }

@@ -112,7 +112,8 @@ python3 -m amy config path   # percorso del file in uso
     "binary": "opencode2",
     "project_dir": "",
     "timeout_s": 300,
-    "max_output_chars": 8000
+    "max_output_chars": 8000,
+    "restart_delay_s": 12
   },
   "mail": {
     "default_account": "",
@@ -491,6 +492,8 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   di lavoro; deve stare nelle radici autorizzate.
 - `opencode.timeout_s` (default 300) limita l'esecuzione; `opencode.binary`
   permette di indicare un percorso diverso da `opencode2`.
+- `opencode.restart_delay_s` (default 12) è l'attesa prima del riavvio quando si
+  usa `restart_after`: lascia il tempo ad Amy di pronunciare l'esito.
 
 ### Posta
 

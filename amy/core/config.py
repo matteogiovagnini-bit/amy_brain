@@ -87,6 +87,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "project_dir": "",
         "timeout_s": 300,
         "max_output_chars": 8000,
+        "restart_delay_s": 12,
     },
     "mail": {
         "default_account": "",

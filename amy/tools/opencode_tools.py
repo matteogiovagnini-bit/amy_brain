@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..core.errors import AmyError
+from ..core.restart import schedule_restart
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
 
@@ -209,11 +210,23 @@ def _run(args: Dict[str, Any], context: ToolContext) -> ToolResult:
             "OpenCode non ha restituito una risposta testuale.",
             data=data,
         )
+    if args.get("restart_after"):
+        try:
+            data["restart"] = schedule_restart(
+                float(context.config.get("opencode.restart_delay_s", 12))
+            )
+        except Exception as exc:  # noqa: BLE001 - il risultato di OpenCode resta valido
+            data["restart"] = {"scheduled": False, "error": str(exc)}
     prefix = "Nuova sessione" if data["new_session"] else "Sessione"
-    return ToolResult.success(
-        data,
-        "%s OpenCode %s: risposta pronta." % (prefix, data["session_id"] or "?"),
-    )
+    if data.get("restart", {}).get("scheduled"):
+        message = "%s OpenCode %s completata. Amy si riavvia tra %d secondi." % (
+            prefix,
+            data["session_id"] or "?",
+            int(data["restart"]["delay_s"]),
+        )
+    else:
+        message = "%s OpenCode %s: risposta pronta." % (prefix, data["session_id"] or "?")
+    return ToolResult.success(data, message)
 
 
 def _status(args: Dict[str, Any], context: ToolContext) -> ToolResult:
@@ -247,6 +260,7 @@ OPENCODE_RUN = ToolSpec(
             "request": {"type": "string", "minLength": 1, "maxLength": 20000},
             "directory": {"type": "string", "maxLength": 1000},
             "new_session": {"type": "boolean"},
+            "restart_after": {"type": "boolean"},
             "title": {"type": "string", "maxLength": 120},
         },
         "required": ["request"],
@@ -257,7 +271,8 @@ OPENCODE_RUN = ToolSpec(
     consequences=(
         "OpenCode lavora nella cartella indicata con i permessi dell'utente: può "
         "creare, modificare o cancellare file ed eseguire comandi. La sessione è "
-        "persistente e le richieste successive continuano la stessa conversazione."
+        "persistente e le richieste successive continuano la stessa conversazione. "
+        "Con restart_after=true Amy si riavvia al termine per caricare le modifiche."
     ),
     undo="Nessuno automatico: controlla il risultato e usa Git o i backup del progetto.",
     timeout_s=910.0,

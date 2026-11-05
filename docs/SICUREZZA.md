@@ -162,6 +162,11 @@ Lo stesso schema vale per Promemoria:
 cancellare file ed eseguire comandi. La conferma di Amy non è una sandbox.
 Controlla la richiesta e usa Git o i backup del progetto.
 
+`app.restart` è di livello **C** e riavvia l'app nativa. La riapertura non dipende
+da OpenCode: viene lanciato un helper fisso e staccato (`start_new_session`), che
+attende l'uscita della vecchia app, riapre il bundle e verifica `/api/health`. Se
+il riavvio fallisce, il log è in `~/.amy/restart.log` e Amy va riaperta a mano.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:
