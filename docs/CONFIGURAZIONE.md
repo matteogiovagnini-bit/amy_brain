@@ -107,6 +107,11 @@ python3 -m amy config path   # percorso del file in uso
   "reminders": {
     "default_list": ""
   },
+  "mail": {
+    "default_account": "",
+    "default_mailbox": "INBOX",
+    "warm_on_start": true
+  },
   "voice": {
     "enabled": false,
     "startup_greeting": true,
@@ -463,6 +468,17 @@ Configurazione vocale e robotica sono descritte in dettaglio in
 - `robot.transport = "simulated"` è il default sicuro.
 - `robot.transport = "mqtt"` è sperimentale e non verificato.
 - La password MQTT si legge da `robot.password_env`.
+
+### Posta
+
+- `mail.default_account` (default vuoto = primo account) è l'account usato da
+  `mail.list`, `mail.search` e `mail.read` quando la richiesta non ne indica uno.
+  Si può indicare il nome dell'account o l'indirizzo email.
+- `mail.default_mailbox` (default `INBOX`) è la cassetta predefinita.
+- `mail.warm_on_start` (default `true`) apre Mail in background all'avvio per
+  evitare che il primo comando attenda decine di secondi.
+- Il corpo di un messaggio è di livello B: richiede conferma e, con un provider
+  online, viene inviato a quel servizio.
 
 ### Calendario
 

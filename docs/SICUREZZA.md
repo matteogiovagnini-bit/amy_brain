@@ -124,6 +124,10 @@ Misure applicate:
   di Sistema → Privacy e Sicurezza → Automazione. Se manca, l'errore lo dice.
 
 `calendar.list` e `calendar.events` sono di livello A e non modificano nulla.
+`mail.accounts`, `mail.mailboxes`, `mail.list` e `mail.search` sono di livello A e
+leggono solo metadati (mittente, oggetto, data). `mail.read` è di livello **B**:
+il corpo può essere inviato al provider IA configurato, quindi richiede conferma.
+Nessuno strumento di posta invia, sposta o cancella messaggi.
 `calendar.delete` è di livello **C**: richiede sempre una conferma esplicita e non
 può essere auto-approvato. La conferma può essere data a voce («sì»/«no»), ma
 questo cambia solo il canale della risposta, non il requisito: la domanda viene

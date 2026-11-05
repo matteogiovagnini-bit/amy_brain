@@ -24,6 +24,7 @@ from ..core.assistant import Assistant
 from ..core.config import Config
 from ..core.errors import AmyError, ConfigError
 from ..core.logging_setup import get_logger, setup_logging
+from ..macos import list_accounts
 from ..voice.state import VoiceState
 from ..voice.wakeword import normalize
 
@@ -465,6 +466,31 @@ def _watch_parent(server: AmyHTTPServer, parent_pid: int) -> None:
             return
 
 
+def _warm_mail(config: Any) -> None:
+    """Apre Mail in background per non far attendere il primo comando.
+
+    Il primo AppleScript su Mail può richiedere decine di secondi (avvio e
+    indicizzazione). Gli account vengono messi in cache; nessun messaggio
+    viene letto.
+    """
+    if not bool(config.get("mail.warm_on_start", True)):
+        return
+    # Il primo AppleScript può andare in timeout mentre Mail si avvia: un
+    # secondo tentativo dopo 30 secondi evita che il primo comando dell'utente
+    # paghi l'attesa.
+    for attempt in (1, 2):
+        try:
+            accounts = list_accounts(force=attempt > 1)
+            _log.info("Mail pronta: %d account disponibili", len(accounts))
+            return
+        except Exception as exc:  # noqa: BLE001 - il riscaldamento è best-effort
+            if attempt == 1:
+                _log.info("Mail non ancora pronta: %s. Riprovo tra 30 s.", exc)
+                time.sleep(30)
+            else:
+                _log.info("Mail non riscaldata: %s", exc)
+
+
 def _schedule_greeting(assistant: Assistant, delay: float = 1.2) -> None:
     """Pronuncia il messaggio di avvio dopo che la dashboard è pronta.
 
@@ -514,6 +540,7 @@ def run_server(config: Config, *, host: Optional[str] = None, port: Optional[int
         print("ATTENZIONE: dashboard esposta su %s senza autenticazione." % listen_host)
     assistant = Assistant(config)
     assistant.voice.warm()  # modello STT e voci pronti, nessuna registrazione
+    threading.Thread(target=_warm_mail, args=(config,), name="amy-mail-warm", daemon=True).start()
     server = AmyHTTPServer((listen_host, listen_port), assistant)
     url = "http://%s:%d" % (listen_host, listen_port)
     print("Dashboard Amy: %s" % url)

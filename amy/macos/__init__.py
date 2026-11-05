@@ -9,6 +9,15 @@ from .calendar import (
     parse_start,
     resolve_calendar,
 )
+from .mail import (
+    MailError,
+    list_accounts,
+    list_mailboxes,
+    list_messages,
+    read_message,
+    resolve_account,
+    search_messages,
+)
 from .reminders import (
     RemindersError,
     complete_reminder,
@@ -45,6 +54,13 @@ __all__ = [
     "list_events",
     "parse_start",
     "resolve_calendar",
+    "MailError",
+    "list_accounts",
+    "list_mailboxes",
+    "list_messages",
+    "read_message",
+    "resolve_account",
+    "search_messages",
     "RemindersError",
     "complete_reminder",
     "create_reminder",

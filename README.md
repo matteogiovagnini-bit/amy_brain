@@ -139,6 +139,9 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 - Protezione dall'eco **half-duplex** nel ciclo vocale: mentre Amy parla il
   microfono resta chiuso e i frammenti che contengono la sua voce vengono
   scartati, così la sua risposta non viene scambiata per un comando.
+- Posta: legge account, cassette, mittenti e oggetti da Mail.app; il corpo di un
+  messaggio si legge solo dopo una conferma esplicita, perché con un provider
+  online viene inviato a quel servizio.
 - Calendario e Promemoria: legge calendari, eventi e promemoria, **crea**
   appuntamenti e promemoria reali via AppleScript, segna i promemoria come
   completati e **elimina** eventi e promemoria. Creazione e completamento sono di
@@ -183,7 +186,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (321 test)
+tests/        suite unittest (332 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -197,7 +200,7 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 2 novembre 2026: **321 test, tutti superati**, più il
+Risultato verificato il 2 novembre 2026: **332 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il

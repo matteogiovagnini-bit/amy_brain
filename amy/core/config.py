@@ -81,6 +81,13 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "reminders": {
         "default_list": "",
     },
+    "mail": {
+        "default_account": "",
+        "default_mailbox": "INBOX",
+        # Precarica gli account in background: il primo AppleScript su Mail
+        # può richiedere decine di secondi.
+        "warm_on_start": True,
+    },
     "voice": {
         "enabled": False,
         "startup_greeting": True,
