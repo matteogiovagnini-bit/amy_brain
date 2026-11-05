@@ -3,6 +3,19 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [0.7.0] — 2026-11-05
+
+### Aggiunto
+
+- **Integrazione con OpenCode 2.** `opencode.run` apre o continua una sessione
+  `opencode2` nella cartella di progetto e le affida una richiesta; la sessione
+  viene ricordata per cartella. Livello C, conferma sempre obbligatoria, nessun
+  `--auto`, nessuna shell, timeout e output limitati. `opencode.status` mostra
+  configurazione e sessioni. Verificato con una richiesta reale che ha creato e
+  riletto un file di prova.
+- `opencode.enabled` è spento per default; `opencode.project_dir` sceglie la
+  cartella (sempre dentro le radici autorizzate).
+
 ## [0.6.0] — 2026-11-05
 
 ### Aggiunto
@@ -165,7 +178,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 339 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 345 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

@@ -147,6 +147,21 @@ Lo stesso schema vale per Promemoria:
 - `reminders.delete` è di livello C e richiede sempre conferma;
 - i testi sono escapati e le date costruite per componenti, come per il calendario.
 
+## 5.2 Agente esterno OpenCode
+
+`opencode.run` avvia la CLI gratuita `opencode2` con una lista di argomenti
+(nessuna shell) nella cartella di progetto. Misure:
+
+- livello **C**: richiede sempre una conferma esplicita;
+- nessun flag `--auto`: OpenCode applica le proprie regole di permesso;
+- la cartella deve stare nelle radici autorizzate, altrimenti viene rifiutata;
+- timeout finito e output troncato;
+- sessione persistente per cartella, salvata in `~/.amy/opencode_sessions.json`.
+
+**OpenCode lavora con i permessi dell'utente**: può creare, modificare o
+cancellare file ed eseguire comandi. La conferma di Amy non è una sandbox.
+Controlla la richiesta e usa Git o i backup del progetto.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:

@@ -107,6 +107,13 @@ python3 -m amy config path   # percorso del file in uso
   "reminders": {
     "default_list": ""
   },
+  "opencode": {
+    "enabled": false,
+    "binary": "opencode2",
+    "project_dir": "",
+    "timeout_s": 300,
+    "max_output_chars": 8000
+  },
   "mail": {
     "default_account": "",
     "default_mailbox": "INBOX",
@@ -475,6 +482,15 @@ Configurazione vocale e robotica sono descritte in dettaglio in
 - `robot.transport = "simulated"` è il default sicuro.
 - `robot.transport = "mqtt"` è sperimentale e non verificato.
 - La password MQTT si legge da `robot.password_env`.
+
+### OpenCode 2
+
+- `opencode.enabled` (default `false`) abilita l'affidamento di richieste a
+  `opencode2`. È spento per default: un agente esterno può modificare il progetto.
+- `opencode.project_dir` (default vuoto = cartella corrente di Amy) è la cartella
+  di lavoro; deve stare nelle radici autorizzate.
+- `opencode.timeout_s` (default 300) limita l'esecuzione; `opencode.binary`
+  permette di indicare un percorso diverso da `opencode2`.
 
 ### Posta
 

@@ -191,6 +191,11 @@ disponibile un preset: `groq`.
 Limiti verificati il **31 ottobre 2026** sulle fonti ufficiali indicate sotto. Se il
 servizio cambia condizioni, il preset va riverificato o rimosso.
 
+OpenCode 2 è una CLI open source e gratuita; il modello che usa è configurato
+separatamente dall'utente. Amy non introduce un servizio a pagamento: se il
+modello scelto per OpenCode è a consumo, la responsabilità è della configurazione
+di OpenCode, non di Amy.
+
 Con un provider online, il contenuto delle email lette con `mail.read` e il testo
 composto con `mail.send` vengono inviati a quel servizio per elaborare la
 risposta: è il costo di privacy dell'uso di un modello remoto. Chi vuole leggere

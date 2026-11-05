@@ -81,6 +81,13 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "reminders": {
         "default_list": "",
     },
+    "opencode": {
+        "enabled": False,
+        "binary": "opencode2",
+        "project_dir": "",
+        "timeout_s": 300,
+        "max_output_chars": 8000,
+    },
     "mail": {
         "default_account": "",
         "default_mailbox": "INBOX",
