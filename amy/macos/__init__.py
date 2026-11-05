@@ -17,6 +17,7 @@ from .mail import (
     read_message,
     resolve_account,
     search_messages,
+    send_message,
 )
 from .reminders import (
     RemindersError,
@@ -61,6 +62,7 @@ __all__ = [
     "read_message",
     "resolve_account",
     "search_messages",
+    "send_message",
     "RemindersError",
     "complete_reminder",
     "create_reminder",

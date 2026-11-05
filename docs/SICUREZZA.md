@@ -127,7 +127,10 @@ Misure applicate:
 `mail.accounts`, `mail.mailboxes`, `mail.list` e `mail.search` sono di livello A e
 leggono solo metadati (mittente, oggetto, data). `mail.read` è di livello **B**:
 il corpo può essere inviato al provider IA configurato, quindi richiede conferma.
-Nessuno strumento di posta invia, sposta o cancella messaggi.
+`mail.send` è di livello **C**: crea e invia un'email e non può essere annullato.
+La conferma mostra destinatari, oggetto e corpo; gli indirizzi sono validati e
+non sono ammessi ritorni a capo. Nessuno strumento di posta sposta o cancella
+messaggi.
 `calendar.delete` è di livello **C**: richiede sempre una conferma esplicita e non
 può essere auto-approvato. La conferma può essere data a voce («sì»/«no»), ma
 questo cambia solo il canale della risposta, non il requisito: la domanda viene

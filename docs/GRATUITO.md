@@ -191,10 +191,10 @@ disponibile un preset: `groq`.
 Limiti verificati il **31 ottobre 2026** sulle fonti ufficiali indicate sotto. Se il
 servizio cambia condizioni, il preset va riverificato o rimosso.
 
-Con un provider online, il contenuto delle email lette con `mail.read` viene
-inviato a quel servizio per elaborare la risposta: è il costo di privacy dell'uso
-di un modello remoto. Chi vuole leggere la posta senza farla uscire dal Mac deve
-usare un provider locale.
+Con un provider online, il contenuto delle email lette con `mail.read` e il testo
+composto con `mail.send` vengono inviati a quel servizio per elaborare la
+risposta: è il costo di privacy dell'uso di un modello remoto. Chi vuole leggere
+o scrivere la posta senza farla uscire dal Mac deve usare un provider locale.
 
 Il tetto di **8.000 token al minuto** è il vincolo pratico più stretto. Il catalogo
 degli strumenti viene inviato in forma testuale compatta (nome, argomenti e

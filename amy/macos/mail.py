@@ -263,3 +263,93 @@ def search_messages(
 def account_label(account_name: str = "", default_account: str = "") -> str:
     account = resolve_account(account_name, default=default_account)
     return account["name"]
+
+def _recipients(value: str) -> List[str]:
+    """Divide indirizzi separati da virgola o punto e virgola."""
+    items = []
+    for part in str(value or "").replace(";", ",").split(","):
+        address = part.strip()
+        if not address:
+            continue
+        if "\n" in address or "\r" in address or " " in address:
+            raise MailError("Indirizzo email non valido: %s" % address)
+        if "@" not in address or address.startswith("@") or address.endswith("@"):
+            raise MailError("Indirizzo email non valido: %s" % address)
+        items.append(address)
+    return items
+
+
+def send_message(
+    *,
+    to: str,
+    subject: str,
+    body: str,
+    cc: str = "",
+    bcc: str = "",
+    account_name: str = "",
+    default_account: str = "",
+) -> Dict[str, Any]:
+    """Crea e invia un messaggio con Mail.app.
+
+    L'invio è irreversibile: questa funzione va chiamata solo dopo una conferma
+    esplicita (livello C). Restituisce lo stato reale: Mail ha accettato il
+    messaggio, non garantisce la consegna al destinatario.
+    """
+    recipients = _recipients(to)
+    if not recipients:
+        raise MailError("Serve almeno un destinatario.")
+    if len(recipients) > 10:
+        raise MailError("Troppi destinatari: massimo 10.")
+    clean_subject = " ".join(str(subject or "").split())
+    if not clean_subject:
+        raise MailError("L'oggetto è vuoto.")
+    if len(clean_subject) > 300:
+        clean_subject = clean_subject[:300]
+    text = str(body or "")
+    if not text.strip():
+        raise MailError("Il corpo del messaggio è vuoto.")
+    if len(text) > 20000:
+        raise MailError("Il corpo è troppo lungo: massimo 20.000 caratteri.")
+    copy = _recipients(cc) if cc else []
+    blind = _recipients(bcc) if bcc else []
+    account = resolve_account(account_name, default=default_account)
+    sender = account["addresses"][0] if account["addresses"] else account["name"]
+
+    def recipients_script(label: str, addresses: List[str]) -> str:
+        lines = []
+        for address in addresses:
+            lines.append(
+                'make new %s recipient at end of %s recipients with properties {address:"%s"}'
+                % (label, label, _text(address))
+            )
+        return "\n".join(lines)
+
+    script = """tell application "Mail"
+set newMessage to make new outgoing message with properties {{subject:"{subject}", content:"{body}", visible:false}}
+tell newMessage
+set sender to "{sender}"
+{to_script}
+{cc_script}
+{bcc_script}
+end tell
+send newMessage
+end tell""".format(
+        subject=_text(clean_subject),
+        body=_text(text),
+        sender=_text(sender),
+        to_script=recipients_script("to", recipients),
+        cc_script=recipients_script("cc", copy),
+        bcc_script=recipients_script("bcc", blind),
+    )
+    run_osascript(script, timeout=120.0)
+    return {
+        "account": account["name"],
+        "sender": sender,
+        "to": recipients,
+        "cc": copy,
+        "bcc": blind,
+        "subject": clean_subject,
+        "chars": len(text),
+        "accepted": True,
+        "note": "Mail ha accettato il messaggio; la consegna non è verificabile da Amy.",
+    }

@@ -10,6 +10,7 @@ from ..macos import (
     list_messages,
     read_message,
     search_messages,
+    send_message,
 )
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
@@ -88,6 +89,23 @@ def _read(args: Dict[str, Any], context: ToolContext) -> ToolResult:
         default_account=_default_account(context),
     )
     return ToolResult.success(data, "Messaggio «%s» letto." % data["subject"])
+
+
+def _send(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    data = send_message(
+        to=str(args["to"]),
+        subject=str(args["subject"]),
+        body=str(args["body"]),
+        cc=str(args.get("cc", "") or ""),
+        bcc=str(args.get("bcc", "") or ""),
+        account_name=str(args.get("account", "") or ""),
+        default_account=_default_account(context),
+    )
+    return ToolResult.success(
+        data,
+        "Email «%s» affidata a Mail per l'invio a %s."
+        % (data["subject"], ", ".join(data["to"])),
+    )
 
 
 MAIL_ACCOUNTS = ToolSpec(
@@ -189,9 +207,42 @@ MAIL_READ = ToolSpec(
 )
 
 
+MAIL_SEND = ToolSpec(
+    name="mail.send",
+    description=(
+        "Crea e invia un'email dall'account configurato. Chiedi destinatario, "
+        "oggetto e corpo se non li hai già: non inventare l'indirizzo. L'invio "
+        "è irreversibile e richiede sempre conferma."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "to": {"type": "string", "minLength": 3, "maxLength": 1000},
+            "subject": {"type": "string", "minLength": 1, "maxLength": 300},
+            "body": {"type": "string", "minLength": 1, "maxLength": 20000},
+            "cc": {"type": "string", "maxLength": 1000},
+            "bcc": {"type": "string", "maxLength": 1000},
+            "account": {"type": "string", "maxLength": 200},
+        },
+        "required": ["to", "subject", "body"],
+        "additionalProperties": False,
+    },
+    risk=RiskLevel.C,
+    reason="Invio di un'email: operazione irreversibile.",
+    consequences=(
+        "Il messaggio parte dall'account configurato e non può essere richiamato. "
+        "Controlla destinatario, oggetto e corpo prima di confermare."
+    ),
+    undo="Nessuno: un'email inviata non può essere annullata.",
+    timeout_s=120.0,
+    tags=("macos", "mail", "invio", "privacy"),
+)
+
+
 def register(registry) -> None:
     registry.register(FunctionTool(MAIL_ACCOUNTS, _accounts))
     registry.register(FunctionTool(MAIL_MAILBOXES, _mailboxes))
     registry.register(FunctionTool(MAIL_LIST, _list))
     registry.register(FunctionTool(MAIL_SEARCH, _search))
     registry.register(FunctionTool(MAIL_READ, _read))
+    registry.register(FunctionTool(MAIL_SEND, _send))

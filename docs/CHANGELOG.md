@@ -12,6 +12,9 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `mail.read` apre il corpo di un messaggio per ID ed è di livello B: richiede
   conferma perché con un provider online il contenuto lascia il Mac. Verificato
   sull'account `info@ewp.it` configurato in Mail.
+- **Invio di email.** `mail.send` crea e invia un messaggio dall'account
+  configurato, con destinatari, oggetto, corpo e copie. È di livello C: richiede
+  sempre la conferma e non può essere annullato. Gli indirizzi sono validati.
 - `mail.default_account` e `mail.default_mailbox` scelgono account e cassetta.
 
 ## [0.5.0] — 2026-11-03
@@ -158,7 +161,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 332 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 337 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

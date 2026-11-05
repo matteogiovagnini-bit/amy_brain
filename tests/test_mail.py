@@ -13,6 +13,7 @@ from amy.macos.mail import (
     read_message,
     resolve_account,
     search_messages,
+    send_message,
 )
 from amy.security.risk import RiskLevel
 from amy.tools import mail_tools
@@ -104,6 +105,42 @@ class ReadMessageTests(unittest.TestCase):
         self.assertTrue(data["truncated"])
 
 
+class SendMessageTests(unittest.TestCase):
+    def test_builds_and_sends(self) -> None:
+        with mock.patch("amy.macos.mail.list_accounts", return_value=accounts()):
+            with mock.patch("amy.macos.mail.run_osascript", return_value="") as runner:
+                data = send_message(
+                    to="a@example.it, b@example.it",
+                    subject="Ciao",
+                    body="Testo del messaggio",
+                    cc="c@example.it",
+                )
+        script = runner.call_args[0][0]
+        self.assertIn('address:"a@example.it"', script)
+        self.assertIn('address:"b@example.it"', script)
+        self.assertIn('address:"c@example.it"', script)
+        self.assertIn('set sender to "info@ewp.it"', script)
+        self.assertIn('subject:"Ciao"', script)
+        self.assertIn('content:"Testo del messaggio"', script)
+        self.assertTrue(data["accepted"])
+        self.assertEqual(data["to"], ["a@example.it", "b@example.it"])
+
+    def test_rejects_invalid_address(self) -> None:
+        with self.assertRaises(MailError):
+            send_message(to="non-un-indirizzo", subject="Ciao", body="Testo")
+
+    def test_rejects_empty_subject_or_body(self) -> None:
+        with mock.patch("amy.macos.mail.list_accounts", return_value=accounts()):
+            with self.assertRaises(MailError):
+                send_message(to="a@example.it", subject="  ", body="Testo")
+            with self.assertRaises(MailError):
+                send_message(to="a@example.it", subject="Ciao", body="  ")
+
+    def test_rejects_newlines_in_address(self) -> None:
+        with self.assertRaises(MailError):
+            send_message(to="a@example.it\nBcc: altro@example.it", subject="Ciao", body="Testo")
+
+
 class SearchTests(unittest.TestCase):
     def test_filters_by_subject_or_sender(self) -> None:
         messages = {
@@ -123,6 +160,9 @@ class SearchTests(unittest.TestCase):
 class MailToolSpecTests(unittest.TestCase):
     def test_reading_the_body_requires_confirmation(self) -> None:
         self.assertEqual(mail_tools.MAIL_READ.risk, RiskLevel.B)
+
+    def test_sending_is_level_c(self) -> None:
+        self.assertEqual(mail_tools.MAIL_SEND.risk, RiskLevel.C)
 
     def test_metadata_tools_are_automatic(self) -> None:
         for spec in (mail_tools.MAIL_ACCOUNTS, mail_tools.MAIL_MAILBOXES, mail_tools.MAIL_LIST, mail_tools.MAIL_SEARCH):
