@@ -115,7 +115,13 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "barge_in_model": "",
             # Finestra di ascolto per le risposte in conversazione: più corta
             # della finestra della wake word, per ridurre la latenza.
-            "listen_seconds": 3.5,
+            "listen_seconds": 8.0,
+            # Rilevamento della fine del parlato: si smette dopo una pausa,
+            # non a una durata fissa.
+            "vad": True,
+            "vad_silence_s": 1.0,
+            "vad_start_timeout_s": 6.0,
+            "vad_max_seconds": 15.0,
         },
         "wake_word": {
             # L'utente ha richiesto l'avvio automatico dell'ascolto continuo.

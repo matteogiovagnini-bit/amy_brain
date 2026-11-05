@@ -135,7 +135,11 @@ python3 -m amy config path   # percorso del file in uso
       "barge_in": true,
       "barge_in_chunk_s": 1.0,
       "barge_in_model": "",
-      "listen_seconds": 3.5
+      "listen_seconds": 8.0,
+      "vad": true,
+      "vad_silence_s": 1.0,
+      "vad_start_timeout_s": 6.0,
+      "vad_max_seconds": 15.0
     },
     "wake_word": {
       "enabled": true,
@@ -452,8 +456,11 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   `~/.amy/models/whisper`).
 - `voice.recorder.engine = "auto"` preferisce `sounddevice`, poi `ffmpeg`;
   `voice.recorder.device` e `voice.recorder.samplerate` scelgono il microfono.
-- `voice.conversation.listen_seconds` (default 3.5) è la finestra di ascolto delle
-  risposte in conversazione: più corta della wake word per ridurre la latenza.
+- `voice.conversation.vad` (default `true`) chiude il turno dopo circa un secondo
+  di silenzio: un indirizzo email o una frase lunga non vengono tagliati.
+  `vad_max_seconds` (default 15) è il limite massimo di un turno.
+- `voice.conversation.listen_seconds` (default 8) è la finestra fissa, usata solo
+  se il VAD non è disponibile.
 - `voice.conversation.timeout_s` (default 30) è il silenzio massimo prima di
   «Sei ancora lì?»; `barge_in` (default true) ascolta anche durante la sintesi per
   interrompere Amy con «Amy».

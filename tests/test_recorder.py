@@ -214,3 +214,63 @@ class MicrophoneProbeTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class SequenceStream:
+    """Stream finto che restituisce frame predefiniti."""
+
+    def __init__(self, frames) -> None:
+        self.frames = list(frames)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc) -> bool:
+        return False
+
+    def read(self, frames):
+        if self.frames:
+            return (self.frames.pop(0), False)
+        return (b"\x00\x00" * frames, False)
+
+
+class VadModule(FakeModule):
+    def __init__(self, frames) -> None:
+        self.frames = frames
+
+    def RawInputStream(self, *args, **kwargs):
+        return SequenceStream(self.frames)
+
+
+class VoiceActivityTests(unittest.TestCase):
+    def _frames(self, count: int, amplitude: int) -> bytes:
+        return (amplitude.to_bytes(2, "little", signed=True) * count * 480)
+
+    def test_stops_after_silence_without_cutting_speech(self) -> None:
+        silence = b"\x00\x00" * 480
+        speech = self._frames(1, 4000)
+        frames = [silence] * 10 + [speech] * 20 + [silence] * 40
+        module = VadModule(frames)
+        with mock.patch.object(SoundDeviceRecorder, "module", return_value=module):
+            recorder = SoundDeviceRecorder()
+            with tempfile.TemporaryDirectory(prefix="amy-vad-") as tmp:
+                path = recorder.record_until_silence(
+                    max_seconds=5.0, silence_s=0.6, start_timeout_s=2.0, path=Path(tmp) / "vad.wav"
+                )
+                with wave.open(str(path), "rb") as wav:
+                    duration = wav.getnframes() / float(wav.getframerate())
+        self.assertGreater(duration, 0.5)
+        self.assertLess(duration, 5.0)
+
+    def test_no_speech_returns_an_empty_recording(self) -> None:
+        module = VadModule([b"\x00\x00" * 480] * 100)
+        with mock.patch.object(SoundDeviceRecorder, "module", return_value=module):
+            recorder = SoundDeviceRecorder()
+            with tempfile.TemporaryDirectory(prefix="amy-vad-") as tmp:
+                with self.assertRaises(VoiceError):
+                    recorder.record_until_silence(
+                        max_seconds=2.0, silence_s=0.5, start_timeout_s=0.2, path=Path(tmp) / "vad.wav"
+                    )
+
+
+if __name__ == "__main__":
+    unittest.main()

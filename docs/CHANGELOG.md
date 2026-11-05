@@ -40,6 +40,10 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Corretto
 
+- **Dettatura tagliata**: la registrazione in conversazione si fermava dopo 3,5 s
+  e un indirizzo email non finiva in tempo. Ora un VAD adattivo chiude il turno
+  dopo circa un secondo di silenzio, con un massimo di 15 s: le frasi lunghe non
+  vengono tagliate e le risposte brevi non fanno aspettare.
 - **Latenza dopo l'interruzione**: la finestra di ascolto in conversazione scende a
   3,5 s (da 5 s) e lo storico inviato al modello è limitato a 4.000 caratteri.
   Una risposta lunga non fa più raggiungere il limite di 8.000 token/minuto e
@@ -161,7 +165,7 @@ iniziale: non tutte le voci sono state verificate su hardware.
   `tests/test_battery.py` (11 test), `tests/test_tts_echo.py` (5 test) e nuovi
   casi in `tests/test_voice_service.py`, `tests/test_server.py`,
   `tests/test_native_app.py`, `tests/test_server_watchdog.py`, `tests/test_voice.py` e
-  `tests/test_ui_static.py`: 337 test in totale, tutti superati.
+  `tests/test_ui_static.py`: 339 test in totale, tutti superati.
 - `python3 -m amy doctor` apre il microfono per un secondo, cancella subito l'audio e
   riporta la voce «Microfono»: distingue un modulo installato da un ingresso che
   risponde davvero.

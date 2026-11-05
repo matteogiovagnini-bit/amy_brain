@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import audioop
 import logging
 import shutil
 import subprocess
@@ -9,6 +10,7 @@ import tempfile
 import threading
 import time
 import wave
+from collections import deque
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -204,6 +206,147 @@ class SoundDeviceRecorder:
                 frames.extend(data)
                 remaining -= len(data) // 2
         return bytes(frames)
+
+    def _capture_until_silence(
+        self,
+        module: Any,
+        max_seconds: float,
+        silence_s: float,
+        start_timeout_s: float,
+    ) -> bytes:
+        """Cattura fino a ``silence_s`` secondi di silenzio dopo il parlato.
+
+        Il rumore di fondo viene stimato sui frame senza voce: la soglia si
+        adatta al microfono invece di usare un valore fisso. Il limite massimo
+        evita registrazioni infinite se l'ambiente è rumoroso.
+        """
+        frame_ms = 30
+        frame_samples = int(self.samplerate * frame_ms / 1000)
+        silence_frames = max(1, int(silence_s * 1000 / frame_ms))
+        pre = deque(maxlen=10)  # 300 ms di pre-roll
+        frames = bytearray()
+        noise = 0.015
+        speech_run = 0
+        silence_run = 0
+        speaking = False
+        started = time.monotonic()
+        max_frames = int(max_seconds * 1000 / frame_ms)
+        with module.RawInputStream(
+            samplerate=self.samplerate,
+            channels=1,
+            dtype="int16",
+            device=self._device_arg(),
+        ) as stream:
+            captured = 0
+            while captured < max_frames:
+                chunk, _overflowed = stream.read(frame_samples)
+                data = bytes(chunk)
+                if not data:
+                    break
+                rms = audioop.rms(data, 2) / 32768.0
+                threshold = max(0.015, noise * 1.5)
+                if not speaking:
+                    pre.append(data)
+                    if rms > threshold:
+                        speech_run += 1
+                    else:
+                        speech_run = 0
+                        noise = noise * 0.9 + rms * 0.1
+                    if speech_run >= 3:
+                        speaking = True
+                        frames.extend(b"".join(pre))
+                        pre.clear()
+                        silence_run = 0
+                    elif time.monotonic() - started > start_timeout_s:
+                        break
+                else:
+                    frames.extend(data)
+                    captured += 1
+                    silence_run = silence_run + 1 if rms <= threshold else 0
+                    if silence_run >= silence_frames:
+                        break
+        return bytes(frames)
+
+    def record_until_silence(
+        self,
+        max_seconds: float = 15.0,
+        *,
+        silence_s: float = 1.0,
+        start_timeout_s: float = 6.0,
+        path: Path = None,
+    ) -> Path:
+        """Registra un turno vocale e si ferma dopo una pausa.
+
+        A differenza di ``record`` non impone una durata fissa: un indirizzo
+        email o una frase lunga non vengono tagliati, mentre una risposta breve
+        non fa attendere il massimo.
+        """
+        module = self.module()
+        if module is None:
+            raise VoiceError(
+                "sounddevice non è installato: impossibile registrare.",
+                detail="Installa sounddevice con pip3 install --user sounddevice.",
+            )
+        if self.is_stuck():
+            raise VoiceError(
+                "Il microfono non risponde: nessuna registrazione è stata avviata.",
+                detail=self._last_error,
+            )
+        if not self._busy.acquire(blocking=False):
+            raise VoiceError("Una registrazione è già in corso.")
+        try:
+            max_seconds = max(2.0, min(float(max_seconds), 30.0))
+            silence_s = max(0.4, min(float(silence_s), 3.0))
+            start_timeout_s = max(1.0, min(float(start_timeout_s), 15.0))
+            if path is None:
+                handle = tempfile.NamedTemporaryFile(prefix="amy-audio-", suffix=".wav", delete=False)
+                handle.close()
+                path = Path(handle.name)
+            outcome: Dict[str, Any] = {}
+            limit = start_timeout_s + max_seconds + _GRACE_SECONDS
+
+            def capture() -> None:
+                try:
+                    outcome["frames"] = self._capture_until_silence(
+                        module, max_seconds, silence_s, start_timeout_s
+                    )
+                except BaseException as exc:  # pragma: no cover - dipende dal HAL
+                    outcome["error"] = exc
+
+            worker = threading.Thread(target=capture, name="amy-vad", daemon=True)
+            worker.start()
+            worker.join(limit)
+            if worker.is_alive():
+                detail = "PortAudio non ha restituito il controllo entro %.1f s." % limit
+                self._mark_stuck(detail)
+                try:
+                    path.unlink()
+                except OSError:
+                    pass
+                raise VoiceError(
+                    "Il microfono non risponde: la registrazione è stata interrotta.",
+                    detail=detail,
+                )
+            error = outcome.get("error")
+            if isinstance(error, VoiceError):
+                raise error
+            if error is not None:
+                raise VoiceError(
+                    "Registrazione non riuscita. Verifica microfono e permessi.",
+                    detail=str(error)[:300],
+                )
+            frames = outcome.get("frames") or b""
+            if not frames:
+                raise VoiceError("La registrazione è vuota.")
+            with wave.open(str(path), "wb") as wav:
+                wav.setnchannels(1)
+                wav.setsampwidth(2)
+                wav.setframerate(self.samplerate)
+                wav.writeframes(frames)
+            self.reset()
+            return path
+        finally:
+            self._busy.release()
 
     def record(self, seconds: float = 5.0, *, path: Path = None) -> Path:
         module = self.module()

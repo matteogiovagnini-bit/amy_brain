@@ -140,7 +140,14 @@ class VoiceService:
         # la sua voce invece di quella dell'utente.
         if self._echo_guard_enabled() and self.tts.is_speaking():
             self._wait_quiet(self._stop_event, force_cooldown=True)
-        audio = self.recorder.record(duration)
+        if self._vad_enabled() and hasattr(self.recorder, "record_until_silence"):
+            audio = self.recorder.record_until_silence(
+                max_seconds=max(duration, self._vad_max_seconds()),
+                silence_s=self._vad_silence(),
+                start_timeout_s=self._vad_start_timeout(),
+            )
+        else:
+            audio = self.recorder.record(duration)
         try:
             return self.stt.transcribe(audio)
         finally:
@@ -211,6 +218,30 @@ class VoiceService:
 
     def _barge_in_enabled(self) -> bool:
         return bool(self.config.get("voice.conversation.barge_in", True))
+
+    def _vad_enabled(self) -> bool:
+        return bool(self.config.get("voice.conversation.vad", True))
+
+    def _vad_silence(self) -> float:
+        try:
+            value = float(self.config.get("voice.conversation.vad_silence_s", 1.0))
+        except (TypeError, ValueError):
+            value = 1.0
+        return max(0.4, min(value, 3.0))
+
+    def _vad_start_timeout(self) -> float:
+        try:
+            value = float(self.config.get("voice.conversation.vad_start_timeout_s", 6.0))
+        except (TypeError, ValueError):
+            value = 6.0
+        return max(1.0, min(value, 15.0))
+
+    def _vad_max_seconds(self) -> float:
+        try:
+            value = float(self.config.get("voice.conversation.vad_max_seconds", 15.0))
+        except (TypeError, ValueError):
+            value = 15.0
+        return max(3.0, min(value, 30.0))
 
     def _barge_chunk(self) -> float:
         try:

@@ -420,7 +420,11 @@ Configurazione (`voice.conversation`):
 | `barge_in` | `true` | ascolta il microfono anche durante la sintesi |
 | `barge_in_chunk_s` | `1.0` | durata dei frammenti di ascolto durante la sintesi |
 | `barge_in_model` | vuoto | modello STT per il barge-in; vuoto = stesso modello dei comandi |
-| `listen_seconds` | `3.5` | finestra di ascolto per le risposte in conversazione |
+| `listen_seconds` | `8.0` | finestra fissa, usata solo se il VAD non è disponibile |
+| `vad` | `true` | rileva la fine del parlato invece di tagliare a una durata fissa |
+| `vad_silence_s` | `1.0` | pausa che chiude il turno |
+| `vad_start_timeout_s` | `6.0` | attesa massima della voce prima di chiudere il frammento |
+| `vad_max_seconds` | `15.0` | durata massima di un turno dettato |
 
 Comportamento:
 
@@ -447,6 +451,9 @@ Limiti onesti di questa implementazione:
   eco. È il compromesso che evita di fermare Amy sulla propria voce.
 - La latenza dipende dallo STT: con modello `small` su CPU Intel l'interruzione
   arriva in genere dopo 1–3 secondi, non all'istante.
+- La registrazione non ha più una durata fissa: con il VAD attivo si ferma dopo
+  circa un secondo di silenzio, quindi un indirizzo email o una frase lunga non
+  vengono tagliati. Se il VAD non è disponibile, la finestra fissa è 8 secondi.
 - Il rumore ambientale forte può produrre trascrizioni casuali; la wake word
   deve comunque comparire nel testo.
 - **Con gli altoparlanti il barge-in è inaffidabile**: la voce di Amy arriva al
