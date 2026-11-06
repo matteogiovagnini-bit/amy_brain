@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **6 novembre 2026**.
 
 ```text
-Ran 370 tests in 20.2s
+Ran 376 tests in 20.2s
 
 OK
 ```
@@ -55,6 +55,7 @@ OK
 | `tests/test_providers.py` | 11 | stato del fallback, endpoint locale/remoto, chiave opzionale, attesa consigliata dal servizio |
 | `tests/test_recorder.py` | 15 | scelta del motore audio, WAV valido, stato senza modulo, blocco del HAL con limite di tempo, blocco dichiarato e non ritentato, sonda microfono del doctor, nome del dispositivo letto una sola volta, VAD che si ferma dopo il silenzio senza tagliare il parlato |
 | `tests/test_reminders.py` | 12 | liste, creazione con scadenza, parsing di scadenze assenti, completamento ed eliminazione, rischio B/C |
+| `tests/test_screen.py` | 6 | cattura PNG, cattura vuota rifiutata, OCR e troncamento, immagine fuori dalle radici, rischio B |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 5 | heartbeat assente o scaduto: il backend si chiude solo se il processo padre è morto; con padre vivo resta attivo (App Nap) |
 | `tests/test_server.py` | 28 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header, `/api/calendar/upcoming` con calendario non leggibile e finestra limitata |
@@ -67,7 +68,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **370** | |
+| **Totale** | **376** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

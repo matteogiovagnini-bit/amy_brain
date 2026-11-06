@@ -30,6 +30,8 @@
     <true/>
     <key>NSMicrophoneUsageDescription</key>
     <string>Amy usa il microfono per l'ascolto continuo della wake word «Amy» (attivo all'avvio, disattivabile in ~/.amy/config.json) e per il pulsante di ascolto. La trascrizione resta sul Mac.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Amy cattura lo schermo solo quando le chiedi di leggere ciò che appare, per estrarre il testo con Vision in locale.</string>
     <key>NSAppleEventsUsageDescription</key>
     <string>Amy usa AppleScript per creare e gestire eventi in Calendar, promemoria in Promemoria, leggere la posta in Mail e controllare le applicazioni che le chiedi di usare.</string>
     <key>NSHumanReadableCopyright</key>

@@ -18,6 +18,16 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.9.0] — 2026-11-06
+
+### Aggiunto
+
+- **Screenshot e OCR locale.** `screen.capture` salva un PNG; `screen.read`
+  cattura lo schermo (o legge un'immagine) ed estrae il testo con Vision, senza
+  rete. Livello B, conferma obbligatoria, permesso Registrazione schermo.
+  Verificato su uno schermo reale: 500 caratteri in circa 5 secondi. Non riconosce
+  oggetti o immagini senza testo: per quello serve un modello visivo.
+
 ## [0.8.0] — 2026-11-06
 
 ### Aggiunto

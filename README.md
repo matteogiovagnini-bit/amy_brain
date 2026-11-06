@@ -116,6 +116,8 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
   robot.
 - File: aprire documenti con l'app predefinita e cercare testo **dentro** i
   documenti, oltre a leggere, scrivere, spostare e mettere nel cestino.
+- Schermo: screenshot e **OCR locale** con Vision per leggere il testo visibile;
+  nessuna immagine lascia il Mac, solo il testo può andare al provider IA.
 - Policy A/B/C con conferma esplicita; il livello C non è mai automatico.
 - E-stop e arresto robot mai bloccati da conferma o dal modello.
 - Memoria SQLite locale con fatti, sessioni, attività ed eventi robotici.
@@ -195,7 +197,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (370 test)
+tests/        suite unittest (376 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -209,13 +211,13 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 2 novembre 2026: **370 test, tutti superati**, più il
+Risultato verificato il 2 novembre 2026: **376 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il
 provider online richiede una chiave personale e non viene esercitato dalla suite con
 traffico reale. Verifica del 6 novembre 2026 dopo l'aggiunta del riquadro
-«Prossimi appuntamenti»: **370 test, tutti superati**; il self-test dell'app nativa
+«Prossimi appuntamenti»: **376 test, tutti superati**; il self-test dell'app nativa
 non è stato rieseguito in questa modifica. Vedi [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione

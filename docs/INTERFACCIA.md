@@ -310,7 +310,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**370 test, tutti superati**. La verifica **visiva a mano** nella finestra
+**376 test, tutti superati**. La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

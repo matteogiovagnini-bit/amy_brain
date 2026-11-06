@@ -17,7 +17,7 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 370 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
+| Test | 376 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -54,7 +54,7 @@ ciò che è solo pianificato.
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 55 strumenti registrati e validati.
+- 57 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -117,6 +117,10 @@ ciò che è solo pianificato.
   2026 con una richiesta reale che ha creato e riletto un file di prova.
   `app.restart` e `opencode.run --restart_after` riavviano l'app nativa con un
   helper staccato che attende l'uscita, riapre il bundle e verifica `/api/health`.
+- Schermo: `screen.capture` salva uno screenshot; `screen.read` cattura (o legge
+  un'immagine) ed estrae il testo con Vision in locale. Verificato il 6 novembre
+  2026 su uno schermo reale (500 caratteri in ~5 s; le immagini vanno in ~/Downloads/Amy/screenshots). Rischio B: lo schermo può
+  contenere dati sensibili e il testo può essere inviato al provider online.
 - Posta: `mail.accounts`, `mail.mailboxes`, `mail.list` e `mail.search` leggono
   account, cassette, mittenti e oggetti; `mail.read` legge il corpo di un
   messaggio (rischio B, conferma) e viene troncato. `mail.send` crea e invia
@@ -145,7 +149,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 370 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 376 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

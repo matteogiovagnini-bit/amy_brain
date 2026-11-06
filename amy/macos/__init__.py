@@ -9,6 +9,12 @@ from .calendar import (
     parse_start,
     resolve_calendar,
 )
+from .screen import (
+    ScreenError,
+    capture,
+    ocr_image,
+    read_screen,
+)
 from .mail import (
     MailError,
     list_accounts,
@@ -55,6 +61,10 @@ __all__ = [
     "list_events",
     "parse_start",
     "resolve_calendar",
+    "ScreenError",
+    "capture",
+    "ocr_image",
+    "read_screen",
     "MailError",
     "list_accounts",
     "list_mailboxes",

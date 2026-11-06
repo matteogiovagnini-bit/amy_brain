@@ -167,6 +167,18 @@ da OpenCode: viene lanciato un helper fisso e staccato (`start_new_session`), ch
 attende l'uscita della vecchia app, riapre il bundle e verifica `/api/health`. Se
 il riavvio fallisce, il log è in `~/.amy/restart.log` e Amy va riaperta a mano.
 
+## 5.3 Schermo e OCR
+
+`screen.capture` e `screen.read` sono di livello **B**: uno screenshot può
+contenere password, messaggi o documenti aperti. Il primo uso richiede il permesso
+**Registrazione schermo** in Impostazioni di Sistema → Privacy e Sicurezza.
+
+- la cattura usa `screencapture`, senza shell;
+- l'OCR usa Vision in locale, tramite un helper Swift compilato sul Mac;
+- l'immagine resta in `~/.amy/screenshots` e non viene inviata in rete;
+- il **testo** riconosciuto può essere inviato al provider IA configurato: con un
+  provider online è un dato che lascia il Mac.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:
