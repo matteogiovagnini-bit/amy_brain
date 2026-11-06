@@ -227,6 +227,20 @@
           <div class="activity-list" id="activities"></div>
         </section>
 
+        <section class="card" aria-labelledby="calendarTitle">
+          <div class="card-title">
+            <h3 id="calendarTitle">Prossimi appuntamenti</h3>
+            <span class="tag" id="calendarTag">Non disponibile</span>
+          </div>
+          <div class="activity-list calendar-list" id="calendarEvents" aria-live="polite">
+            <div class="empty">Non disponibile</div>
+          </div>
+          <div class="card-actions">
+            <button class="ghost" id="calendarRefreshBtn" type="button" aria-describedby="calendarNote">Aggiorna</button>
+          </div>
+          <p class="hint" id="calendarNote">Letti da Calendar.app con calendar.events. Nessun dato remoto.</p>
+        </section>
+
         <details class="card tools-card">
           <summary>
             <span id="toolsTitle">Strumenti</span>

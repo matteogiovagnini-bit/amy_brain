@@ -61,6 +61,7 @@ class StaticUiTests(unittest.TestCase):
             "/api/voice/listen",
             "/api/voice/stop",
             "/api/speak",
+            "/api/calendar/upcoming",
         ):
             self.assertIn(endpoint, text, endpoint)
         self.assertNotRegex(text, re.compile(r"fetch\(\s*['\"]https?://"))
@@ -219,6 +220,43 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("model_installed", js)
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         self.assertIn("Non disponibile", html)
+
+    def test_calendar_panel_shows_upcoming_appointments(self) -> None:
+        """Il riquadro «Prossimi appuntamenti» usa calendar.events, senza inventare dati."""
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        css = (STATIC / "style.css").read_text(encoding="utf-8")
+
+        for marker in ("calendarTitle", "calendarTag", "calendarEvents",
+                       "calendarRefreshBtn", "calendarNote", "Prossimi appuntamenti"):
+            self.assertIn(marker, html, marker)
+        self.assertIn('aria-live="polite"', html)
+        self.assertIn('aria-labelledby="calendarTitle"', html)
+        # Il riquadro è l'ottava card: deve avere il proprio z-index.
+        self.assertIn(".side-panel .card:nth-child(8)", css)
+        self.assertIn(".calendar-event", css)
+
+        self.assertIn("/api/calendar/upcoming", js)
+        self.assertIn("renderCalendar(", js)
+        self.assertIn("refreshCalendar(", js)
+        self.assertIn('calendarRefreshButton.addEventListener("click"', js)
+        self.assertIn("calendarTimer", js)
+
+    def test_calendar_panel_declares_missing_data_and_never_injects_markup(self) -> None:
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn("Nessun appuntamento", js)
+        self.assertIn("Calendario non disponibile", js)
+        self.assertIn("Nessun dato inventato", js)
+        self.assertIn("Lettura parziale", js)
+        self.assertNotIn(".innerHTML", js)
+        self.assertNotIn("document.write", js)
+
+    def test_calendar_is_polled_more_slowly_than_the_state(self) -> None:
+        """Leggere Calendar.app a ogni poll dello stato sarebbe troppo costoso."""
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        self.assertIn("CALENDAR_POLL_MS = 120000", js)
+        self.assertIn("window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS)", js)
+        self.assertIn("window.setInterval(refreshState, BASE_POLL_MS)", js)
 
     def test_estop_is_labelled_as_software_only(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")

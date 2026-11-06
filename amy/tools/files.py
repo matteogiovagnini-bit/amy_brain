@@ -6,6 +6,7 @@ import difflib
 import fnmatch
 import os
 import shutil
+import subprocess
 import time
 import uuid
 from pathlib import Path
@@ -432,10 +433,126 @@ TRASH = ToolSpec(
 )
 
 
+def _open_file(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    path = context.path_guard.resolve(str(args["path"]), must_exist=True)
+    if path.is_dir():
+        raise ToolValidationError("Il percorso è una cartella, non un file.")
+    try:
+        process = subprocess.run(["open", str(path)], capture_output=True, text=True, timeout=15)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ToolValidationError("Apertura del file non riuscita.", detail=str(exc)) from exc
+    if process.returncode != 0:
+        raise ToolValidationError(
+            "Apertura del file non riuscita.",
+            detail=(process.stderr or "")[:300],
+        )
+    return ToolResult.success(
+        {"path": str(path), "name": path.name, "opened": True},
+        "Aperto %s con l'applicazione predefinita." % path.name,
+    )
+
+
+def _grep_files(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    query = str(args.get("query", "") or "").strip()
+    if not query:
+        raise ToolValidationError("La ricerca è vuota.")
+    root = context.path_guard.resolve(str(args.get("path", "~")), must_exist=True)
+    max_results = max(1, min(int(args.get("max_results", 20)), 100))
+    max_files = max(1, min(int(args.get("max_files", 500)), 2000))
+    case_sensitive = bool(args.get("case_sensitive", False))
+    needle = query if case_sensitive else query.lower()
+    skip = {".git", "node_modules", ".venv", "venv", "dist", "build", "__pycache__"}
+
+    if root.is_file():
+        candidates = [root]
+    else:
+        candidates = []
+        for dirpath, dirnames, filenames in os.walk(str(root), followlinks=False):
+            dirnames[:] = [name for name in dirnames if name not in skip]
+            for name in filenames:
+                candidates.append(Path(dirpath) / name)
+
+    results: List[Dict[str, Any]] = []
+    scanned = 0
+    for path in candidates:
+        if len(results) >= max_results or scanned >= max_files:
+            break
+        try:
+            if path.is_symlink() or not path.is_file():
+                continue
+            if path.stat().st_size > context.path_guard.max_file_bytes:
+                continue
+            data = path.read_bytes()
+        except OSError:
+            continue
+        if b"\x00" in data[:4096]:
+            continue
+        scanned += 1
+        text = data.decode("utf-8", errors="ignore")
+        for number, line in enumerate(text.splitlines(), start=1):
+            haystack = line if case_sensitive else line.lower()
+            if needle in haystack:
+                results.append({"path": str(path), "line": number, "text": line.strip()[:300]})
+                if len(results) >= max_results:
+                    break
+    return ToolResult.success(
+        {
+            "query": query,
+            "path": str(root),
+            "results": results,
+            "scanned_files": scanned,
+            "truncated": len(results) >= max_results,
+        },
+        "Trovate %d righe in %d file." % (len(results), scanned),
+    )
+
+
+OPEN_FILE = ToolSpec(
+    name="files.open",
+    description="Apre un file con l'applicazione predefinita di macOS.",
+    parameters={
+        "type": "object",
+        "properties": {"path": {"type": "string", "minLength": 1, "maxLength": 1000}},
+        "required": ["path"],
+        "additionalProperties": False,
+    },
+    risk=RiskLevel.A,
+    reason="Apertura di un file già presente nelle aree autorizzate.",
+    consequences="Il file viene aperto con l'app predefinita; eventuali macro dipendono dall'app.",
+    tags=("file", "apertura"),
+)
+
+GREP_FILES = ToolSpec(
+    name="files.grep",
+    description=(
+        "Cerca una parola o frase dentro i documenti di testo (non PDF o Word) "
+        "in una cartella autorizzata e restituisce file, riga e estratto."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "minLength": 1, "maxLength": 200},
+            "path": {"type": "string", "maxLength": 1000},
+            "max_results": {"type": "integer", "minimum": 1, "maximum": 100},
+            "max_files": {"type": "integer", "minimum": 1, "maximum": 2000},
+            "case_sensitive": {"type": "boolean"},
+        },
+        "required": ["query"],
+        "additionalProperties": False,
+    },
+    risk=RiskLevel.A,
+    reason="Ricerca di testo in file già autorizzati, senza modificarli.",
+    consequences="Nessuna modifica: i file vengono solo letti.",
+    timeout_s=30.0,
+    tags=("file", "ricerca", "documenti"),
+)
+
 def register(registry) -> None:
     registry.register(FunctionTool(LIST_FILES, _list_files))
     registry.register(FunctionTool(SEARCH_FILES, _search_files))
     registry.register(FunctionTool(READ_FILE, _read_file))
+    registry.register(FunctionTool(OPEN_FILE, _open_file))
+    registry.register(FunctionTool(GREP_FILES, _grep_files))
     registry.register(FunctionTool(WRITE_FILE, _write_file))
     registry.register(FunctionTool(MKDIR, _mkdir))
     registry.register(FunctionTool(DIFF_FILES, _diff_files))

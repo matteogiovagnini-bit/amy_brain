@@ -2,11 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict
+import time
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
+from ..core.logging_setup import get_logger
 from ..macos import create_event, delete_event, list_calendars, list_events
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
+
+_log = get_logger("tools.calendar")
+
+UPCOMING_DAYS = 7
+UPCOMING_LIMIT = 8
+UPCOMING_BUDGET_S = 15.0
+UPCOMING_MAX_DAYS = 14
 
 
 def _default_calendar(context: ToolContext) -> str:
@@ -156,6 +166,120 @@ CALENDAR_DELETE = ToolSpec(
     undo="Nessuno automatico: l'evento va ricreato a mano.",
     tags=("macos", "calendario", "cancellazione"),
 )
+
+def _upcoming_unavailable(moment: datetime, dates: List[Any], reason: str) -> Dict[str, Any]:
+    """Risultato onesto quando la lettura del calendario non è possibile."""
+    return {
+        "available": False,
+        "reason": reason,
+        "date": moment.date().isoformat(),
+        "to": dates[-1].isoformat(),
+        "days": len(dates),
+        "checked_days": 0,
+        "failed_days": len(dates),
+        "calendar": "",
+        "events": [],
+    }
+
+
+def collect_upcoming(
+    registry,
+    context: ToolContext,
+    *,
+    days: int = UPCOMING_DAYS,
+    limit: int = UPCOMING_LIMIT,
+    now: Optional[datetime] = None,
+    budget_s: float = UPCOMING_BUDGET_S,
+) -> Dict[str, Any]:
+    """Raccoglie i prossimi appuntamenti eseguendo ``calendar.events`` più volte.
+
+    La dashboard legge un intervallo di giorni, ma lo strumento esistente
+    accetta una data sola: ogni giorno viene quindi interrogato con lo stesso
+    strumento di sola lettura, senza modificare il suo contratto. Gli eventi già
+    terminati vengono scartati, i duplicati (eventi su più giorni) uniti per UID
+    e i giorni non leggibili dichiarati: nessun dato viene inventato.
+
+    Da qui non può partire alcuna azione di livello B o C: il nome dello
+    strumento è fisso e il suo livello di rischio viene verificato prima
+    dell'esecuzione. È una lettura richiesta dalla UI locale, non un'azione
+    proposta dal modello, quindi non passa dalla conferma in due fasi.
+    """
+    moment = now or datetime.now()
+    total_days = max(1, min(int(days), UPCOMING_MAX_DAYS))
+    max_events = max(1, min(int(limit), 20))
+    today = moment.date()
+    dates = [today + timedelta(days=offset) for offset in range(total_days)]
+    stamp = moment.strftime("%Y-%m-%dT%H:%M")
+    started = time.monotonic()
+
+    try:
+        tool = registry.get("calendar.events")
+    except Exception as exc:  # noqa: BLE001 - il registro può non averlo
+        return _upcoming_unavailable(moment, dates, "Strumento calendar.events non disponibile: %s" % exc)
+    if tool.spec.risk != RiskLevel.A:
+        return _upcoming_unavailable(
+            moment, dates, "calendar.events non è più di livello A: lettura bloccata."
+        )
+
+    events: List[Dict[str, Any]] = []
+    seen = set()
+    calendar_name = ""
+    failed_days = 0
+    reasons: List[str] = []
+
+    for index, day in enumerate(dates):
+        if time.monotonic() - started > budget_s:
+            failed_days += len(dates) - index
+            reasons.append("Tempo massimo di lettura superato.")
+            break
+        try:
+            result = registry.execute("calendar.events", {"date": day.isoformat()}, context)
+        except Exception as exc:  # noqa: BLE001 - un giorno non deve bloccare gli altri
+            _log.warning("Lettura del calendario del %s non riuscita: %s", day, exc)
+            failed_days += 1
+            reasons.append(str(exc)[:200])
+            continue
+        if not result.ok or not isinstance(result.data, dict):
+            failed_days += 1
+            if result.message:
+                reasons.append(str(result.message)[:200])
+            continue
+        data = result.data
+        if not calendar_name:
+            calendar_name = str(data.get("calendar") or "")
+        for event in data.get("events") or []:
+            if not isinstance(event, dict):
+                continue
+            start = str(event.get("start") or "")
+            end = str(event.get("end") or start)
+            if not event.get("title") or not start or end < stamp:
+                continue
+            key = str(event.get("uid") or "") or (str(event.get("title")), start)
+            if key in seen:
+                continue
+            seen.add(key)
+            events.append(event)
+
+    events.sort(key=lambda item: str(item.get("start") or ""))
+    available = failed_days < len(dates)
+    if not available:
+        reason = reasons[0] if reasons else "Calendario non leggibile."
+    elif failed_days:
+        reason = "Lettura parziale: %d giorni non disponibili." % failed_days
+    else:
+        reason = ""
+    return {
+        "available": available,
+        "reason": reason,
+        "date": today.isoformat(),
+        "to": dates[-1].isoformat(),
+        "days": len(dates),
+        "checked_days": len(dates) - failed_days,
+        "failed_days": failed_days,
+        "calendar": calendar_name,
+        "events": events[:max_events],
+    }
+
 
 def register(registry) -> None:
     registry.register(FunctionTool(CALENDAR_LIST, _list_calendars))

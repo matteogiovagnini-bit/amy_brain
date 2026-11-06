@@ -11,8 +11,10 @@ import platform
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from amy.core.system_info import collect_system_info
+from amy.macos import applescript
 
 
 class SystemInfoTests(unittest.TestCase):
@@ -61,3 +63,34 @@ class SystemInfoTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+class MacSystemInfoTests(unittest.TestCase):
+    def test_system_info_includes_load_and_ram(self) -> None:
+        info = applescript.system_info()
+        for key in ("carico_1m", "ram_liberi_gb", "ram_usati_gb", "ram_percent", "disco_libero_gb"):
+            self.assertIn(key, info)
+
+    def test_memory_usage_parses_vm_stat(self) -> None:
+        output = """Mach Virtual Memory Statistics: (page size of 4096 bytes)
+Pages free: 1000000.
+Pages active: 4000000.
+Pages inactive: 500000.
+Pages speculative: 500000.
+Pages wired down: 1000000.
+Pages occupied by compressor: 1000000.
+"""
+        with mock.patch("amy.macos.applescript._run_readonly", return_value=output):
+            data = applescript.memory_usage()
+        self.assertGreater(data["ram_usati_gb"], 0)
+        self.assertGreater(data["ram_percent"], 0)
+
+    def test_top_processes_uses_macos_sort_flags_and_comma_decimals(self) -> None:
+        output = "  100  12,5  1,2 /usr/bin/example\n"
+        with mock.patch("amy.macos.applescript._run_readonly", return_value=output) as runner:
+            rows = applescript.top_processes(1, sort_by="cpu")
+        self.assertEqual(rows[0]["cpu_percent"], 12.5)
+        self.assertEqual(rows[0]["mem_percent"], 1.2)
+        self.assertIn("-r", runner.call_args[0][0])
+        with mock.patch("amy.macos.applescript._run_readonly", return_value=output) as runner:
+            applescript.top_processes(1, sort_by="memory")
+        self.assertIn("-m", runner.call_args[0][0])

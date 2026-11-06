@@ -258,6 +258,43 @@ def battery_summary(data: Dict[str, Any]) -> str:
     return ", ".join(parts) + "."
 
 
+def memory_usage() -> Dict[str, Any]:
+    """RAM libera e usata da ``vm_stat``, senza dipendenze esterne."""
+    try:
+        output = _run_readonly(["vm_stat"], timeout=5)
+    except MacOSError:
+        return {}
+    page_size = 4096
+    match = re.search(r"page size of (\d+) bytes", output)
+    if match:
+        page_size = int(match.group(1))
+    pages: Dict[str, int] = {}
+    for line in output.splitlines():
+        key, separator, value = line.partition(":")
+        if not separator:
+            continue
+        try:
+            pages[key.strip()] = int(value.strip().rstrip("."))
+        except ValueError:
+            continue
+    free_pages = sum(
+        pages.get(name, 0) for name in ("Pages free", "Pages inactive", "Pages speculative")
+    )
+    used_pages = sum(
+        pages.get(name, 0)
+        for name in ("Pages active", "Pages wired down", "Pages occupied by compressor")
+    )
+    total_pages = free_pages + used_pages
+    if total_pages <= 0:
+        return {}
+    return {
+        "ram_totale_gb": round(total_pages * page_size / (1024 ** 3), 1),
+        "ram_liberi_gb": round(free_pages * page_size / (1024 ** 3), 1),
+        "ram_usati_gb": round(used_pages * page_size / (1024 ** 3), 1),
+        "ram_percent": round(used_pages * 100.0 / total_pages, 1),
+    }
+
+
 def system_info() -> Dict[str, Any]:
     mem_bytes = 0
     try:
@@ -265,6 +302,11 @@ def system_info() -> Dict[str, Any]:
     except (ValueError, MacOSError):
         mem_bytes = 0
     disk = shutil.disk_usage(str(Path.home()))
+    memory = memory_usage()
+    try:
+        load = [round(value, 2) for value in os.getloadavg()]
+    except OSError:
+        load = [None, None, None]
     return {
         "macos": platform.mac_ver()[0],
         "architettura": platform.machine(),
@@ -273,7 +315,13 @@ def system_info() -> Dict[str, Any]:
         "utente": os.environ.get("USER", ""),
         "cpu": platform.processor() or platform.machine(),
         "cpu_count": os.cpu_count(),
+        "carico_1m": load[0],
+        "carico_5m": load[1],
+        "carico_15m": load[2],
         "ram_gb": round(mem_bytes / (1024 ** 3), 1) if mem_bytes else None,
+        "ram_liberi_gb": memory.get("ram_liberi_gb"),
+        "ram_usati_gb": memory.get("ram_usati_gb"),
+        "ram_percent": memory.get("ram_percent"),
         "disco_libero_gb": round(disk.free / (1024 ** 3), 1),
         "disco_totale_gb": round(disk.total / (1024 ** 3), 1),
     }
@@ -281,19 +329,24 @@ def system_info() -> Dict[str, Any]:
 
 def top_processes(limit: int = 10, *, sort_by: str = "cpu") -> List[Dict[str, Any]]:
     limit = max(1, min(int(limit), 30))
-    sort_key = "-pcpu" if sort_by == "cpu" else "-pmem"
-    output = _run_readonly(["ps", "-axo", "pid=,pcpu=,pmem=,comm=", sort_key], timeout=5)
+    # Su macOS `ps` ordina con -r (CPU) e -m (memoria); `-pcpu` viene letto
+    # come un PID e il comando fallisce.
+    sort_flag = "-r" if sort_by == "cpu" else "-m"
+    output = _run_readonly(["ps", "-axo", "pid=,pcpu=,pmem=,comm=", sort_flag], timeout=5)
     rows: List[Dict[str, Any]] = []
     for line in output.splitlines()[:limit]:
         parts = line.strip().split(None, 3)
         if len(parts) < 4:
             continue
         try:
+            # Con locale italiano `ps` usa la virgola come separatore decimale.
+            cpu = float(parts[1].replace(",", "."))
+            mem = float(parts[2].replace(",", "."))
             rows.append(
                 {
                     "pid": int(parts[0]),
-                    "cpu_percent": float(parts[1]),
-                    "mem_percent": float(parts[2]),
+                    "cpu_percent": cpu,
+                    "mem_percent": mem,
                     "command": parts[3],
                 }
             )

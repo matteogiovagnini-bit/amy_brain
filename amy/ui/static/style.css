@@ -1267,6 +1267,7 @@ kbd {
 .side-panel .card:nth-child(5) { z-index: 11; }
 .side-panel .card:nth-child(6) { z-index: 12; }
 .side-panel .card:nth-child(7) { z-index: 13; }
+.side-panel .card:nth-child(8) { z-index: 14; }
 
 .side-panel .card:hover,
 .side-panel .card:focus-within {
@@ -1404,6 +1405,34 @@ kbd {
 .facts { max-height: 116px; }
 .activity-list { max-height: 184px; }
 .tools { max-height: 240px; margin-top: 8px; }
+
+/* Riquadro «Prossimi appuntamenti»: righe compatte, testo troncato senza
+   markup iniettato e nessuna risorsa esterna. */
+.calendar-list { max-height: 184px; }
+
+.calendar-event {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 4px 9px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(63, 227, 255, 0.04);
+  font-size: 11px;
+}
+
+.calendar-event .cal-when {
+  color: var(--cyan);
+  white-space: nowrap;
+}
+
+.calendar-event .cal-title {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .fact {
   display: flex;

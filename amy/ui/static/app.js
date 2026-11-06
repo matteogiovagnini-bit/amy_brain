@@ -23,6 +23,9 @@
   const BASE_POLL_MS = 5000;
   const FAST_POLL_MS = 1000;
   const ERROR_VISIBLE_MS = 8000;
+  // Il calendario interroga Calendar.app via AppleScript: si rilegge ogni
+  // due minuti, non a ogni poll dello stato, e sempre su richiesta esplicita.
+  const CALENDAR_POLL_MS = 120000;
 
   const app = {
     sessionId: "",
@@ -38,6 +41,9 @@
     errorTimer: 0,
     pollTimer: 0,
     fastTimer: 0,
+    calendarTimer: 0,
+    calendarLastFetch: 0,
+    calendarLoading: false,
     refreshing: false,
     loadingPending: false,
     resolving: false,
@@ -954,6 +960,80 @@
     });
   }
 
+  // -------------------------------------------------------------- calendario
+  function calendarDay(value, today) {
+    const day = String(value || "").slice(0, 10);
+    if (day === today) return "Oggi";
+    const parts = day.split("-");
+    if (parts.length !== 3) return day || "data sconosciuta";
+    const parsed = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    if (Number.isNaN(parsed.getTime())) return parts[2] + "/" + parts[1];
+    return parsed.toLocaleDateString("it-IT", { weekday: "short", day: "2-digit", month: "2-digit" });
+  }
+
+  function calendarUnavailable(message) {
+    tag("calendarTag", "non disponibile", "bad");
+    const container = $("calendarEvents");
+    if (!container) return;
+    container.replaceChildren();
+    container.appendChild(node("div", "empty", message));
+  }
+
+  function renderCalendar(data) {
+    const payload = isObject(data) ? data : {};
+    const events = Array.isArray(payload.events) ? payload.events : [];
+    const days = Number(payload.days || 7);
+    const failed = Number(payload.failed_days || 0);
+
+    if (!payload.available) {
+      calendarUnavailable(payload.reason
+        ? "Calendario non disponibile: " + String(payload.reason)
+        : "Calendario non disponibile.");
+      text("calendarNote", "Nessun dato inventato: la lettura di calendar.events non è riuscita.");
+      return;
+    }
+
+    tag("calendarTag", payload.calendar || "calendario locale", failed > 0 ? "warn" : "ok");
+    text("calendarNote", "Letti da Calendar.app con calendar.events sui prossimi " + days
+      + " giorni. Nessun dato remoto."
+      + (failed > 0 ? " Lettura parziale: " + failed + " giorni non disponibili." : ""));
+
+    const container = $("calendarEvents");
+    if (!container) return;
+    container.replaceChildren();
+    if (!events.length) {
+      container.appendChild(node("div", "empty", "Nessun appuntamento nei prossimi " + days + " giorni."));
+      return;
+    }
+
+    const today = String(payload.date || "");
+    events.forEach((event) => {
+      const start = String(event.start || "");
+      const row = node("div", "calendar-event");
+      row.appendChild(node("span", "cal-when",
+        calendarDay(start, today) + " · " + (start.slice(11, 16) || "orario non disponibile")));
+      row.appendChild(node("span", "cal-title", String(event.title || "Senza titolo")));
+      if (event.calendar) row.title = String(event.calendar);
+      container.appendChild(row);
+    });
+  }
+
+  async function refreshCalendar(force) {
+    if (app.calendarLoading) return;
+    const now = Date.now();
+    if (!force && app.calendarLastFetch && now - app.calendarLastFetch < CALENDAR_POLL_MS) return;
+    app.calendarLoading = true;
+    try {
+      const data = await api("/api/calendar/upcoming");
+      app.calendarLastFetch = Date.now();
+      renderCalendar(data);
+    } catch (error) {
+      calendarUnavailable("Calendario non disponibile: " + error.message);
+    } finally {
+      app.calendarLoading = false;
+    }
+  }
+
   function renderTools(tools) {
     text("toolCount", String((tools || []).length));
     const container = $("tools");
@@ -1638,6 +1718,11 @@
     const fullscreenButton = $("fullscreenBtn");
     if (fullscreenButton) fullscreenButton.addEventListener("click", toggleFullscreen);
 
+    const calendarRefreshButton = $("calendarRefreshBtn");
+    if (calendarRefreshButton) {
+      calendarRefreshButton.addEventListener("click", () => refreshCalendar(true));
+    }
+
     const speakToggle = $("speakToggle");
     if (speakToggle) {
       app.speak = readSetting(SPEAK_KEY) === "1";
@@ -1657,6 +1742,7 @@
     document.addEventListener("visibilitychange", () => {
       if (!document.hidden) {
         refreshState();
+        refreshCalendar();
         ensureFastPoll();
       }
     });
@@ -1688,7 +1774,11 @@
       markError("Dashboard non raggiungibile: " + error.message);
     }
 
+    // Il calendario non blocca l'avvio: parte in background e ha un suo poll
+    // lento, così la chat resta immediatamente utilizzabile.
+    refreshCalendar(true);
     app.pollTimer = window.setInterval(refreshState, BASE_POLL_MS);
+    app.calendarTimer = window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS);
     ensureFastPoll();
   }
 

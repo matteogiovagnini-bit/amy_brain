@@ -104,10 +104,11 @@ La dashboard funziona anche senza Ollama: in quel caso il nucleo mostra lo stato
   invio e la cronologia resta nella chat. Il nucleo riserva spazio in fondo per non
   finire sotto la barra.
 - **Pannelli informativi** (sovrapposti a sinistra): motore IA, robot, sistema,
-  voce, memoria, attività recenti e catalogo strumenti. Le schede si accavallano di
-  pochi pixel e si sollevano con hover o focus da tastiera; il contenuto scorre
-  dentro il pannello e l'ultimo tratto sfuma verso il palco. Il robot è il secondo
-  pannello perché contiene l'E-stop software.
+  voce, memoria, attività recenti, **prossimi appuntamenti** e catalogo strumenti.
+  Le schede si accavallano di pochi pixel e si sollevano con hover o focus da
+  tastiera; il contenuto scorre dentro il pannello e l'ultimo tratto sfuma verso il
+  palco. Il robot è il secondo pannello perché contiene l'E-stop software. Il
+  riquadro del calendario è il settimo; il catalogo strumenti resta l'ultimo.
 - **Topbar**: oltre a movimento, schermo intero e impostazioni, due azioni vocali:
   «Ascolta «Amy»» (diventa «Ferma ascolto» mentre il ciclo continuo è attivo,
   con `aria-pressed` che segue lo stato reale) e «Stop voce» (interrompe la sintesi).
@@ -188,6 +189,12 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
   inventati: se il backend non li fornisce, la UI mostra `Non disponibile` o
   `Non collegato`.
 - I campi non configurati mostrano `Non configurato`, non zero.
+- Il pannello **Prossimi appuntamenti** legge `GET /api/calendar/upcoming`: il
+  backend esegue `calendar.events` (livello A, sola lettura) per ogni giorno dei
+  prossimi 7, scarta gli eventi già terminati, unisce gli eventi che coprono più
+  giorni e limita l'elenco a 8 voci. Il calendario, la finestra e l'eventuale
+  lettura parziale sono dichiarati; se Calendar.app non risponde il pannello
+  mostra «Calendario non disponibile» con il motivo, senza inventare appuntamenti.
 
 ## 6. Funzioni reali
 
@@ -201,6 +208,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 - Robot: `/api/robot/estop` e `/api/robot/stop`.
 - Aggiornamento stato da `/api/state`, polling base ogni 5 s e più frequente
   (1 s) durante un turno, un'attività, l'ascolto o la sintesi.
+- Calendario da `/api/calendar/upcoming`, con polling separato ogni 2 minuti,
+  rilettura quando la pagina torna visibile e pulsante «Aggiorna». Non blocca
+  l'avvio della chat.
 - Errori di rete e del backend mostrati in chat, nel footer e nello stato `error`
   per 8 secondi.
 
@@ -255,7 +265,8 @@ viene mai aggirata dalla UI.
 | `amy/ui/static/app.js` | stato, polling, chat, conferme, pannelli, accessibilità, fullscreen |
 | `amy/ui/server.py` | server HTTP locale, API, header di sicurezza, watchdog heartbeat |
 | `amy/core/system_info.py` | informazioni locali di sistema |
-| `amy/core/assistant.py` | `status()` con `system`, chat e conferme |
+| `amy/core/assistant.py` | `status()` con `system`, `tool_context()`, `upcoming_events()`, chat e conferme |
+| `amy/tools/calendar_tools.py` | strumenti `calendar.*` e raccolta dei prossimi appuntamenti |
 | `amy/voice/service.py` | stato voce con `speaking` reale |
 | `amy/voice/tts.py` | TTS macOS con elenco voci in cache |
 
@@ -277,7 +288,13 @@ Copertura specifica dell'interfaccia:
 - `tests/test_ui_static.py`: file, endpoint attesi, nessuna risorsa esterna, nessun
   `innerHTML`, nessuno stile inline, otto stati nel JS e nel CSS, derivazione da
   segnali reali, tre aree, accessibilità, reduced motion, fullscreen, responsive,
-  dati assenti dichiarati, E-stop etichettato come software.
+  dati assenti dichiarati, E-stop etichettato come software, riquadro del
+  calendario e polling separato.
+- `tests/test_calendar.py`: raccolta dei prossimi appuntamenti tramite
+  `calendar.events`, filtro, deduplica, limite, fallimenti dichiarati e blocco se
+  il tool non è più di livello A.
+- `tests/test_server.py`: `GET /api/calendar/upcoming` con AppleScript sostituito
+  da mock, calendario non leggibile e limite della finestra.
 - `tests/test_system_info.py`: campi reali, disco, nessun segreto.
 - `tests/test_voice_service.py`: `speaking` riflette il TTS reale.
 - `tests/test_tts_cache.py`: l'elenco delle voci è calcolato una sola volta.
@@ -292,10 +309,11 @@ che la WebView monti la dashboard, invia un messaggio dal DOM (`requestSubmit` s
 form della chat), verifica che la risposta compaia in chat e controlla che il backend
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
-Esito del 31 ottobre 2026: **189 test, tutti superati**. La verifica **visiva a
-mano** nella finestra (ridimensionamento, schermo intero, navigazione da tastiera,
-movimento ridotto, aspetto dei pannelli) non è stata eseguita: non viene dichiarata
-come eseguita.
+Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
+**370 test, tutti superati**. La verifica **visiva a mano** nella finestra
+(ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
+aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
+viene dichiarata come eseguita.
 
 ## 12. Licenze e costo
 

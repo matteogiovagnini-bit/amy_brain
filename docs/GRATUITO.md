@@ -170,6 +170,11 @@ Le funzioni che possono usare Internet sono:
 dell'utente, se presente. Se la rete non c'è, queste funzioni falliscono e il resto
 continua a funzionare.
 
+Il riquadro «Prossimi appuntamenti» della dashboard non rientra in questo elenco:
+legge Calendar.app in locale con `calendar.events` e AppleScript, senza account,
+chiavi, quote o servizi online. Se Calendar non è disponibile il pannello lo
+dichiara e il resto della dashboard continua a funzionare.
+
 ### Provider IA online gratuiti (facoltativi)
 
 `ai.provider` accetta i preset elencati da `python3 -m amy providers`. Oggi è

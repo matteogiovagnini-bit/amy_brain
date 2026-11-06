@@ -3,6 +3,37 @@
 Formato ispirato a Keep a Changelog. Le date sono in UTC. Il progetto è in fase
 iniziale: non tutte le voci sono state verificate su hardware.
 
+## [Non rilasciato]
+
+### Aggiunto
+
+- **Riquadro «Prossimi appuntamenti» nella dashboard.** `GET
+  /api/calendar/upcoming` esegue `calendar.events` (livello A, sola lettura) sui
+  prossimi 7 giorni, scarta gli eventi già terminati, unisce i duplicati per UID,
+  ordina e limita il risultato. Il pannello mostra data, ora e titolo con
+  `textContent`, dichiara i dati mancanti e le letture parziali senza inventarli,
+  e si aggiorna ogni 2 minuti o con il pulsante «Aggiorna». Verificato con 13
+  nuovi test automatici (AppleScript sostituito da mock): la lettura reale di
+  Calendar.app attraverso il nuovo endpoint **non** è stata verificata a mano.
+- Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
+  Calendar.app locale e il tool `calendar.events` già esistente.
+
+## [0.8.0] — 2026-11-06
+
+### Aggiunto
+
+- **Apertura di file e ricerca nel testo.** `files.open` apre un file con l'app
+  predefinita; `files.grep` cerca una parola o frase dentro i documenti di testo
+  di una cartella autorizzata, restituendo file, riga ed estratto.
+- **CPU e RAM in `system.info`**: carico medio a 1/5/15 minuti, RAM totale,
+  libera, usata e percentuale, oltre a disco e batteria già presenti.
+
+### Corretto
+
+- **`system.processes` non restituiva risultati**: su macOS `ps` ordina con `-r`
+  e `-m`, non con `-pcpu`/`-pmem`; inoltre il locale italiano usa la virgola come
+  separatore decimale. Ora i processi sono ordinati e i valori letti davvero.
+
 ## [0.7.0] — 2026-11-05
 
 ### Aggiunto

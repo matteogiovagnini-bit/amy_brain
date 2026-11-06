@@ -114,6 +114,8 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 - 35 strumenti reali: sistema (inclusa la batteria del Mac), applicazioni macOS,
   file confinati, shell in allowlist, web con protezione SSRF, memoria, voce e
   robot.
+- File: aprire documenti con l'app predefinita e cercare testo **dentro** i
+  documenti, oltre a leggere, scrivere, spostare e mettere nel cestino.
 - Policy A/B/C con conferma esplicita; il livello C non è mai automatico.
 - E-stop e arresto robot mai bloccati da conferma o dal modello.
 - Memoria SQLite locale con fatti, sessioni, attività ed eventi robotici.
@@ -123,7 +125,8 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
   locale senza processi orfani.
 - Dashboard locale «Amy Core» con nucleo a otto stati, chat reale, cronologia,
   conferme, stato del motore IA, informazioni di sistema locali, voce, robot,
-  attività, memoria, strumenti ed E-stop software.
+  attività, memoria, **prossimi appuntamenti** letti da Calendar.app, strumenti
+  ed E-stop software.
 - Informazioni di sistema reali raccolte con la libreria standard: macOS,
   architettura, Python, CPU, carico e disco. Nessuna telemetria.
 - Interfaccia accessibile da tastiera, con focus visibile, movimento ridotto,
@@ -162,7 +165,7 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 | Collegamento MQTT reale | Sperimentale: implementato, ma senza broker/robot verificato |
 | Riconoscimento vocale | Verificato il 3 novembre 2026: `faster-whisper` 1.2.1 con modello `small` locale e prompt comandi italiano, `sounddevice` 0.5.6 sul microfono. Verificata anche la trascrizione di parlato reale |
 | Provider online gratuito | Verificato il 31 ottobre 2026: chiave in `~/.amy/secrets.json` (`600`), risposta reale del modello GroqCloud Free. Il modello locale resterebbe il default del repository |
-| Calendario | Verificato il 3 novembre 2026: evento reale creato in Calendar.app, riletto e rimosso |
+| Calendario | Verificato il 3 novembre 2026: evento reale creato in Calendar.app, riletto e rimosso. Il riquadro «Prossimi appuntamenti» della dashboard è verificato solo con AppleScript simulato; la lettura reale tramite `/api/calendar/upcoming` non è stata provata a mano |
 | Wake word audio | Non è un motore audio dedicato: rileva la parola dopo la trascrizione. Consumi CPU e falsi positivi restano possibili |
 | Qualità vocale su più parlanti | Verificato solo con una voce di prova | Trascrizioni con voci diverse, rumore e accenti |
 | Dashboard remota | Volutamente bloccata di default; nessuna autenticazione |
@@ -192,7 +195,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (351 test)
+tests/        suite unittest (370 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -206,12 +209,14 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 2 novembre 2026: **351 test, tutti superati**, più il
+Risultato verificato il 2 novembre 2026: **370 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il
 provider online richiede una chiave personale e non viene esercitato dalla suite con
-traffico reale. Vedi [docs/TEST.md](docs/TEST.md).
+traffico reale. Verifica del 6 novembre 2026 dopo l'aggiunta del riquadro
+«Prossimi appuntamenti»: **370 test, tutti superati**; il self-test dell'app nativa
+non è stato rieseguito in questa modifica. Vedi [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione
 

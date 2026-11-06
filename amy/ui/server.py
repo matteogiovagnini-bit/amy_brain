@@ -161,6 +161,16 @@ class AmyHandler(BaseHTTPRequestHandler):
                 self._send_json({"activities": self.assistant.memory.list_activities(50)})
             elif path == "/api/robot/events":
                 self._send_json({"events": self.assistant.memory.list_robot_events(50)})
+            elif path == "/api/calendar/upcoming":
+                query = parse_qs(parsed.query)
+                raw_days = (query.get("days") or [""])[0]
+                try:
+                    days = int(raw_days) if raw_days else 7
+                except ValueError:
+                    days = 7
+                # Il limite superiore è applicato anche da collect_upcoming:
+                # nessun parametro della UI può ampliare la finestra oltre 14 giorni.
+                self._send_json(self.assistant.upcoming_events(days=max(1, min(days, 14))))
             else:
                 self._send_json({"error": "endpoint non trovato"}, 404)
         except AmyError as exc:

@@ -33,6 +33,7 @@ from ..security.policy import ConfirmationRequest, PathGuard, PolicyEngine
 from ..security.risk import RiskLevel
 from ..tools.base import ToolContext, ToolResult
 from ..tools.builtin import build_default_registry
+from ..tools.calendar_tools import collect_upcoming
 from ..tools.registry import ToolNotFoundError, ToolRegistry
 from ..tools.schema import validate_arguments
 from ..voice.service import VoiceService
@@ -495,15 +496,7 @@ class Assistant:
             approved_by=approved_by,
             args=_preview_args(args, 200),
         )
-        context = ToolContext(
-            config=self.config,
-            memory=self.memory,
-            path_guard=self.path_guard,
-            audit=self.audit,
-            session_id=turn.session_id,
-            robot_link=self.robot_link,
-            voice=self.voice,
-        )
+        context = self.tool_context(session_id=turn.session_id)
         try:
             result = self.registry.execute(tool_name, args, context)
         except ToolError as exc:
@@ -600,6 +593,26 @@ class Assistant:
                 self._pending.pop(key, None)
 
     # ------------------------------------------------------------- servizio
+    def tool_context(self, *, session_id: str = "") -> ToolContext:
+        """Dipendenze condivise passate a ogni strumento eseguito da Amy."""
+        return ToolContext(
+            config=self.config,
+            memory=self.memory,
+            path_guard=self.path_guard,
+            audit=self.audit,
+            session_id=session_id,
+            robot_link=self.robot_link,
+            voice=self.voice,
+        )
+
+    def upcoming_events(self, *, days: int = 7, limit: int = 8) -> Dict[str, Any]:
+        """Prossimi appuntamenti per la dashboard, letti con ``calendar.events``.
+
+        È una lettura di livello A richiesta dalla UI locale, non un'azione
+        proposta dal modello: non modifica nulla e non richiede conferma.
+        """
+        return collect_upcoming(self.registry, self.tool_context(), days=days, limit=limit)
+
     def provider_status(self, *, cache_s: float = 30.0) -> Dict[str, Any]:
         now = time.monotonic()
         cached_at, cached = self._provider_status_cache

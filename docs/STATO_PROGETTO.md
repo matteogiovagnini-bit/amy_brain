@@ -17,7 +17,7 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 351 test, tutti superati, più il self-test dell'app nativa |
+| Test | 370 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -54,7 +54,7 @@ ciò che è solo pianificato.
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 53 strumenti registrati e validati.
+- 55 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -106,6 +106,11 @@ ciò che è solo pianificato.
   `calendar.create` crea un appuntamento reale in Calendar.app via AppleScript
   (rischio B) e `calendar.delete` lo elimina (rischio C, sempre con conferma).
   Verificato il 3 novembre 2026 con un evento creato, riletto e rimosso.
+  Il riquadro «Prossimi appuntamenti» della dashboard e `GET
+  /api/calendar/upcoming` sono implementati e verificati il 6 novembre 2026 con
+  13 test automatici: aggregazione su più giorni, filtro degli eventi passati,
+  deduplica per UID, limite, fallimenti parziali e totali dichiarati, blocco se
+  il tool non è più di livello A. AppleScript era sostituito da mock.
 - OpenCode 2: `opencode.run` affida una richiesta a `opencode2` in una sessione
   persistente nella cartella di progetto (default: repository di Amy). Livello C,
   conferma obbligatoria; nessun `--auto` e nessuna shell. Verificato il 5 novembre
@@ -140,7 +145,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 351 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 370 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
@@ -157,6 +162,7 @@ ciò che è solo pianificato.
 | Consumo CPU del ciclo continuo | Nessuna misura prolungata | Latenza misurata su frasi brevi (~1–2 s per comando) |
 | Uso prolungato | Non testato per ore/giorni | Test unitari e smoke test brevi |
 | Verifica visiva della finestra dell'app | Non ispezionata a mano | Verifica programmatica: pagina montata, invio reale, risposta in chat, chiusura del backend |
+| Riquadro «Prossimi appuntamenti» con Calendar.app reale | La lettura end-to-end del nuovo endpoint non è stata provata a mano in questo ambiente | 13 test automatici con AppleScript sostituito da mock: aggregazione, filtro, deduplica, errori dichiarati, nessun dato inventato |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
 
 ## 4. Sperimentale

@@ -38,7 +38,7 @@ livello. Il robot reale ha una propria catena di sicurezza hardware descritta in
 | `amy/memory/store.py` | SQLite: sessioni, messaggi, fatti, attività, eventi |
 | `amy/security/policy.py` | livelli A/B/C, path guard, richieste di conferma |
 | `amy/security/audit.py` | registro append-only delle decisioni |
-| `amy/tools/` | 53 strumenti registrati e validati, inclusa l'integrazione con OpenCode 2 |
+| `amy/tools/` | 55 strumenti registrati e validati, inclusa l'integrazione con OpenCode 2 |
 | `amy/voice/` | TTS macOS, STT locale, registratore, wake word testuale, macchina a stati e conversazione continua |
 | `amy/robot/` | protocollo v1, simulatore, link simulato e MQTT |
 | `amy/ui/server.py` | API HTTP locale, file statici, CSP |
@@ -206,6 +206,7 @@ Server HTTP con `ThreadingHTTPServer`, solo `127.0.0.1` per default. API princip
 | GET | `/api/tools` | catalogo strumenti |
 | GET | `/api/activities` | attività recenti |
 | GET | `/api/robot/events` | eventi robotici |
+| GET | `/api/calendar/upcoming` | prossimi appuntamenti (lettura `calendar.events`) |
 | POST | `/api/chat` | messaggio |
 | POST | `/api/new_session` | nuova sessione |
 | POST | `/api/confirm` | autorizza/annulla |

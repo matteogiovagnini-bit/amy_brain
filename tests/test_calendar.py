@@ -8,6 +8,7 @@ livello di rischio (la creazione richiede conferma).
 from __future__ import annotations
 
 import unittest
+from dataclasses import replace
 from datetime import datetime
 from unittest import mock
 
@@ -21,6 +22,8 @@ from amy.macos.calendar import (
 )
 from amy.security.risk import RiskLevel
 from amy.tools import calendar_tools
+from amy.tools.base import FunctionTool
+from amy.tools.registry import ToolRegistry
 
 
 def calendars() -> list:
@@ -172,6 +175,145 @@ class DeleteEventTests(unittest.TestCase):
                 with self.assertRaises(CalendarError) as context:
                     delete_event(title="Dentista", date="2026-11-04")
         self.assertIn("UID", str(context.exception))
+
+
+def upcoming_registry():
+    registry = ToolRegistry()
+    calendar_tools.register(registry)
+    return registry
+
+
+def upcoming_context():
+    context = mock.Mock()
+    context.config.get.return_value = "Calendario"
+    return context
+
+
+def fake_event(uid, title, start, end, calendar="Calendario"):
+    return {"uid": uid, "title": title, "start": start, "end": end, "calendar": calendar}
+
+
+def fake_day(date, events, calendar="Calendario"):
+    return {"date": date, "calendar": calendar, "events": events}
+
+
+class UpcomingEventsTests(unittest.TestCase):
+    """Il riquadro della dashboard legge solo tramite calendar.events (livello A)."""
+
+    def test_reads_each_day_with_calendar_events(self) -> None:
+        registry = upcoming_registry()
+        days = [
+            fake_day("2026-11-06", [fake_event("U1", "Riunione", "2026-11-06T10:00", "2026-11-06T11:00")]),
+            fake_day("2026-11-07", []),
+            fake_day("2026-11-08", [fake_event("U2", "Dentista", "2026-11-08T16:00", "2026-11-08T17:00")]),
+        ]
+        with mock.patch("amy.tools.calendar_tools.list_events", side_effect=days) as reader:
+            with mock.patch.object(registry, "execute", wraps=registry.execute) as execute:
+                data = calendar_tools.collect_upcoming(
+                    registry, upcoming_context(), days=3, now=datetime(2026, 11, 6, 9, 0)
+                )
+        self.assertTrue(data["available"])
+        self.assertEqual(data["days"], 3)
+        self.assertEqual(data["checked_days"], 3)
+        self.assertEqual(data["failed_days"], 0)
+        self.assertEqual(data["calendar"], "Calendario")
+        self.assertEqual([item["title"] for item in data["events"]], ["Riunione", "Dentista"])
+        # Ogni lettura passa dallo strumento esistente, non da una chiamata diretta.
+        self.assertEqual([call[0][0] for call in execute.call_args_list], ["calendar.events"] * 3)
+        self.assertEqual([call[0][1]["date"] for call in execute.call_args_list],
+                         ["2026-11-06", "2026-11-07", "2026-11-08"])
+        self.assertEqual(reader.call_count, 3)
+
+    def test_drops_past_events_sorts_and_limits(self) -> None:
+        day = fake_day("2026-11-06", [
+            fake_event("U1", "Già finito", "2026-11-06T08:00", "2026-11-06T08:30"),
+            fake_event("U2", "Tardi", "2026-11-06T18:00", "2026-11-06T19:00"),
+            fake_event("U3", "Presto", "2026-11-06T10:00", "2026-11-06T11:00"),
+            fake_event("U4", "Mezzogiorno", "2026-11-06T12:00", "2026-11-06T13:00"),
+        ])
+        with mock.patch("amy.tools.calendar_tools.list_events", return_value=day):
+            data = calendar_tools.collect_upcoming(
+                upcoming_registry(), upcoming_context(), days=1, limit=2,
+                now=datetime(2026, 11, 6, 9, 0),
+            )
+        self.assertEqual([item["title"] for item in data["events"]], ["Presto", "Mezzogiorno"])
+
+    def test_deduplicates_events_spanning_more_days(self) -> None:
+        shared = fake_event("U-LUNGO", "Conferenza", "2026-11-06T09:00", "2026-11-08T18:00")
+        days = [
+            fake_day("2026-11-06", [shared]),
+            fake_day("2026-11-07", [shared]),
+            fake_day("2026-11-08", [shared, fake_event("U2", "Cena", "2026-11-08T20:00", "2026-11-08T21:00")]),
+        ]
+        with mock.patch("amy.tools.calendar_tools.list_events", side_effect=days):
+            data = calendar_tools.collect_upcoming(
+                upcoming_registry(), upcoming_context(), days=3, now=datetime(2026, 11, 6, 8, 0)
+            )
+        self.assertEqual([item["title"] for item in data["events"]], ["Conferenza", "Cena"])
+
+    def test_declares_unavailable_when_every_day_fails(self) -> None:
+        with mock.patch("amy.tools.registry._log"):
+            with mock.patch("amy.tools.calendar_tools.list_events", side_effect=RuntimeError("negato")):
+                data = calendar_tools.collect_upcoming(
+                    upcoming_registry(), upcoming_context(), days=2, now=datetime(2026, 11, 6, 9, 0)
+                )
+        self.assertFalse(data["available"])
+        self.assertEqual(data["events"], [])
+        self.assertEqual(data["failed_days"], 2)
+        self.assertTrue(data["reason"])
+
+    def test_reports_partial_failure_without_inventing_events(self) -> None:
+        def by_date(**kwargs):
+            day = kwargs["date"]
+            if day == "2026-11-07":
+                raise RuntimeError("giorno non leggibile")
+            return fake_day(day, [
+                fake_event("U-" + day, "Riunione", day + "T10:00", day + "T11:00")
+            ])
+
+        with mock.patch("amy.tools.registry._log"):
+            with mock.patch("amy.tools.calendar_tools.list_events", side_effect=by_date):
+                data = calendar_tools.collect_upcoming(
+                    upcoming_registry(), upcoming_context(), days=3, now=datetime(2026, 11, 6, 9, 0)
+                )
+        self.assertTrue(data["available"])
+        self.assertEqual(data["failed_days"], 1)
+        self.assertEqual(data["checked_days"], 2)
+        self.assertIn("Lettura parziale", data["reason"])
+        self.assertEqual(len(data["events"]), 2)
+
+    def test_blocks_the_read_if_the_tool_is_no_longer_level_a(self) -> None:
+        registry = ToolRegistry()
+        registry.register(FunctionTool(
+            replace(calendar_tools.CALENDAR_EVENTS, risk=RiskLevel.B), lambda args, ctx: None
+        ))
+        with mock.patch("amy.tools.calendar_tools.list_events") as reader:
+            data = calendar_tools.collect_upcoming(
+                registry, upcoming_context(), days=2, now=datetime(2026, 11, 6, 9, 0)
+            )
+        self.assertFalse(data["available"])
+        self.assertEqual(data["events"], [])
+        self.assertIn("livello A", data["reason"])
+        reader.assert_not_called()
+
+    def test_the_window_is_clamped(self) -> None:
+        empty = fake_day("2026-11-06", [])
+        registry = upcoming_registry()
+        with mock.patch("amy.tools.calendar_tools.list_events", return_value=empty):
+            with mock.patch.object(registry, "execute", wraps=registry.execute) as execute:
+                short = calendar_tools.collect_upcoming(
+                    registry, upcoming_context(), days=0, now=datetime(2026, 11, 6, 9, 0)
+                )
+        self.assertEqual(short["days"], 1)
+        self.assertEqual(len(execute.call_args_list), 1)
+        registry = upcoming_registry()
+        with mock.patch("amy.tools.calendar_tools.list_events", return_value=empty):
+            with mock.patch.object(registry, "execute", wraps=registry.execute) as execute:
+                long = calendar_tools.collect_upcoming(
+                    registry, upcoming_context(), days=99, now=datetime(2026, 11, 6, 9, 0)
+                )
+        self.assertEqual(long["days"], 14)
+        self.assertEqual(len(execute.call_args_list), 14)
 
 
 class CalendarToolSpecTests(unittest.TestCase):

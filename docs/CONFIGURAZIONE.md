@@ -514,6 +514,10 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   scrive in quelli di sistema (festività, compleanni, suggerimenti di Siri).
 - La creazione di un evento è di livello B, l'eliminazione è di livello C: entrambe
   richiedono la conferma. Il primo uso richiede il permesso Automazione per Calendar.
+- Il riquadro «Prossimi appuntamenti» della dashboard non aggiunge impostazioni:
+  usa `calendar.default_name` e `calendar.events` in sola lettura. La finestra è
+  di 7 giorni (`?days=` è limitato a 1–14) e il polling è ogni 2 minuti. Se
+  Calendar non è raggiungibile il pannello dichiara l'errore.
 - `reminders.default_list` (default vuoto = prima lista disponibile) sceglie la lista
   usata da `reminders.create`, `reminders.complete` e `reminders.delete`.
 

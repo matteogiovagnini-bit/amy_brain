@@ -211,6 +211,12 @@ con nome innocuo potrebbe non essere riconosciuto.
 - Il client usa `textContent` e costruzione DOM, mai `innerHTML`.
 - Il server limita la dimensione del corpo delle richieste e blocca il path traversal
   sui file statici.
+- `GET /api/calendar/upcoming` è di sola lettura: esegue esclusivamente
+  `calendar.events`, il cui livello di rischio viene verificato prima dell'uso.
+  Se lo strumento non fosse più di livello A la lettura viene bloccata. Da questo
+  endpoint non può partire `calendar.create` (B) né `calendar.delete` (C), e la
+  finestra è limitata a 14 giorni. Non introduce autenticazione, nuove porte o
+  dati remoti.
 
 Limiti: il server non ha CSRF token, rate limiting o login. È adatto al loopback e a
 un uso personale, non a Internet.

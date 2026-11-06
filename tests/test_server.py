@@ -9,6 +9,7 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+from datetime import date, timedelta
 from unittest import mock
 
 from amy.core.assistant import Assistant
@@ -147,6 +148,52 @@ class ServerTests(unittest.TestCase):
         self.assertGreaterEqual(len(names), 30)
         self.assertIn("robot.estop", names)
         self.assertIn("files.write", names)
+
+    def test_calendar_upcoming_reads_events_with_calendar_events(self) -> None:
+        today = date.today()
+        tomorrow = today + timedelta(days=1)
+
+        def by_date(**kwargs):
+            day = kwargs["date"]
+            events = []
+            # Un evento sul secondo giorno è sempre futuro, qualunque sia l'ora.
+            if day == tomorrow.isoformat():
+                events = [{
+                    "uid": "U1", "title": "Riunione", "start": day + "T10:00",
+                    "end": day + "T11:00", "calendar": "Calendario",
+                }]
+            return {"date": day, "calendar": "Calendario", "events": events}
+
+        with mock.patch("amy.tools.calendar_tools.list_events", side_effect=by_date) as reader:
+            response, data = self.call("GET", "/api/calendar/upcoming?days=2")
+        self.assertEqual(response.status, 200)
+        self.assertIs(data["available"], True)
+        self.assertEqual(data["days"], 2)
+        self.assertEqual(data["calendar"], "Calendario")
+        self.assertEqual([item["title"] for item in data["events"]], ["Riunione"])
+        self.assertEqual([call[1]["date"] for call in reader.call_args_list],
+                         [today.isoformat(), tomorrow.isoformat()])
+        # La risposta non contiene chiavi che il client interpreta come errore.
+        self.assertNotIn("error", data)
+
+    def test_calendar_upcoming_declares_an_unreadable_calendar(self) -> None:
+        with mock.patch("amy.tools.registry._log"):
+            with mock.patch("amy.tools.calendar_tools.list_events", side_effect=RuntimeError("negato")):
+                _, data = self.call("GET", "/api/calendar/upcoming?days=2")
+        self.assertIs(data["available"], False)
+        self.assertEqual(data["events"], [])
+        self.assertEqual(data["failed_days"], 2)
+        self.assertTrue(data["reason"])
+
+    def test_calendar_upcoming_clamps_the_requested_window(self) -> None:
+        empty = {"date": "", "calendar": "Calendario", "events": []}
+        with mock.patch("amy.tools.calendar_tools.list_events", return_value=empty):
+            _, short = self.call("GET", "/api/calendar/upcoming?days=0")
+            _, long = self.call("GET", "/api/calendar/upcoming?days=999")
+            _, invalid = self.call("GET", "/api/calendar/upcoming?days=abc")
+        self.assertEqual(short["days"], 1)
+        self.assertEqual(long["days"], 14)
+        self.assertEqual(invalid["days"], 7)
 
     def test_new_session_and_transcript(self) -> None:
         _, created = self.call("POST", "/api/new_session", {"title": "Test"})

@@ -23,23 +23,23 @@ python3 -m amy memory sessions
 
 ## 2. Esito verificato
 
-Data della verifica: **2 novembre 2026**.
+Data della verifica: **6 novembre 2026**.
 
 ```text
-Ran 351 tests in 19.0s
+Ran 370 tests in 20.2s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 255, tutti superati.
+`compileall` non produce errori. I test sono 364, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
 | `tests/test_battery.py` | 11 | parsing di `pmset -g batt`, Mac senza batteria, batteria carica senza «0:00», strumento in sola lettura, distinzione fra batteria del Mac e del robot |
-| `tests/test_calendar.py` | 18 | date ISO, scelta del calendario, escaping AppleScript, evento di un giorno intero, durata limitata, lettura e ordinamento eventi, rischio B per la creazione |
+| `tests/test_calendar.py` | 25 | date ISO, scelta del calendario, escaping AppleScript, evento di un giorno intero, durata limitata, lettura e ordinamento eventi, rischio B per la creazione, raccolta dei prossimi appuntamenti via `calendar.events`, filtro, deduplica, limite, fallimenti dichiarati, blocco se il tool non è più di livello A |
 | `tests/test_config.py` | 16 | default gratuiti, endpoint remoto, fallback, schema URL, segreti, init |
 | `tests/test_conversation.py` | 9 | stati vocali, conversazione continua senza wake word, «basta», timeout con verifica presenza, barge-in durante la sintesi, filtro dell'eco |
-| `tests/test_files.py` | 9 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
+| `tests/test_files.py` | 12 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
 | `tests/test_free_only.py` | 6 | nessuna dipendenza obbligatoria, host commerciali, default locali |
 | `tests/test_native_app.py` | 14 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, App Nap disattivata, controllo di salute su /api/health, avviso non modale, self-test isolato dalla cronologia, versione del bundle sincronizzata |
 | `tests/test_mail.py` | 16 | account, cassette, metadati, lettura con ID numerico, troncamento del corpo, ricerca, rischio B per il corpo, invio con rischio C e validazione degli indirizzi |
@@ -57,17 +57,17 @@ OK
 | `tests/test_reminders.py` | 12 | liste, creazione con scadenza, parsing di scadenze assenti, completamento ed eliminazione, rischio B/C |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 5 | heartbeat assente o scaduto: il backend si chiude solo se il processo padre è morto; con padre vivo resta attivo (App Nap) |
-| `tests/test_server.py` | 25 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header |
+| `tests/test_server.py` | 28 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header, `/api/calendar/upcoming` con calendario non leggibile e finestra limitata |
 | `tests/test_shell.py` | 5 | comandi ammessi, rifiuto arbitrario, git, timeout |
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
-| `tests/test_system_info.py` | 5 | dati locali reali, disco, nessun segreto o dato robot |
+| `tests/test_system_info.py` | 8 | dati locali reali, disco, nessun segreto o dato robot |
 | `tests/test_tts_cache.py` | 3 | elenco voci calcolato una sola volta; status non lancia `say -v ?` |
 | `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
-| `tests/test_ui_static.py` | 19 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna |
+| `tests/test_ui_static.py` | 22 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **351** | |
+| **Totale** | **370** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.
@@ -292,7 +292,17 @@ Verificare:
 - navigazione da tastiera, focus visibile, focus trap nelle modali;
 - interruttore «Movimento» e rispetto di `prefers-reduced-motion`;
 - assenza di errori in console;
-- nessuna richiesta a domini esterni.
+- nessuna richiesta a domini esterni;
+- riquadro «Prossimi appuntamenti»: voci ordinate, «Oggi» per la data corrente,
+  «Nessun appuntamento nei prossimi 7 giorni» quando il calendario è vuoto e
+  «Calendario non disponibile» con il motivo quando AppleScript fallisce;
+- pulsante «Aggiorna» che rilegge il calendario senza ricaricare la pagina.
+
+L'endpoint può essere provato anche senza aprire la finestra:
+
+```bash
+python3 -m unittest tests.test_server.ServerTests.test_calendar_upcoming_reads_events_with_calendar_events -v
+```
 
 Dettagli dell'interfaccia: [INTERFACCIA.md](INTERFACCIA.md).
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from amy.core.errors import PermissionDeniedError, ToolValidationError
 from amy.security.audit import NullAudit
@@ -142,6 +143,32 @@ class FileToolTests(unittest.TestCase):
     def test_directory_cannot_be_read_as_file(self) -> None:
         with self.assertRaises(ToolValidationError):
             self.registry.execute("files.read", {"path": str(self.temp.files)}, self.context)
+
+    def test_open_file_uses_the_system_open_command(self) -> None:
+        target = self.temp.files / "documento.txt"
+        target.write_text("contenuto", encoding="utf-8")
+        with mock.patch("amy.tools.files.subprocess.run") as runner:
+            runner.return_value = mock.Mock(returncode=0, stderr="")
+            result = self.registry.execute("files.open", {"path": str(target)}, self.context)
+        self.assertTrue(result.ok)
+        self.assertEqual(runner.call_args[0][0][0], "open")
+        self.assertEqual(runner.call_args[0][0][1], str(target.resolve()))
+
+    def test_grep_finds_text_and_skips_binary_files(self) -> None:
+        (self.temp.files / "a.txt").write_text("appuntamenti e promemoria\naltro\n", encoding="utf-8")
+        (self.temp.files / "b.txt").write_text("nessuna parola\n", encoding="utf-8")
+        (self.temp.files / "bin.dat").write_bytes(b"\x00\x01appuntamenti")
+        result = self.registry.execute(
+            "files.grep", {"query": "appuntamenti", "path": str(self.temp.files)}, self.context
+        )
+        self.assertTrue(result.ok)
+        self.assertEqual(len(result.data["results"]), 1)
+        self.assertEqual(result.data["results"][0]["line"], 1)
+        self.assertIn("a.txt", result.data["results"][0]["path"])
+
+    def test_new_tools_have_the_expected_risk(self) -> None:
+        self.assertEqual(self.registry.get("files.open").spec.risk, RiskLevel.A)
+        self.assertEqual(self.registry.get("files.grep").spec.risk, RiskLevel.A)
 
 
 if __name__ == "__main__":
