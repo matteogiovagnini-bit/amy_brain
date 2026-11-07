@@ -78,6 +78,8 @@ def capability_for_tool(tool_name: str) -> str:
         return "dev.restart"
     if name.startswith("screen."):
         return "vision.screen"
+    if name.startswith("vision."):
+        return "vision.camera"
     if name.startswith("voice."):
         return "voice.tts"
     if name in {"robot.status", "robot.ping"}:

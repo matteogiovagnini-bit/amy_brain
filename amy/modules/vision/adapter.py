@@ -19,7 +19,7 @@ class VisionAdapter(BaseAdapter):
                 version="0.1.0",
                 description="Screenshot e OCR locale; telecamera e descrizione sono opzionali.",
                 default_enabled=True,
-                capabilities=("vision.ocr", "vision.screen"),
+                capabilities=("vision.ocr", "vision.screen", "vision.camera"),
                 requires=("screen_recording",),
                 tools=tool_names(tools),
                 optional=True,
@@ -34,6 +34,6 @@ class VisionAdapter(BaseAdapter):
             base.available = False
             base.detail = "screencapture non disponibile"
             return base
-        base.detail = "OCR locale con Vision; telecamera e descrizione non attive"
+        base.detail = "OCR locale con Vision; telecamera e descrizione opzionali"
         base.data = {"ocr": True, "camera": False, "describe": False}
         return base

@@ -17,12 +17,18 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 435 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
+| Test | 450 test, tutti superati, più il self-test dell'app nativa (verificato il 7 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
 ## 2. Implementato e verificato
 
+- Architettura (Fase 7): Vision opzionale con `vision.capture` (B, spento per
+  default, `vision.camera`), cattura reale verificata con un JPEG 1280×720;
+  `vision.describe` resta non implementato. Smart Home opzionale con
+  `home.devices/state/set/scene` (A/A/B/C, spento per default, MQTT configurabile,
+  credenziali da variabile d'ambiente): verificata solo con configurazione e mock,
+  nessun broker o dispositivo reale.
 - Architettura (Fase 6): Personal Manager completo con `calendar.update` (B),
   attività e note persistenti (`tasks.create/list/update/complete/delete`,
   `notes.create/list/update/delete`). Agenda unica in `PersonalManager.agenda()`;
@@ -85,7 +91,7 @@ ciò che è solo pianificato.
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 70 strumenti registrati e validati.
+- 75 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -180,7 +186,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 435 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 450 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
@@ -199,6 +205,8 @@ ciò che è solo pianificato.
 | Verifica visiva della finestra dell'app | Non ispezionata a mano | Verifica programmatica: pagina montata, invio reale, risposta in chat, chiusura del backend |
 | Riquadro «Prossimi appuntamenti» con Calendar.app reale | La lettura end-to-end del nuovo endpoint non è stata provata a mano in questo ambiente | 13 test automatici con AppleScript sostituito da mock: aggregazione, filtro, deduplica, errori dichiarati, nessun dato inventato |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
+| Permesso Telecamera interattivo | La cattura è stata provata da terminale; il prompt TCC dell'app non è stato verificato a mano | JPEG 1280×720 catturato con AVFoundation e salvato localmente |
+| Smart Home con broker reale | Nessun broker o dispositivo configurato | Strumenti A/A/B/C, config, mock MQTT, errori onesti senza broker |
 
 ## 4. Sperimentale
 

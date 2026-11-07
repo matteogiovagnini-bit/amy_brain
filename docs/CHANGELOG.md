@@ -7,6 +7,18 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Vision e Smart Home opzionali (Fase 7).**
+  - `vision.capture` (B) cattura un fotogramma dalla telecamera predefinita tramite
+    AVFoundation; è spento per default (`vision.camera = false`) e salva in
+    `~/Downloads/Amy/camera`. Cattura reale verificata con un JPEG 1280×720.
+  - `vision.describe` resta non implementato: richiede un provider visivo gratuito
+    configurato e non viene simulato.
+  - Smart Home con `home.devices` (A), `home.state` (A), `home.set` (B) e
+    `home.scene` (C), spenta per default (`home.enabled = false`), broker MQTT e
+    dispositivi configurati dall'utente, password da variabile d'ambiente. Nessun
+    broker o dispositivo reale verificato: solo configurazione e mock.
+  - 15 test nuovi (450 totali, 75 strumenti).
+
 - **Riquadro «Prossimi appuntamenti» nella dashboard.** `GET
   /api/calendar/upcoming` esegue `calendar.events` (livello A, sola lettura) sui
   prossimi 7 giorni, scarta gli eventi già terminati, unisce i duplicati per UID,

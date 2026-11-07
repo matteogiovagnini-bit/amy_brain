@@ -219,6 +219,10 @@ Passi:
 
 ### Fase 7 — Vision e Smart Home (opzionali, spenti per default)
 
+**Stato: completata il 7 novembre 2026.** `vision.capture` (B) con cattura reale
+verificata; `vision.describe` non implementato; Smart Home con quattro strumenti
+(A/A/B/C), spenta per default e verificata solo con mock. 15 test nuovi.
+
 **Vision**
 1. Separare `vision.ocr` (già pronto) da `vision.describe` e `vision.camera`.
 2. `describe`: provider visivo gratuito, solo se configurato; altrimenti dichiarare

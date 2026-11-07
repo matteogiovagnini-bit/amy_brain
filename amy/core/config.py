@@ -81,6 +81,22 @@ DEFAULT_CONFIG: Dict[str, Any] = {
     "reminders": {
         "default_list": "",
     },
+    "vision": {
+        "enabled": True,
+        "camera": False,
+        "describe": False,
+        "max_chars": 8000,
+    },
+    "home": {
+        "enabled": False,
+        "broker": "",
+        "port": 1883,
+        "username": "",
+        "password_env": "AMY_HOME_MQTT_PASSWORD",
+        "timeout_s": 5,
+        "devices": [],
+        "scenes": [],
+    },
     "opencode": {
         "enabled": False,
         "binary": "opencode2",

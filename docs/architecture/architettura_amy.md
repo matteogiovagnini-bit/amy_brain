@@ -195,11 +195,11 @@ degli altri moduli.
 | --- | --- | --- | --- | --- | --- |
 | 01 | **Voice Engine** | wake word, microfono, STT, TTS, VAD, conversazione, barge-in, code audio | `amy/voice/*` | funzionante con cuffie; wake word testuale | attivo se configurato |
 | 02 | **Mac Control** | app, file, sistema, shell chiusa, web, apertura documenti, OCR schermo | `amy/tools/{apps,files,shell,system,web}.py`, `amy/macos/*`, `screen_*` | funzionante | attivo |
-| 03 | **Personal Manager** | calendario, promemoria, mail, task, note, liste, agenda | `calendar_tools`, `reminders_tools`, `mail_tools`, `Assistant.upcoming_events` | parziale (task/note mancanti) | attivo |
+| 03 | **Personal Manager** | calendario, promemoria, mail, task, note, liste, agenda | `calendar_tools`, `reminders_tools`, `mail_tools`, `tasks_tools`, `notes_tools`, `PersonalManager` | completo (Fase 6) | attivo |
 | 04 | **Memory** | conversazione, fatti, progetti, operativa, ricerca, verifica | `memory/store.py`, `memory_tools.py` | parziale | attivo |
 | 05 | **Developer Assistant** | analisi codice, test, diff, refactoring, OpenCode | `opencode_tools.py`, `app.restart`, `shell git_*` | parziale (OpenCode esterno) | spento per OpenCode |
-| 06 | **Vision** | OCR schermo, immagini, telecamera, descrizione scena | `screen.py`, `screen_tools.py`, `ocr.swift` | solo OCR | spento per camera/describe |
-| 07 | **Smart Home** | MQTT, dispositivi, sensori, luci, scene | nessuno (nuovo) | mancante | spento |
+| 06 | **Vision** | OCR schermo, immagini, telecamera, descrizione scena | `screen.py`, `screen_tools.py`, `macos/camera.py`, `camera.swift` | OCR + telecamera verificata; describe assente | OCR attivo; camera spenta |
+| 07 | **Smart Home** | MQTT, dispositivi, sensori, luci, scene | `home/service.py`, `home_tools.py` | config e mock; nessun broker reale | spento |
 | 08 | **Robot Control** | protocollo, simulatore, MQTT, sicurezza, telecamera robot | `amy/robot/*`, `robot_tools.py` | simulatore verificato; hardware no | simulatore attivo |
 
 ### 5.1 Voice Engine
@@ -241,10 +241,12 @@ degli altri moduli.
 
 ### 5.6 Vision
 - File target: `amy/modules/vision/`.
-- `ocr` locale (già pronto), `capture`, `describe` opzionale.
-- Telecamera: interfaccia; implementazione solo se disponibile un dispositivo e un
-  provider visivo gratuito compatibile con Intel.
-- Spento per default per camera/describe; OCR attivo con consenso B.
+- `ocr` locale (già pronto), `capture` implementato, `describe` non implementato.
+- `vision.capture` usa AVFoundation in locale e richiede il permesso Telecamera;
+  è spento per default (`vision.camera = false`).
+- `describe` richiederebbe un provider visivo gratuito compatibile con Intel: senza
+  di esso lo strumento resta assente e dichiarato non disponibile.
+- OCR attivo; camera spenta salvo consenso esplicito in configurazione.
 
 ### 5.7 Smart Home
 - File target: `amy/modules/home/`.

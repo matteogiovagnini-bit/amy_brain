@@ -165,6 +165,22 @@ python3 -m amy config path   # percorso del file in uso
       "seconds": 5
     }
   },
+  "vision": {
+    "enabled": true,
+    "camera": false,
+    "describe": false,
+    "max_chars": 8000
+  },
+  "home": {
+    "enabled": false,
+    "broker": "",
+    "port": 1883,
+    "username": "",
+    "password_env": "AMY_HOME_MQTT_PASSWORD",
+    "timeout_s": 5,
+    "devices": [],
+    "scenes": []
+  },
   "robot": {
     "transport": "simulated",
     "host": "amy-pi.local",
@@ -520,6 +536,51 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   Calendar non è raggiungibile il pannello dichiara l'errore.
 - `reminders.default_list` (default vuoto = prima lista disponibile) sceglie la lista
   usata da `reminders.create`, `reminders.complete` e `reminders.delete`.
+
+### Visione e telecamera
+
+- `vision.camera` (default `false`) abilita `vision.capture`, livello B. La cattura
+  usa AVFoundation in locale e salva in `~/Downloads/Amy/camera`; il primo uso
+  richiede il permesso **Telecamera**.
+- `vision.describe` (default `false`) è riservato a un futuro provider visivo
+  gratuito: oggi non esiste uno strumento di descrizione.
+- `vision.max_chars` limita il testo OCR restituito.
+
+### Smart Home
+
+```json
+{
+  "home": {
+    "enabled": true,
+    "broker": "192.168.1.10",
+    "port": 1883,
+    "username": "amy",
+    "password_env": "AMY_HOME_MQTT_PASSWORD",
+    "devices": [
+      {
+        "id": "luce_salotto",
+        "name": "Luce salotto",
+        "type": "luce",
+        "room": "salotto",
+        "state_topic": "casa/salotto/luce/stato",
+        "command_topic": "casa/salotto/luce/set"
+      }
+    ],
+    "scenes": [
+      {"name": "sera", "device": "luce_salotto", "value": "off"}
+    ]
+  }
+}
+```
+
+- `home.enabled` (default `false`) tiene spenti tutti gli strumenti della domotica.
+- `home.broker` vuoto significa nessun broker: i comandi falliscono con un errore
+  dichiarato, non fingono di aver agito.
+- La password si legge dalla variabile indicata da `home.password_env`; non va
+  scritta nella configurazione, nei log o nel repository.
+- `home.set` è livello B, `home.scene` livello C. Lo stato inviato non è una
+  conferma: senza una lettura del sensore Amy dichiara `verified: false`.
+- `paho-mqtt` è una dipendenza opzionale e serve solo se si usa la domotica.
 
 ## 10. Log
 

@@ -10,6 +10,7 @@ from .calendar import (
     resolve_calendar,
     update_event,
 )
+from .camera import CameraError, capture_camera
 from .screen import (
     ScreenError,
     capture,
@@ -62,6 +63,8 @@ __all__ = [
     "list_events",
     "parse_start",
     "resolve_calendar",
+    "CameraError",
+    "capture_camera",
     "ScreenError",
     "capture",
     "ocr_image",

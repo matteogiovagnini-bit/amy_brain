@@ -23,15 +23,15 @@ python3 -m amy memory sessions
 
 ## 2. Esito verificato
 
-Data della verifica: **6 novembre 2026**.
+Data della verifica: **7 novembre 2026**.
 
 ```text
-Ran 435 tests in 20.2s
+Ran 450 tests in 24.2s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 364, tutti superati.
+`compileall` non produce errori. I test sono 450, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
@@ -49,12 +49,14 @@ OK
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
 | `tests/test_orchestrator.py` | 13 | turno, conferme, rifiuti, limite passaggi, audit, storia |
-| `tests/test_module_adapters.py` | 10 | otto moduli, unione dei 60 strumenti, enable/disable, stati reali, developer offline, robot senza link |
+| `tests/test_module_adapters.py` | 10 | otto moduli, unione dei 75 strumenti, enable/disable, stati reali, developer offline, robot senza link |
 | `tests/test_memory_extended.py` | 9 | categorie, ricerca, aggiornamento, scadenza, migrazione da facts, strumenti di memoria |
 | `tests/test_modules.py` | 7 | manifest, ciclo di vita, duplicati, errore isolato, moduli disabilitati, eventi |
 | `tests/test_opencode.py` | 7 | comando senza shell, sessione persistente, nuova sessione, directory fuori dalle radici rifiutata, rischio C |
 | `tests/test_restart.py` | 5 | helper staccato, rifiuto senza app nativa, limite del ritardo, rischio C |
 | `tests/test_personal_tools.py` | 5 | ciclo attività e note, scadenza non valida, livelli di rischio |
+| `tests/test_home_tools.py` | 10 | Smart Home spenta, elenco dispositivi, set/state con client finto, scene, dispositivo ignoto, broker assente, livelli A/B/C |
+| `tests/test_vision_camera.py` | 5 | telecamera spenta per default, cattura con mock, errore dichiarato, livello B, capacità `vision.camera` |
 | `tests/test_policy.py` | 12 | livelli A/B/C, allow-list, E-stop non bloccato, TTL |
 | `tests/test_prompt_budget.py` | 2 | prompt compatto entro il limite gratuito, catalogo testuale senza campi riservati alla UI |
 | `tests/test_protocol.py` | 8 | envelope, versione, campi extra, ruoli, topic |
@@ -74,7 +76,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **435** | |
+| **Totale** | **450** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

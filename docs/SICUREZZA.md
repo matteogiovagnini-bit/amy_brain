@@ -198,6 +198,20 @@ Revoche e toggle sono a runtime, non persistenti. Non sono una sandbox: fermano
 le azioni richieste attraverso Amy, non un processo esterno con i permessi
 dell'utente.
 
+## 5.5 Telecamera e Smart Home
+
+- `vision.capture` è livello **B**, spento per default (`vision.camera = false`).
+  Un fotogramma può riprendere persone o ambienti privati: l'immagine resta in
+  `~/Downloads/Amy/camera` e non viene inviata in rete. Il primo uso richiede il
+  permesso **Telecamera** in Impostazioni di Sistema → Privacy e Sicurezza.
+- La descrizione automatica delle immagini non è implementata: non esiste uno
+  strumento che invii fotogrammi a un provider visivo.
+- Smart Home è spenta per default (`home.enabled = false`). `home.set` è livello B
+  e `home.scene` livello C. Un comando pubblicato su MQTT non è una verifica: senza
+  una lettura dello stato Amy dichiara `verified: false`.
+- Le credenziali del broker si leggono da una variabile d'ambiente indicata in
+  `home.password_env`; non compaiono nella configurazione, nei log o nei prompt.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from ..macos import capture, read_screen
+from ..macos import capture, capture_camera, read_screen
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
 
@@ -35,6 +35,20 @@ def _read(args: Dict[str, Any], context: ToolContext) -> ToolResult:
     )
 
 
+def _camera(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    enabled = bool(context.config.get("vision.camera", False)) if context.config is not None else False
+    if not enabled:
+        return ToolResult.failure(
+            "Telecamera disattivata nella configurazione.",
+            error_code="camera_disabled",
+        )
+    path = capture_camera()
+    return ToolResult.success(
+        {"image": str(path), "bytes": path.stat().st_size},
+        "Fotogramma salvato in %s." % path,
+    )
+
+
 SCREEN_CAPTURE = ToolSpec(
     name="screen.capture",
     description="Salva uno screenshot dello schermo in ~/Downloads/Amy/screenshots.",
@@ -44,6 +58,21 @@ SCREEN_CAPTURE = ToolSpec(
     consequences="L'immagine viene salvata sul Mac; nessun dato viene inviato in rete.",
     timeout_s=40.0,
     tags=("macos", "schermo", "screenshot"),
+)
+
+VISION_CAPTURE = ToolSpec(
+    name="vision.capture",
+    description=(
+        "Cattura un fotogramma dalla telecamera predefinita. È disattivata per "
+        "default: serve vision.camera = true e il permesso Telecamera."
+    ),
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    risk=RiskLevel.B,
+    reason="La telecamera può riprendere persone o ambienti privati.",
+    consequences="L'immagine viene salvata in ~/Downloads/Amy/camera; nessun invio remoto.",
+    undo="Elimina il file dal disco.",
+    timeout_s=45.0,
+    tags=("macos", "visione", "telecamera", "privacy"),
 )
 
 SCREEN_READ = ToolSpec(
@@ -80,3 +109,4 @@ SCREEN_READ = ToolSpec(
 def register(registry) -> None:
     registry.register(FunctionTool(SCREEN_CAPTURE, _capture))
     registry.register(FunctionTool(SCREEN_READ, _read))
+    registry.register(FunctionTool(VISION_CAPTURE, _camera))
