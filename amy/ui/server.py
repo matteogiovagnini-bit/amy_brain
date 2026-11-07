@@ -145,6 +145,18 @@ class AmyHandler(BaseHTTPRequestHandler):
                     self._send_json({"error": "percorso non valido"}, 400)
                     return
                 self._send_file(STATIC / name)
+            elif path == "/api/modules":
+                self._send_json({"modules": self.assistant.modules.statuses()})
+            elif path.startswith("/api/modules/"):
+                name = path[len("/api/modules/"):].strip("/")
+                modules = {
+                    item["manifest"]["name"]: item
+                    for item in self.assistant.modules.statuses()
+                }
+                if name not in modules:
+                    self._send_json({"error": "Modulo non trovato"}, 404)
+                    return
+                self._send_json(modules[name])
             elif path == "/api/state":
                 self._send_json(self.assistant.status())
             elif path == "/api/health":
@@ -238,6 +250,17 @@ class AmyHandler(BaseHTTPRequestHandler):
                 data = self.assistant.robot_link.stop(str(body.get("reason", "dashboard")))
                 self.assistant.memory.record_robot_event("stop", data)
                 self._send_json({"ok": True, "result": data})
+            elif path.startswith("/api/modules/") and path.endswith("/enabled"):
+                name = path[len("/api/modules/"):-len("/enabled")].strip("/")
+                if "enabled" not in body:
+                    self._send_json({"error": "Campo enabled mancante."}, 400)
+                    return
+                enabled = body.get("enabled")
+                if not isinstance(enabled, bool):
+                    self._send_json({"error": "enabled deve essere true o false."}, 400)
+                    return
+                result = self.assistant.set_module_enabled(name, enabled)
+                self._send_json({"ok": True, "result": result})
             else:
                 self._send_json({"error": "endpoint non trovato"}, 404)
         except json.JSONDecodeError:

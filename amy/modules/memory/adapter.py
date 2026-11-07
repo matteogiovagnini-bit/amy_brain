@@ -22,7 +22,7 @@ class MemoryAdapter(BaseAdapter):
                 capabilities=("memory.read", "memory.write", "memory.delete"),
                 requires=("sqlite",),
                 tools=tool_names(tools),
-                optional=True,
+                optional=False,
             ),
             tools,
         )

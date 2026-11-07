@@ -18,6 +18,25 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.11.0] — 2026-11-07
+
+### Aggiunto
+
+- **Moduli visibili e controllabili (Fase 3).** `/api/state` include `modules`;
+  `GET /api/modules` elenca gli otto moduli con manifest e stato reale;
+  `POST /api/modules/{name}/enabled` abilita/disabilita un modulo. Disabilitarlo
+  rimuove i suoi strumenti dal catalogo attivo; Memory è essenziale e resta
+  sempre attivo.
+- **Pannello «Moduli»** nella dashboard: stato, dettaglio, numero di strumenti e
+  interruttore. Aggiornamento ogni 30 secondi e dopo ogni modifica.
+- 6 test nuovi tra server e UI (405 totali).
+- Disabilitare un modulo annulla le conferme pendenti dei suoi strumenti.
+
+### Nota
+
+L'abilitazione è a runtime: al riavvio i moduli tornano abilitati. La persistenza
+in `~/.amy/config.json` sarà affrontata nella fase di configurazione.
+
 ## [0.10.1] — 2026-11-07
 
 ### Aggiunto

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import threading
 from typing import Any, Dict, Iterable, List, Optional
 
 from ..core.errors import ToolError
@@ -20,30 +21,41 @@ class ToolNotFoundError(ToolError):
 class ToolRegistry:
     def __init__(self) -> None:
         self._tools: Dict[str, Tool] = {}
+        self._lock = threading.RLock()
 
     def register(self, tool: Tool) -> None:
         name = tool.spec.name
         if not name or not isinstance(name, str):
             raise ValueError("Ogni strumento deve avere un nome.")
-        if name in self._tools:
-            raise ValueError("Strumento già registrato: %s" % name)
-        self._tools[name] = tool
+        with self._lock:
+            if name in self._tools:
+                raise ValueError("Strumento già registrato: %s" % name)
+            self._tools[name] = tool
+
+    def unregister(self, name: str) -> bool:
+        """Rimuove uno strumento; restituisce True se esisteva."""
+        with self._lock:
+            return self._tools.pop(str(name), None) is not None
 
     def get(self, name: str) -> Tool:
-        tool = self._tools.get(name)
+        with self._lock:
+            tool = self._tools.get(name)
         if not tool:
             raise ToolNotFoundError("Strumento sconosciuto: %s" % name)
         return tool
 
     def has(self, name: str) -> bool:
-        return name in self._tools
+        with self._lock:
+            return name in self._tools
 
     def names(self) -> List[str]:
-        return sorted(self._tools)
+        with self._lock:
+            return sorted(self._tools)
 
     def all(self) -> Iterable[Tool]:
-        for name in sorted(self._tools):
-            yield self._tools[name]
+        with self._lock:
+            items = [self._tools[name] for name in sorted(self._tools)]
+        return iter(items)
 
     def catalog(self, *, include_hidden: bool = False) -> List[Dict[str, Any]]:
         return [

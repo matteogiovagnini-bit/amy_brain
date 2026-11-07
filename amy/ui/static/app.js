@@ -23,6 +23,7 @@
   const BASE_POLL_MS = 5000;
   const FAST_POLL_MS = 1000;
   const ERROR_VISIBLE_MS = 8000;
+  const MODULES_POLL_MS = 30000;
   // Il calendario interroga Calendar.app via AppleScript: si rilegge ogni
   // due minuti, non a ogni poll dello stato, e sempre su richiesta esplicita.
   const CALENDAR_POLL_MS = 120000;
@@ -44,6 +45,9 @@
     calendarTimer: 0,
     calendarLastFetch: 0,
     calendarLoading: false,
+    modulesTimer: 0,
+    modulesLastFetch: 0,
+    modulesLoading: false,
     refreshing: false,
     loadingPending: false,
     resolving: false,
@@ -1034,6 +1038,99 @@
     }
   }
 
+  // ---------------------------------------------------------------- moduli
+  function moduleLabel(state) {
+    const labels = {
+      disabled: "disabilitato",
+      initializing: "avvio",
+      ready: "pronto",
+      busy: "occupato",
+      degraded: "parziale",
+      offline: "offline",
+      error: "errore",
+    };
+    return labels[state] || "sconosciuto";
+  }
+
+  function moduleTone(state) {
+    if (state === "ready" || state === "busy") return "ok";
+    if (state === "disabled") return "muted";
+    if (state === "error") return "bad";
+    return "warn";
+  }
+
+  function renderModules(data) {
+    const modules = data && Array.isArray(data.modules) ? data.modules : [];
+    tag("modulesTag", modules.length ? modules.length + " moduli" : "non disponibile", modules.length ? "ok" : "bad");
+    const container = $("modulesList");
+    if (!container) return;
+    container.replaceChildren();
+    if (!modules.length) {
+      container.appendChild(node("div", "empty", "Nessun modulo registrato."));
+      return;
+    }
+    modules.forEach((item) => {
+      const manifest = isObject(item.manifest) ? item.manifest : {};
+      const status = isObject(item.status) ? item.status : {};
+      const state = String(status.state || "error");
+      const name = String(manifest.name || "");
+      const row = node("div", "module-row");
+      const head = node("div", "module-head");
+      head.appendChild(node("strong", "", String(manifest.title || name || "Modulo")));
+      head.appendChild(node("span", "tag " + moduleTone(state), moduleLabel(state)));
+      row.appendChild(head);
+      if (manifest.description) row.appendChild(node("p", "module-detail", String(manifest.description)));
+      if (status.detail) row.appendChild(node("p", "module-detail", String(status.detail)));
+      const actions = node("div", "module-actions");
+      const toolCount = Array.isArray(manifest.tools) ? manifest.tools.length : 0;
+      actions.appendChild(node("span", "module-tools", toolCount + (toolCount === 1 ? " strumento" : " strumenti")));
+      const toggle = node("button", "ghost small", item.enabled ? "Disabilita" : "Abilita");
+      toggle.type = "button";
+      toggle.disabled = !manifest.optional || !name;
+      toggle.title = manifest.optional
+        ? (item.enabled ? "Disabilita il modulo e i suoi strumenti" : "Abilita il modulo e i suoi strumenti")
+        : "Modulo essenziale: non può essere disabilitato";
+      toggle.addEventListener("click", () => toggleModule(name, !item.enabled));
+      actions.appendChild(toggle);
+      row.appendChild(actions);
+      container.appendChild(row);
+    });
+  }
+
+  async function loadModules() {
+    if (app.modulesLoading) return;
+    app.modulesLoading = true;
+    try {
+      const data = await api("/api/modules");
+      app.modulesLastFetch = Date.now();
+      renderModules(data);
+    } catch (error) {
+      tag("modulesTag", "non disponibile", "bad");
+      const container = $("modulesList");
+      if (container) {
+        container.replaceChildren();
+        container.appendChild(node("div", "empty", "Moduli non disponibili: " + error.message));
+      }
+    } finally {
+      app.modulesLoading = false;
+    }
+  }
+
+  async function toggleModule(name, enabled) {
+    if (!name) return;
+    clearError();
+    try {
+      const data = await post("/api/modules/" + encodeURIComponent(name) + "/enabled", { enabled: Boolean(enabled) });
+      const result = data && isObject(data.result) ? data.result : {};
+      toast("Modulo " + name + (result.enabled ? " abilitato." : " disabilitato."));
+      await refreshState();
+      await loadModules();
+    } catch (error) {
+      toast("Modulo non modificato: " + error.message, true);
+      markError("Modulo non modificato: " + error.message);
+    }
+  }
+
   function renderTools(tools) {
     text("toolCount", String((tools || []).length));
     const container = $("tools");
@@ -1718,6 +1815,11 @@
     const fullscreenButton = $("fullscreenBtn");
     if (fullscreenButton) fullscreenButton.addEventListener("click", toggleFullscreen);
 
+    const modulesRefreshButton = $("modulesRefreshBtn");
+    if (modulesRefreshButton) {
+      modulesRefreshButton.addEventListener("click", () => loadModules());
+    }
+
     const calendarRefreshButton = $("calendarRefreshBtn");
     if (calendarRefreshButton) {
       calendarRefreshButton.addEventListener("click", () => refreshCalendar(true));
@@ -1777,7 +1879,9 @@
     // Il calendario non blocca l'avvio: parte in background e ha un suo poll
     // lento, così la chat resta immediatamente utilizzabile.
     refreshCalendar(true);
+    loadModules();
     app.pollTimer = window.setInterval(refreshState, BASE_POLL_MS);
+    app.modulesTimer = window.setInterval(loadModules, MODULES_POLL_MS);
     app.calendarTimer = window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS);
     ensureFastPoll();
   }

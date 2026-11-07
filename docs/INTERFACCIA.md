@@ -189,6 +189,11 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
   inventati: se il backend non li fornisce, la UI mostra `Non disponibile` o
   `Non collegato`.
 - I campi non configurati mostrano `Non configurato`, non zero.
+- Il pannello **Moduli** legge `GET /api/modules`: per ogni modulo mostra manifest,
+  stato reale (`ready`, `degraded`, `offline`, `disabled`, …), dettaglio, numero di
+  strumenti e interruttore. Disabilitare un modulo rimuove i suoi strumenti dal
+  catalogo attivo; **Memory** è essenziale e non può essere spento. Lo stato dei
+  toggle è a runtime: al riavvio i moduli tornano abilitati.
 - Il pannello **Prossimi appuntamenti** legge `GET /api/calendar/upcoming`: il
   backend esegue `calendar.events` (livello A, sola lettura) per ogni giorno dei
   prossimi 7, scarta gli eventi già terminati, unisce gli eventi che coprono più
@@ -206,6 +211,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 - Voce: `/api/speak`, `/api/voice/listen`, `/api/voice/stop`, `/api/voice/greet`
   e il ciclo continuo `/api/voice/wake/start` e `/api/voice/wake/stop`.
 - Robot: `/api/robot/estop` e `/api/robot/stop`.
+- Moduli: `GET /api/modules`, `GET /api/modules/{name}` e
+  `POST /api/modules/{name}/enabled` con `{"enabled": true|false}`. Il toggle è
+  a runtime e aggiorna il catalogo strumenti; Memory non è disabilitabile.
 - Aggiornamento stato da `/api/state`, polling base ogni 5 s e più frequente
   (1 s) durante un turno, un'attività, l'ascolto o la sintesi.
 - Calendario da `/api/calendar/upcoming`, con polling separato ogni 2 minuti,
@@ -218,10 +226,12 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 
 - Nessun pulsante per interrompere la generazione della risposta: il backend non
   espone questa operazione. «Stop voce» interrompe solo la sintesi.
-- Nessuna registrazione in background: il microfono parte solo premendo il pulsante
-  microfono o «Ascolta «Amy»». Il saluto di avvio usa solo la sintesi e non registra.
+- Il microfono può restare in ascolto all'avvio se
+  `voice.wake_word.start_on_launch` è attivo; il pulsante «Ferma ascolto» lo
+  interrompe. Il saluto di avvio usa solo la sintesi e non registra.
 - Nessun dato remoto, nessuna telemetria, nessuna sincronizzazione cloud.
-- Nessuna modifica della configurazione dalla UI: il file va modificato a mano.
+- Nessuna modifica del file di configurazione dalla UI: i toggle dei moduli sono
+  a runtime e il file va modificato a mano per renderli permanenti.
 - Nessun secondo programma a schermo intero: si usa il Fullscreen API del browser,
   più il controllo nativo di macOS.
 
@@ -310,7 +320,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**399 test, tutti superati**. La verifica **visiva a mano** nella finestra
+**405 test, tutti superati**. La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

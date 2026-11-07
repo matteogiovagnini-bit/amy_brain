@@ -23,14 +23,19 @@ from ..ai.base import AIProvider
 from ..ai.factory import build_provider
 from ..core.config import Config
 from ..core.errors import AIError, AmyError, ToolError, ToolValidationError
+from ..core.modules import ModuleError
 from ..core.logging_setup import get_logger, redact
 from ..core.prompts import build_system_prompt, format_tool_result
 from ..core.system_info import collect_system_info
 from ..memory.store import MemoryStore
+from ..modules import build_module_registry
+from ..modules.registry import DEFAULT_MODULES
 from ..robot.links import RobotLink, build_robot_link
 from ..security.audit import AuditLog
 from ..security.policy import ConfirmationRequest, PathGuard, PolicyEngine
 from ..security.risk import RiskLevel
+from ..shared.events import EventBus
+from ..shared.module import ModuleContext
 from ..tools.base import ToolContext, ToolResult
 from ..tools.builtin import build_default_registry
 from ..tools.calendar_tools import collect_upcoming
@@ -211,6 +216,7 @@ class Assistant:
         voice: Optional[VoiceService] = None,
         audit: Optional[AuditLog] = None,
         policy: Optional[PolicyEngine] = None,
+        events: Optional[EventBus] = None,
     ) -> None:
         self.config = config
         self.memory = memory or MemoryStore(config.require_str("memory.db_path"))
@@ -227,6 +233,26 @@ class Assistant:
         self.provider = provider or build_provider(config)
         self.robot_link = robot_link or build_robot_link(config)
         self.voice = voice or VoiceService(config)
+        self.events = events or EventBus()
+        self._module_context = ModuleContext(
+            config=self.config,
+            events=self.events,
+            logger=_log,
+            data_dir=None,
+            path_guard=self.path_guard,
+            audit=self.audit,
+            memory=self.memory,
+            providers=self.provider,
+        )
+        self.modules = build_module_registry(
+            self.config,
+            events=self.events,
+            voice=self.voice,
+            memory=self.memory,
+            robot_link=self.robot_link,
+            enabled={name: True for name in DEFAULT_MODULES},
+        )
+        self.modules.start_all(self._module_context)
         self._pending: Dict[str, _Pending] = {}
         self._pending_lock = threading.RLock()
         self._provider_status_cache: Tuple[float, Dict[str, Any]] = (0.0, {})
@@ -631,6 +657,57 @@ class Assistant:
         except Exception as exc:  # noqa: BLE001
             return {"reachable": False, "error": str(exc), "transport": self.config.get("robot.transport")}
 
+    def set_module_enabled(self, name: str, enabled: bool) -> Dict[str, Any]:
+        """Abilita o disabilita un modulo e i suoi strumenti.
+
+        Il modulo Memory è essenziale: non può essere disabilitato. Gli altri
+        moduli possono essere spenti senza fermare il Core.
+        """
+        module = self.modules.get(name)
+        if not enabled and not module.manifest.optional:
+            raise ModuleError(
+                "Il modulo %s è essenziale e non può essere disabilitato." % name
+            )
+        if enabled:
+            status = self.modules.enable(name, self._module_context)
+            for tool in module.tools():
+                tool_name = getattr(getattr(tool, "spec", None), "name", "")
+                if tool_name and not self.registry.has(tool_name):
+                    self.registry.register(tool)
+        else:
+            tool_names = {
+                getattr(getattr(tool, "spec", None), "name", "")
+                for tool in module.tools()
+            }
+            with self._pending_lock:
+                cancelled = [
+                    pending_id
+                    for pending_id, pending in self._pending.items()
+                    if pending.request.tool in tool_names
+                ]
+                for pending_id in cancelled:
+                    self._pending.pop(pending_id, None)
+            if cancelled:
+                self.audit.record(
+                    "confirmations_cancelled",
+                    detail="modulo %s disabilitato: %d conferme annullate"
+                    % (name, len(cancelled)),
+                )
+            for tool_name in tool_names:
+                if tool_name:
+                    self.registry.unregister(tool_name)
+            status = self.modules.disable(name)
+        self.audit.record(
+            "module_toggled",
+            detail="%s=%s" % (name, "enabled" if enabled else "disabled"),
+        )
+        return {
+            "name": name,
+            "enabled": bool(enabled),
+            "status": status.to_dict(),
+            "tools": len(self.registry.names()),
+        }
+
     def status(self) -> Dict[str, Any]:
         return {
             "assistant": {
@@ -647,6 +724,7 @@ class Assistant:
                 {"name": item["name"], "risk": item["risk"], "description": item["description"]}
                 for item in self.registry.catalog()
             ],
+            "modules": self.modules.statuses(),
             "pending_confirmations": len(self.pending_confirmations()),
             "facts": self.memory.list_facts(12),
             "activities": self.memory.list_activities(12),
@@ -674,6 +752,10 @@ class Assistant:
             pass
         try:
             self.robot_link.close()
+        except Exception:
+            pass
+        try:
+            self.events.close()
         except Exception:
             pass
         self.memory.close()

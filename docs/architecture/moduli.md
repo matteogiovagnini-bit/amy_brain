@@ -138,7 +138,31 @@ Note:
 - Robot è `DEGRADED` se non riceve un link; con il simulatore è `READY`.
 - Home è vuoto e spento: nessun dispositivo o broker in questa fase.
 
-## 7. Cosa manca (Fase 3+)
+## 7. Collegamento a Core e UI (Fase 3)
+
+`Assistant` crea il registro con gli otto adapter, lo avvia e lo espone:
+
+- `Assistant.modules` — registro dei moduli;
+- `Assistant.status()["modules"]` — manifest, stato e enabled;
+- `Assistant.set_module_enabled(name, enabled)` — abilita/disabilita e aggiorna il
+  catalogo strumenti attivo;
+- Memory ha `optional=False`: il tentativo di disabilitarlo produce un errore 400.
+
+API:
+
+| Metodo | Percorso | Funzione |
+| --- | --- | --- |
+| GET | `/api/modules` | elenco con manifest e stato |
+| GET | `/api/modules/{name}` | dettaglio |
+| POST | `/api/modules/{name}/enabled` | `{"enabled": true|false}` |
+
+UI: pannello «Moduli» con stato, dettaglio, strumenti e interruttore; polling ogni
+30 s e aggiornamento dopo ogni modifica.
+
+Limite dichiarato: l'abilitazione è **a runtime**. Al riavvio i moduli tornano
+abilitati; la persistenza in configurazione è rimandata alla fase successiva.
+
+## 8. Cosa manca (Fase 4+)
 
 - Adapter dei moduli reali (`voice`, `mac_control`, `personal`, `memory`,
   `developer`, `vision`, `home`, `robot`).

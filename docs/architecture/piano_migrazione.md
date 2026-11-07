@@ -133,6 +133,8 @@ fonte.
 
 ### Fase 3 — Stato moduli e API
 
+**Stato: completata il 7 novembre 2026** (`/api/modules`, toggle a runtime, pannello UI, 5 test; persistenza rimandata).
+
 **Obiettivo:** far vedere i moduli alla dashboard, senza cambiare il comportamento
 degli strumenti.
 

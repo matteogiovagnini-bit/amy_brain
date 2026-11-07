@@ -17,12 +17,19 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 399 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
+| Test | 405 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
 ## 2. Implementato e verificato
 
+- Architettura (Fase 3): `/api/state` espone `modules`, `/api/modules` elenca gli
+  otto moduli e `/api/modules/{name}/enabled` li abilita/disabilita a runtime. La
+  dashboard ha il pannello «Moduli» con stato reale e interruttori; disabilitare un
+  modulo rimuove i suoi strumenti dal catalogo attivo. Memory è essenziale e non
+  può essere disabilitato. Disabilitare un modulo annulla le conferme pendenti dei
+  suoi strumenti. Lo stato dei toggle non è ancora persistito: al riavvio i moduli
+  tornano abilitati.
 - Architettura (Fase 2): otto adapter (`voice`, `mac_control`, `personal`,
   `memory`, `developer`, `vision`, `home`, `robot`) avvolgono il codice esistente
   senza spostare file. L'unione dei loro strumenti coincide con i 57 del registry
@@ -157,7 +164,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 399 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 405 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

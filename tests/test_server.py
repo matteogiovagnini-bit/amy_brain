@@ -131,6 +131,66 @@ class ServerTests(unittest.TestCase):
         self.assertIn("speaking", state["voice"])
         self.assertIs(state["voice"]["speaking"], False)
 
+    def test_modules_endpoint_and_state(self) -> None:
+        _, data = self.call("GET", "/api/modules")
+        names = {item["manifest"]["name"] for item in data["modules"]}
+        self.assertEqual(
+            names,
+            {"voice", "mac_control", "personal", "memory", "developer", "vision", "home", "robot"},
+        )
+        for item in data["modules"]:
+            self.assertIn("status", item)
+            self.assertIn("enabled", item)
+        _, state = self.call("GET", "/api/state")
+        self.assertEqual(len(state["modules"]), 8)
+
+    def test_disable_and_enable_a_module_changes_the_tools(self) -> None:
+        _, before = self.call("GET", "/api/tools")
+        total = len(before["tools"])
+        _, result = self.call("POST", "/api/modules/vision/enabled", {"enabled": False})
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["result"]["enabled"])
+        _, after = self.call("GET", "/api/tools")
+        self.assertEqual(len(after["tools"]), total - 2)
+        self.assertNotIn("screen.read", [tool["name"] for tool in after["tools"]])
+        _, result = self.call("POST", "/api/modules/vision/enabled", {"enabled": True})
+        self.assertTrue(result["result"]["enabled"])
+        _, restored = self.call("GET", "/api/tools")
+        self.assertEqual(len(restored["tools"]), total)
+
+    def test_memory_is_essential_and_cannot_be_disabled(self) -> None:
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            self.call("POST", "/api/modules/memory/enabled", {"enabled": False})
+        self.assertEqual(context.exception.code, 400)
+
+    def test_disabling_a_module_cancels_its_pending_confirmation(self) -> None:
+        from amy.core.assistant import _Pending, _Turn
+        from amy.security.policy import ConfirmationRequest
+        from amy.security.risk import RiskLevel
+
+        pending = _Pending(
+            turn=_Turn(session_id="s", messages=[]),
+            request=ConfirmationRequest(
+                pending_id="cfm_test",
+                tool="screen.read",
+                args={},
+                risk=RiskLevel.B,
+                reason="prova",
+                consequences="",
+                undo="",
+            ),
+            action={"tool": "screen.read", "args": {}},
+            risk=RiskLevel.B,
+        )
+        self.assistant._pending["cfm_test"] = pending
+        self.call("POST", "/api/modules/vision/enabled", {"enabled": False})
+        self.assertEqual(self.assistant.pending_confirmations(), [])
+
+    def test_unknown_module_is_rejected(self) -> None:
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            self.call("POST", "/api/modules/inesistente/enabled", {"enabled": False})
+        self.assertEqual(context.exception.code, 400)
+
     def test_state_includes_real_local_system_info(self) -> None:
         _, state = self.call("GET", "/api/state")
         system = state["system"]

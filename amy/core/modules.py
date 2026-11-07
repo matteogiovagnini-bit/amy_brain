@@ -172,6 +172,9 @@ class ModuleRegistry:
         with self._lock:
             if name not in self._modules:
                 raise ModuleError("Modulo sconosciuto: %s" % name)
+            manifest = self._manifests[name]
+            if not manifest.optional:
+                raise ModuleError("Il modulo %s è essenziale e non può essere disabilitato." % name)
             self._enabled[name] = False
         return self.stop(name)
 

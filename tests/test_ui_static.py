@@ -258,6 +258,17 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS)", js)
         self.assertIn("window.setInterval(refreshState, BASE_POLL_MS)", js)
 
+    def test_modules_panel_shows_real_state_and_toggle(self) -> None:
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        css = (STATIC / "style.css").read_text(encoding="utf-8")
+        for marker in ("modulesList", "modulesRefreshBtn", "modulesTag", "Moduli"):
+            self.assertIn(marker, html)
+        for marker in ("loadModules", "toggleModule", "MODULES_POLL_MS", "/api/modules/"):
+            self.assertIn(marker, js)
+        self.assertIn(".module-row", css)
+        self.assertNotIn("innerHTML", js)
+
     def test_estop_is_labelled_as_software_only(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         self.assertIn("E-STOP SOFTWARE", html)

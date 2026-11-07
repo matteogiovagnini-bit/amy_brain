@@ -241,6 +241,20 @@
           <p class="hint" id="calendarNote">Letti da Calendar.app con calendar.events. Nessun dato remoto.</p>
         </section>
 
+        <section class="card" aria-labelledby="modulesTitle">
+          <div class="card-title">
+            <h3 id="modulesTitle">Moduli</h3>
+            <span class="tag" id="modulesTag">Verifica…</span>
+          </div>
+          <div class="module-list" id="modulesList" aria-live="polite">
+            <div class="empty">Verifica dei moduli…</div>
+          </div>
+          <div class="card-actions">
+            <button class="ghost" id="modulesRefreshBtn" type="button" aria-describedby="modulesNote">Aggiorna</button>
+          </div>
+          <p class="hint" id="modulesNote">Stato reale dal backend. Un modulo disabilitato non espone strumenti.</p>
+        </section>
+
         <details class="card tools-card">
           <summary>
             <span id="toolsTitle">Strumenti</span>
