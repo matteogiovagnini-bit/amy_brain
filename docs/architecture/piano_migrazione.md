@@ -104,6 +104,8 @@ invariati.
 
 ### Fase 2 — Adapter dei moduli esistenti
 
+**Stato: completata il 7 novembre 2026** (otto adapter, 57 strumenti invariati, 10 test).
+
 **Obiettivo:** avvolgere le aree esistenti in moduli senza spostare file.
 
 Passi:

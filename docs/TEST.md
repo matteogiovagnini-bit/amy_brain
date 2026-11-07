@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **6 novembre 2026**.
 
 ```text
-Ran 389 tests in 20.2s
+Ran 399 tests in 20.2s
 
 OK
 ```
@@ -48,6 +48,7 @@ OK
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
 | `tests/test_orchestrator.py` | 13 | turno, conferme, rifiuti, limite passaggi, audit, storia |
+| `tests/test_module_adapters.py` | 10 | otto moduli, unione dei 57 strumenti, enable/disable, stati reali, developer offline, robot senza link |
 | `tests/test_modules.py` | 7 | manifest, ciclo di vita, duplicati, errore isolato, moduli disabilitati, eventi |
 | `tests/test_opencode.py` | 7 | comando senza shell, sessione persistente, nuova sessione, directory fuori dalle radici rifiutata, rischio C |
 | `tests/test_restart.py` | 5 | helper staccato, rifiuto senza app nativa, limite del ritardo, rischio C |
@@ -70,7 +71,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **389** | |
+| **Totale** | **399** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

@@ -18,6 +18,23 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.10.1] — 2026-11-07
+
+### Aggiunto
+
+- **Adapter dei moduli (Fase 2).** `amy/modules/` contiene otto adapter che
+  avvolgono il codice esistente: Voice, Mac Control, Personal, Memory, Developer,
+  Vision, Home e Robot. Ogni adapter dichiara manifest, capacità e strumenti;
+  `build_module_registry()` li registra senza avviarli.
+- 10 test verificano che l'unione degli strumenti dei moduli coincida con i 57
+  strumenti del registry esistente e che enable/disable, stati e dipendenze siano
+  corretti.
+
+### Modificato
+
+- `time.now` è stato spostato da `voice_tools.py` a `system.py` per coerenza
+  architetturale. Nome, schema e comportamento dello strumento non cambiano.
+
 ## [0.10.0] — 2026-11-07
 
 ### Aggiunto

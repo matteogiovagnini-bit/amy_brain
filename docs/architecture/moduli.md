@@ -1,9 +1,9 @@
 # Moduli di Amy
 
-**Fase 1 — contratto implementato**
+**Fase 1-2 — contratti e adapter implementati**
 Data: **7 novembre 2026**
-Stato: infrastruttura pronta, **non ancora collegata** a Core, strumenti e UI.
-Nessun modulo reale è registrato in questa fase.
+Stato: contratti e otto adapter pronti; **non ancora collegati** a Core e UI.
+`builtin.py` resta l'aggregatore di compatibilità con i 57 strumenti.
 
 ---
 
@@ -109,7 +109,36 @@ python3 -m unittest tests.test_modules tests.test_events -v
 
 ---
 
-## 6. Cosa manca (Fase 2+)
+## 6. Adapter (Fase 2)
+
+`amy/modules/` contiene un package per modulo, con un adapter che avvolge il codice
+esistente senza spostarlo:
+
+| Modulo | File | Strumenti | Default |
+| --- | --- | --- | --- |
+| Voice | `modules/voice/adapter.py` | `voice.speak`, `voice.stop` | attivo |
+| Mac Control | `modules/mac_control/adapter.py` | app, file, shell, sistema, web, `time.now` (25) | attivo |
+| Personal | `modules/personal/adapter.py` | calendario, promemoria, mail (15) | attivo |
+| Memory | `modules/memory/adapter.py` | `memory.remember/list/forget` (3) | attivo |
+| Developer | `modules/developer/adapter.py` | OpenCode + `app.restart` (3) | spento |
+| Vision | `modules/vision/adapter.py` | `screen.capture/read` (2) | attivo |
+| Home | `modules/home/adapter.py` | nessuno (scheletro) | spento |
+| Robot | `modules/robot/adapter.py` | 7 strumenti robot | attivo |
+
+`build_module_registry()` in `amy/modules/registry.py` crea i registri; non li
+avvia. Il test `tests/test_module_adapters.py` verifica che l'unione degli
+strumenti dei moduli coincida esattamente con i 57 del registry esistente.
+
+Note:
+
+- `time.now` è stato spostato in `system.py` per coerenza; nome e comportamento
+  sono invariati.
+- `app.restart` appartiene al Developer, non a Mac Control.
+- Developer è `DEGRADED` se OpenCode è disattivato, `OFFLINE` se il binario manca.
+- Robot è `DEGRADED` se non riceve un link; con il simulatore è `READY`.
+- Home è vuoto e spento: nessun dispositivo o broker in questa fase.
+
+## 7. Cosa manca (Fase 3+)
 
 - Adapter dei moduli reali (`voice`, `mac_control`, `personal`, `memory`,
   `developer`, `vision`, `home`, `robot`).

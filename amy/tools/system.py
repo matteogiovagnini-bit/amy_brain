@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import time
+from datetime import datetime
 from typing import Any, Dict
 
 from ..core.restart import schedule_restart
@@ -29,6 +31,20 @@ def _top_processes(args: Dict[str, Any], context: ToolContext) -> ToolResult:
     )
 
 
+def _now(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    now = datetime.now().astimezone()
+    return ToolResult.success(
+        {
+            "iso": now.isoformat(timespec="seconds"),
+            "data": now.strftime("%A %d %B %Y"),
+            "ora": now.strftime("%H:%M"),
+            "timezone": str(now.tzinfo),
+            "epoch": int(time.time()),
+        },
+        "Sono le %s del %s." % (now.strftime("%H:%M"), now.strftime("%d/%m/%Y")),
+    )
+
+
 def _restart(args: Dict[str, Any], context: ToolContext) -> ToolResult:
     data = schedule_restart(float(args.get("delay_s", 10)))
     data["message"] = "Riavvio di Amy programmato tra %d secondi." % data["delay_s"]
@@ -39,6 +55,16 @@ def _open_settings(args: Dict[str, Any], context: ToolContext) -> ToolResult:
     result = open_system_settings(str(args.get("panel", "privacy")))
     return ToolResult.success(result, "Impostazioni di Sistema aperte.")
 
+
+
+NOW = ToolSpec(
+    name="time.now",
+    description="Restituisce data e ora locali correnti.",
+    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+    risk=RiskLevel.A,
+    reason="Lettura dell'orologio di sistema.",
+    tags=("sistema",),
+)
 
 APP_RESTART = ToolSpec(
     name="app.restart",
@@ -122,6 +148,7 @@ OPEN_SETTINGS = ToolSpec(
 
 def register(registry) -> None:
     registry.register(FunctionTool(APP_RESTART, _restart))
+    registry.register(FunctionTool(NOW, _now))
     registry.register(FunctionTool(SYSTEM_INFO, _system_info))
     registry.register(FunctionTool(BATTERY, _battery))
     registry.register(FunctionTool(TOP_PROCESSES, _top_processes))
