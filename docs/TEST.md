@@ -26,12 +26,12 @@ python3 -m amy memory sessions
 Data della verifica: **7 novembre 2026**.
 
 ```text
-Ran 450 tests in 24.2s
+Ran 462 tests in 29.6s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 450, tutti superati.
+`compileall` non produce errori. I test sono 462, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
@@ -49,11 +49,12 @@ OK
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
 | `tests/test_orchestrator.py` | 13 | turno, conferme, rifiuti, limite passaggi, audit, storia |
-| `tests/test_module_adapters.py` | 10 | otto moduli, unione dei 75 strumenti, enable/disable, stati reali, developer offline, robot senza link |
+| `tests/test_module_adapters.py` | 10 | otto moduli, unione dei 79 strumenti, enable/disable, stati reali, developer offline, robot senza link |
 | `tests/test_memory_extended.py` | 9 | categorie, ricerca, aggiornamento, scadenza, migrazione da facts, strumenti di memoria |
 | `tests/test_modules.py` | 7 | manifest, ciclo di vita, duplicati, errore isolato, moduli disabilitati, eventi |
 | `tests/test_opencode.py` | 7 | comando senza shell, sessione persistente, nuova sessione, directory fuori dalle radici rifiutata, rischio C |
 | `tests/test_restart.py` | 5 | helper staccato, rifiuto senza app nativa, limite del ritardo, rischio C |
+| `tests/test_dev_tools.py` | 10 | repository Git temporaneo: stato, modifiche, diff, percorso vietato, TODO, errori di sintassi, suite superata e fallita, livelli A/B |
 | `tests/test_personal_tools.py` | 5 | ciclo attività e note, scadenza non valida, livelli di rischio |
 | `tests/test_home_tools.py` | 10 | Smart Home spenta, elenco dispositivi, set/state con client finto, scene, dispositivo ignoto, broker assente, livelli A/B/C |
 | `tests/test_vision_camera.py` | 5 | telecamera spenta per default, cattura con mock, errore dichiarato, livello B, capacità `vision.camera` |
@@ -66,17 +67,17 @@ OK
 | `tests/test_screen.py` | 6 | cattura PNG, cattura vuota rifiutata, OCR e troncamento, immagine fuori dalle radici, rischio B |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 5 | heartbeat assente o scaduto: il backend si chiude solo se il processo padre è morto; con padre vivo resta attivo (App Nap) |
-| `tests/test_server.py` | 35 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header, `/api/calendar/upcoming` con calendario non leggibile e finestra limitata |
+| `tests/test_server.py` | 36 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header, `/api/calendar/upcoming` con calendario non leggibile e finestra limitata |
 | `tests/test_shell.py` | 5 | comandi ammessi, rifiuto arbitrario, git, timeout |
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
 | `tests/test_system_info.py` | 8 | dati locali reali, disco, nessun segreto o dato robot |
 | `tests/test_tts_cache.py` | 3 | elenco voci calcolato una sola volta; status non lancia `say -v ?` |
 | `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
-| `tests/test_ui_static.py` | 25 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
+| `tests/test_ui_static.py` | 26 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **450** | |
+| **Totale** | **462** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

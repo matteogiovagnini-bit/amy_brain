@@ -242,6 +242,10 @@ verificata; `vision.describe` non implementato; Smart Home con quattro strumenti
 
 ### Fase 8 — Developer Assistant nativo
 
+**Stato: completata il 7 novembre 2026.** `dev.status`, `dev.diff`, `dev.analyze`
+(A) e `dev.test` (B); pannello Progetto; 12 test nuovi; verifica reale sul
+repository. OpenCode invariato.
+
 **Obiettivo:** ridurre la dipendenza da OpenCode per le operazioni di sola lettura.
 
 Passi:

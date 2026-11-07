@@ -6,13 +6,14 @@ import shutil
 from typing import Any, List
 
 from ...shared.module import ModuleManifest, ModuleState, ModuleStatus
-from ...tools import opencode_tools, system
+from ...tools import dev_tools, opencode_tools, system
 from ..base import BaseAdapter, collect_tools, tool_names
 
 
 class DeveloperAdapter(BaseAdapter):
     def __init__(self) -> None:
-        tools: List[Any] = list(collect_tools(opencode_tools.register))
+        tools: List[Any] = list(collect_tools(dev_tools.register))
+        tools.extend(collect_tools(opencode_tools.register))
         tools.extend(
             tool
             for tool in collect_tools(system.register)
@@ -39,7 +40,7 @@ class DeveloperAdapter(BaseAdapter):
         if config is not None and not bool(config.get("opencode.enabled", False)):
             base.state = ModuleState.DEGRADED
             base.available = False
-            base.detail = "OpenCode disattivato nella configurazione"
+            base.detail = "OpenCode disattivato; analisi del progetto disponibile"
             return base
         binary = str((config.get("opencode.binary", "opencode2") if config is not None else "opencode2"))
         if not shutil.which(binary):

@@ -27,6 +27,7 @@
   // Il calendario interroga Calendar.app via AppleScript: si rilegge ogni
   // due minuti, non a ogni poll dello stato, e sempre su richiesta esplicita.
   const CALENDAR_POLL_MS = 120000;
+  const PROJECT_POLL_MS = 60000;
 
   const app = {
     sessionId: "",
@@ -45,6 +46,9 @@
     calendarTimer: 0,
     calendarLastFetch: 0,
     calendarLoading: false,
+    projectTimer: 0,
+    projectLastFetch: 0,
+    projectLoading: false,
     modulesTimer: 0,
     modulesLastFetch: 0,
     modulesLoading: false,
@@ -1076,6 +1080,54 @@
     }
   }
 
+  // --------------------------------------------------------------- progetto
+  function renderProject(payload) {
+    const statusResult = isObject(payload && payload.status) ? payload.status : {};
+    const diffResult = isObject(payload && payload.diff) ? payload.diff : {};
+    const status = isObject(statusResult.data) ? statusResult.data : {};
+    const diff = isObject(diffResult.data) ? diffResult.data : {};
+    const available = Boolean(payload && payload.available) && Boolean(statusResult.ok);
+    if (!available) {
+      tag("projectTag", "non disponibile", "muted");
+      text("projectBranch", "Non disponibile");
+      text("projectModified", "Non disponibile");
+      text("projectCommit", "Non disponibile");
+      const container = $("projectDiff");
+      if (container) container.textContent = String(
+        (statusResult.message || (payload && payload.error) || "Modulo Developer non disponibile.")
+      );
+      return;
+    }
+    const changes = Number(status.modified || 0) + Number(status.untracked || 0);
+    tag("projectTag", status.clean ? "pulito" : changes + " modifiche", status.clean ? "ok" : "warn");
+    text("projectBranch", status.branch || "non disponibile");
+    text("projectModified",
+      Number(status.modified || 0) + " modificati · " + Number(status.untracked || 0) + " non tracciati");
+    const commit = isObject(status.last_commit) ? status.last_commit : {};
+    text("projectCommit",
+      (commit.hash ? String(commit.hash) + " · " : "") + String(commit.subject || "non disponibile"));
+    const container = $("projectDiff");
+    if (!container) return;
+    const stat = String(diff.stat || "").trim();
+    container.textContent = stat || "Nessuna modifica da mostrare.";
+  }
+
+  async function loadProject(force) {
+    if (app.projectLoading) return;
+    const now = Date.now();
+    if (!force && app.projectLastFetch && now - app.projectLastFetch < PROJECT_POLL_MS) return;
+    app.projectLoading = true;
+    try {
+      const data = await api("/api/dev/status");
+      app.projectLastFetch = Date.now();
+      renderProject(data);
+    } catch (error) {
+      renderProject({ available: false, status: { ok: false, message: error.message } });
+    } finally {
+      app.projectLoading = false;
+    }
+  }
+
   // ---------------------------------------------------------------- moduli
   function moduleLabel(state) {
     const labels = {
@@ -1933,6 +1985,11 @@
       calendarRefreshButton.addEventListener("click", () => refreshCalendar(true));
     }
 
+    const projectRefreshButton = $("projectRefreshBtn");
+    if (projectRefreshButton) {
+      projectRefreshButton.addEventListener("click", () => loadProject(true));
+    }
+
     const speakToggle = $("speakToggle");
     if (speakToggle) {
       app.speak = readSetting(SPEAK_KEY) === "1";
@@ -1953,6 +2010,7 @@
       if (!document.hidden) {
         refreshState();
         refreshCalendar();
+        loadProject();
         ensureFastPoll();
       }
     });
@@ -1987,11 +2045,13 @@
     // Il calendario non blocca l'avvio: parte in background e ha un suo poll
     // lento, così la chat resta immediatamente utilizzabile.
     refreshCalendar(true);
+    loadProject(true);
     loadModules();
     loadPermissions();
     app.pollTimer = window.setInterval(refreshState, BASE_POLL_MS);
     app.modulesTimer = window.setInterval(loadModules, MODULES_POLL_MS);
     app.calendarTimer = window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS);
+    app.projectTimer = window.setInterval(() => loadProject(true), PROJECT_POLL_MS);
     ensureFastPoll();
   }
 

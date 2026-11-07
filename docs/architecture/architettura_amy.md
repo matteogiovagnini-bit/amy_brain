@@ -197,7 +197,7 @@ degli altri moduli.
 | 02 | **Mac Control** | app, file, sistema, shell chiusa, web, apertura documenti, OCR schermo | `amy/tools/{apps,files,shell,system,web}.py`, `amy/macos/*`, `screen_*` | funzionante | attivo |
 | 03 | **Personal Manager** | calendario, promemoria, mail, task, note, liste, agenda | `calendar_tools`, `reminders_tools`, `mail_tools`, `tasks_tools`, `notes_tools`, `PersonalManager` | completo (Fase 6) | attivo |
 | 04 | **Memory** | conversazione, fatti, progetti, operativa, ricerca, verifica | `memory/store.py`, `memory_tools.py` | parziale | attivo |
-| 05 | **Developer Assistant** | analisi codice, test, diff, refactoring, OpenCode | `opencode_tools.py`, `app.restart`, `shell git_*` | parziale (OpenCode esterno) | spento per OpenCode |
+| 05 | **Developer Assistant** | analisi codice, test, diff, refactoring, OpenCode | `dev/service.py`, `dev_tools.py`, `opencode_tools.py`, `app.restart` | nativo verificato; OpenCode per le modifiche | attivo; OpenCode opzionale |
 | 06 | **Vision** | OCR schermo, immagini, telecamera, descrizione scena | `screen.py`, `screen_tools.py`, `macos/camera.py`, `camera.swift` | OCR + telecamera verificata; describe assente | OCR attivo; camera spenta |
 | 07 | **Smart Home** | MQTT, dispositivi, sensori, luci, scene | `home/service.py`, `home_tools.py` | config e mock; nessun broker reale | spento |
 | 08 | **Robot Control** | protocollo, simulatore, MQTT, sicurezza, telecamera robot | `amy/robot/*`, `robot_tools.py` | simulatore verificato; hardware no | simulatore attivo |
@@ -234,7 +234,9 @@ degli altri moduli.
 
 ### 5.5 Developer Assistant
 - File target: `amy/modules/developer/`.
-- `dev.status` (git, test, dipendenze), `dev.diff`, `dev.test`, `dev.analyze`.
+- `dev.status`, `dev.diff` e `dev.analyze` sono livello A e non modificano file.
+- `dev.test` esegue la suite unittest con timeout e output limitato (B).
+- Comandi Git in lista chiusa, senza shell; percorso confinato al progetto.
 - `opencode.run` resta per le modifiche, con C e cartella autorizzata.
 - `app.restart` per caricare le modifiche.
 - Nessuna installazione invasiva senza consenso; nessun comando distruttivo.

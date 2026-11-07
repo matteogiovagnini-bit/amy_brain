@@ -692,6 +692,26 @@ class Assistant:
             voice=self.voice,
         )
 
+    def dev_status(self) -> Dict[str, Any]:
+        """Stato del progetto per la dashboard, in sola lettura (livello A)."""
+        if not self.modules.enabled("developer"):
+            return {"available": False, "error": "Modulo Developer disabilitato."}
+        context = self.tool_context()
+        payload: Dict[str, Any] = {"available": True}
+        for key, tool, args in (
+            ("status", "dev.status", {}),
+            ("diff", "dev.diff", {"stat_only": True}),
+        ):
+            try:
+                payload[key] = self.registry.execute(tool, args, context).to_dict()
+            except Exception as exc:  # noqa: BLE001 - la dashboard non deve rompersi
+                payload[key] = {
+                    "ok": False,
+                    "message": str(exc)[:300],
+                    "error_code": "dev_unavailable",
+                }
+        return payload
+
     def upcoming_events(self, *, days: int = 7, limit: int = 8) -> Dict[str, Any]:
         """Prossimi appuntamenti per la dashboard, letti con ``calendar.events``.
 

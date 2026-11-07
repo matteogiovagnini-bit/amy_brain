@@ -255,6 +255,23 @@
           <p class="hint">Crea e modifica attività e note chiedendolo ad Amy; qui vedi lo stato reale.</p>
         </section>
 
+        <section class="card" aria-labelledby="projectTitle">
+          <div class="card-title">
+            <h3 id="projectTitle">Progetto</h3>
+            <span class="tag" id="projectTag">Verifica…</span>
+          </div>
+          <dl class="data-list">
+            <dt>Ramo</dt><dd id="projectBranch">Non disponibile</dd>
+            <dt>Modifiche</dt><dd id="projectModified">Non disponibile</dd>
+            <dt>Ultimo commit</dt><dd id="projectCommit">Non disponibile</dd>
+          </dl>
+          <pre class="diff-stat" id="projectDiff" aria-live="polite">Nessun dato.</pre>
+          <div class="card-actions">
+            <button class="ghost" id="projectRefreshBtn" type="button" aria-describedby="projectNote">Aggiorna</button>
+          </div>
+          <p class="hint" id="projectNote">Sola lettura: ramo, modifiche e diff. Per eseguire i test chiedilo ad Amy.</p>
+        </section>
+
         <section class="card" aria-labelledby="modulesTitle">
           <div class="card-title">
             <h3 id="modulesTitle">Moduli</h3>

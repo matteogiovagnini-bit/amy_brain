@@ -171,6 +171,11 @@ python3 -m amy config path   # percorso del file in uso
     "describe": false,
     "max_chars": 8000
   },
+  "dev": {
+    "project_dir": "",
+    "test_timeout_s": 300,
+    "max_output_chars": 6000
+  },
   "home": {
     "enabled": false,
     "broker": "",
@@ -536,6 +541,17 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   Calendar non è raggiungibile il pannello dichiara l'errore.
 - `reminders.default_list` (default vuoto = prima lista disponibile) sceglie la lista
   usata da `reminders.create`, `reminders.complete` e `reminders.delete`.
+
+### Developer Assistant
+
+- `dev.project_dir` (default vuoto = radice del pacchetto Amy) è il progetto su
+  cui operano `dev.status`, `dev.diff`, `dev.analyze` e `dev.test`. Deve stare
+  nelle radici autorizzate della policy dei percorsi.
+- `dev.test_timeout_s` (default 300, massimo 900) limita l'esecuzione della suite.
+- `dev.max_output_chars` (default 6000) limita diff e output dei test.
+- Gli strumenti leggono il progetto con comandi Git in lista chiusa e con la
+  libreria standard: nessuna shell arbitraria. `dev.test` è livello B; le
+  modifiche restano a OpenCode, livello C.
 
 ### Visione e telecamera
 

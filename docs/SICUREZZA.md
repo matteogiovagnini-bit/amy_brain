@@ -212,6 +212,18 @@ dell'utente.
 - Le credenziali del broker si leggono da una variabile d'ambiente indicata in
   `home.password_env`; non compaiono nella configurazione, nei log o nei prompt.
 
+## 5.6 Developer nativo
+
+- `dev.status`, `dev.diff` e `dev.analyze` sono livello **A**: leggono ramo,
+  modifiche, diff e file del progetto senza scrivere nulla.
+- `dev.test` è livello **B**: esegue la suite del progetto e quindi codice locale;
+  richiede conferma e ha un timeout finito.
+- I comandi Git sono una lista chiusa, avviati senza `shell=True`. I percorsi
+  richiesti devono restare dentro la cartella del progetto e dentro le radici
+  autorizzate.
+- OpenCode resta l'unico strumento che può modificare il codice ed è livello C.
+  `dev.*` non sostituisce la conferma delle modifiche.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:

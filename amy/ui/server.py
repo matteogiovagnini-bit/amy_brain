@@ -175,6 +175,8 @@ class AmyHandler(BaseHTTPRequestHandler):
                 self._send_json({"activities": self.assistant.memory.list_activities(50)})
             elif path == "/api/robot/events":
                 self._send_json({"events": self.assistant.memory.list_robot_events(50)})
+            elif path == "/api/dev/status":
+                self._send_json(self.assistant.dev_status())
             elif path == "/api/calendar/upcoming":
                 query = parse_qs(parsed.query)
                 raw_days = (query.get("days") or [""])[0]

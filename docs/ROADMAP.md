@@ -31,7 +31,7 @@ concretamente utilizzabile non entra in roadmap come requisito.
 - Shell a enum chiuso.
 - Web con protezione SSRF.
 - Audit append-only.
-- 75 strumenti macOS, file, web, memoria, voce, robot, Vision e Smart Home opzionali.
+- 79 strumenti macOS, file, web, memoria, voce, robot, Vision, Smart Home e analisi del progetto.
 
 ## Fase 3 — Interfaccia (completata per uso locale)
 

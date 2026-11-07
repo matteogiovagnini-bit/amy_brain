@@ -266,6 +266,24 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("renderPersonal", js)
         self.assertNotIn("innerHTML", js)
 
+    def test_project_panel_is_read_only(self) -> None:
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        for marker in (
+            "projectTitle",
+            "projectTag",
+            "projectBranch",
+            "projectModified",
+            "projectCommit",
+            "projectDiff",
+            "projectRefreshBtn",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("renderProject", js)
+        self.assertIn("/api/dev/status", js)
+        self.assertIn("loadProject", js)
+        self.assertNotIn("innerHTML", js)
+
     def test_permissions_panel_can_revoke_and_restore(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         js = (STATIC / "app.js").read_text(encoding="utf-8")

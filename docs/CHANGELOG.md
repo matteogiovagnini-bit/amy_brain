@@ -7,6 +7,15 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Developer Assistant nativo (Fase 8).** `dev.status`, `dev.diff` e
+  `dev.analyze` leggono ramo, modifiche, diff, file, TODO/FIXME ed errori di
+  sintassi senza modificare nulla (A). `dev.test` esegue la suite con timeout e
+  output limitato (B). Comandi Git in lista chiusa, nessuna shell arbitraria e
+  percorso confinato al progetto. OpenCode resta per le modifiche (C).
+- Pannello «Progetto» nella dashboard con ramo, modifiche, ultimo commit e diff
+  statistico in sola lettura.
+- 12 test nuovi (462 totali, 79 strumenti). Verifica reale su questo repository:
+  stato, diff, analisi di `amy/dev` e 462 test eseguiti.
 - **Vision e Smart Home opzionali (Fase 7).**
   - `vision.capture` (B) cattura un fotogramma dalla telecamera predefinita tramite
     AVFoundation; è spento per default (`vision.camera = false`) e salva in

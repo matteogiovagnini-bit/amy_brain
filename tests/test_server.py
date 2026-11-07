@@ -164,6 +164,14 @@ class ServerTests(unittest.TestCase):
             self.call("POST", "/api/modules/memory/enabled", {"enabled": False})
         self.assertEqual(context.exception.code, 400)
 
+    def test_dev_status_endpoint_is_read_only(self) -> None:
+        response, data = self.call("GET", "/api/dev/status")
+        self.assertEqual(response.status, 200)
+        self.assertIn("available", data)
+        self.assertIn("status", data)
+        self.assertIn("diff", data)
+        self.assertIsInstance(data["status"], dict)
+
     def test_permissions_endpoint_and_revocation(self) -> None:
         _, data = self.call("GET", "/api/permissions")
         capabilities = {item["capability"] for item in data["capabilities"]}

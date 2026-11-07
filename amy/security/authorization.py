@@ -72,6 +72,8 @@ def capability_for_tool(tool_name: str) -> str:
         return "memory.delete"
     if name.startswith("memory."):
         return "memory.write"
+    if name.startswith("dev."):
+        return "dev.execute" if name == "dev.test" else "dev.read"
     if name.startswith("opencode."):
         return "dev.execute"
     if name == "app.restart":

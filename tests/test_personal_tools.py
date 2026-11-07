@@ -82,7 +82,7 @@ class PersonalToolsTests(unittest.TestCase):
         self.assertEqual(notes_tools.NOTES_LIST.risk, RiskLevel.A)
 
     def test_tool_count_includes_personal_tools(self) -> None:
-        self.assertEqual(len(self.registry.names()), 75)
+        self.assertEqual(len(self.registry.names()), 79)
 
 
 if __name__ == "__main__":
