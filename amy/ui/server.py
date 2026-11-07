@@ -175,6 +175,14 @@ class AmyHandler(BaseHTTPRequestHandler):
                 self._send_json({"activities": self.assistant.memory.list_activities(50)})
             elif path == "/api/robot/events":
                 self._send_json({"events": self.assistant.memory.list_robot_events(50)})
+            elif path == "/api/logs":
+                query = parse_qs(parsed.query)
+                raw_limit = (query.get("limit") or [""])[0]
+                try:
+                    limit = int(raw_limit) if raw_limit else 100
+                except ValueError:
+                    limit = 100
+                self._send_json(self.assistant.recent_logs(limit=max(1, min(limit, 300))))
             elif path == "/api/dev/status":
                 self._send_json(self.assistant.dev_status())
             elif path == "/api/calendar/upcoming":

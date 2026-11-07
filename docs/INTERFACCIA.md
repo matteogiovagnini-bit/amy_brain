@@ -196,7 +196,11 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
   toggle è a runtime: al riavvio i moduli tornano abilitati.
 - Il pannello **Progetto** legge `GET /api/dev/status`: mostra ramo, modifiche,
   ultimo commit e diff statistico. Non esegue test e non modifica file; il
-  pulsante «Aggiorna» ripete la sola lettura.
+  pulsante «Aggiorna» ripete la sola lettura. Il codice vive in `static/project.js`,
+  caricato prima di `app.js`.
+- Il pannello **Log recenti** legge `GET /api/logs`: mostra le ultime righe del
+  solo file configurato in `logging.file`, già redatte. Non accetta percorsi
+  arbitrari e non espone segreti.
 - Il pannello **Attività e note** legge i campi `tasks` e `notes` di
   `GET /api/state`: mostra le attività con stato, priorità e scadenza e le note
   recenti. Creazione e modifica avvengono tramite gli strumenti di Amy.
@@ -332,7 +336,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**462 test, tutti superati**. La verifica **visiva a mano** nella finestra
+**465 test, tutti superati**. La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

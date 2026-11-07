@@ -26,12 +26,12 @@ python3 -m amy memory sessions
 Data della verifica: **7 novembre 2026**.
 
 ```text
-Ran 462 tests in 29.6s
+Ran 465 tests in 27.9s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 462, tutti superati.
+`compileall` non produce errori. I test sono 465, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
@@ -67,17 +67,17 @@ OK
 | `tests/test_screen.py` | 6 | cattura PNG, cattura vuota rifiutata, OCR e troncamento, immagine fuori dalle radici, rischio B |
 | `tests/test_schema.py` | 8 | schema JSON, tipi, argomenti, campi extra |
 | `tests/test_server_watchdog.py` | 5 | heartbeat assente o scaduto: il backend si chiude solo se il processo padre è morto; con padre vivo resta attivo (App Nap) |
-| `tests/test_server.py` | 36 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header, `/api/calendar/upcoming` con calendario non leggibile e finestra limitata |
+| `tests/test_server.py` | 38 | API, conferme, stato con sistema e voce, endpoint wake word (incluso il rifiuto onesto con microfono bloccato), conferma vocale sì/no, bind remoto, header, `/api/calendar/upcoming` con calendario non leggibile e finestra limitata |
 | `tests/test_shell.py` | 5 | comandi ammessi, rifiuto arbitrario, git, timeout |
 | `tests/test_simulator.py` | 12 | limiti, ACK/NACK, watchdog, E-stop, deduplicazione, modalità |
 | `tests/test_system_info.py` | 8 | dati locali reali, disco, nessun segreto o dato robot |
 | `tests/test_tts_cache.py` | 3 | elenco voci calcolato una sola volta; status non lancia `say -v ?` |
 | `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
-| `tests/test_ui_static.py` | 26 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
+| `tests/test_ui_static.py` | 27 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **462** | |
+| **Totale** | **465** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

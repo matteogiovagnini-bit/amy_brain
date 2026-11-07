@@ -1336,6 +1336,22 @@ kbd {
   overflow-wrap: anywhere;
 }
 
+.log-view {
+  max-height: 180px;
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--dim);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .diff-stat {
   max-height: 140px;
   margin: 12px 0 0;

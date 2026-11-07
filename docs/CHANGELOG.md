@@ -7,6 +7,14 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Dashboard e documentazione finale (Fase 9).** Pannello «Log recenti» con
+  `GET /api/logs`: legge solo il file configurato, limita le righe e redige i
+  segreti. Primo split di `app.js`: il pannello Progetto vive in
+  `static/project.js`, caricato localmente prima di `app.js`, senza bundler.
+  Creata la sintesi `docs/knowledge/stato_corrente.md`.
+- 3 test nuovi (465 totali, 79 strumenti). Verifica finale con suite, doctor e
+  self-test nativo.
+
 - **Developer Assistant nativo (Fase 8).** `dev.status`, `dev.diff` e
   `dev.analyze` leggono ramo, modifiche, diff, file, TODO/FIXME ed errori di
   sintassi senza modificare nulla (A). `dev.test` esegue la suite con timeout e

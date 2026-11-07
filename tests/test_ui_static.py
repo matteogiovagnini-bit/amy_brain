@@ -269,6 +269,7 @@ class StaticUiTests(unittest.TestCase):
     def test_project_panel_is_read_only(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         js = (STATIC / "app.js").read_text(encoding="utf-8")
+        module = (STATIC / "project.js").read_text(encoding="utf-8")
         for marker in (
             "projectTitle",
             "projectTag",
@@ -280,8 +281,19 @@ class StaticUiTests(unittest.TestCase):
         ):
             self.assertIn(marker, html)
         self.assertIn("renderProject", js)
-        self.assertIn("/api/dev/status", js)
-        self.assertIn("loadProject", js)
+        self.assertIn("/api/dev/status", module)
+        self.assertIn("window.AmyProject", module)
+        self.assertLess(html.index("/static/project.js"), html.index("/static/app.js"))
+        self.assertNotIn("innerHTML", js)
+        self.assertNotIn("innerHTML", module)
+
+    def test_log_panel_reads_only_the_local_file(self) -> None:
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        for marker in ("logTitle", "logTag", "logView", "logRefreshBtn"):
+            self.assertIn(marker, html)
+        self.assertIn("/api/logs?limit=", js)
+        self.assertIn("renderLogs", js)
         self.assertNotIn("innerHTML", js)
 
     def test_permissions_panel_can_revoke_and_restore(self) -> None:

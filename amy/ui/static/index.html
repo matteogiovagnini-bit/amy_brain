@@ -272,6 +272,18 @@
           <p class="hint" id="projectNote">Sola lettura: ramo, modifiche e diff. Per eseguire i test chiedilo ad Amy.</p>
         </section>
 
+        <section class="card" aria-labelledby="logTitle">
+          <div class="card-title">
+            <h3 id="logTitle">Log recenti</h3>
+            <span class="tag" id="logTag">Verifica…</span>
+          </div>
+          <pre class="log-view" id="logView" aria-live="polite">Nessun dato.</pre>
+          <div class="card-actions">
+            <button class="ghost" id="logRefreshBtn" type="button" aria-describedby="logNote">Aggiorna</button>
+          </div>
+          <p class="hint" id="logNote">Solo il file di log locale, già redatto: nessun segreto e nessun percorso arbitrario.</p>
+        </section>
+
         <section class="card" aria-labelledby="modulesTitle">
           <div class="card-title">
             <h3 id="modulesTitle">Moduli</h3>
@@ -361,6 +373,7 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <script src="/static/project.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

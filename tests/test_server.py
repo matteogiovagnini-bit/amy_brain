@@ -164,6 +164,31 @@ class ServerTests(unittest.TestCase):
             self.call("POST", "/api/modules/memory/enabled", {"enabled": False})
         self.assertEqual(context.exception.code, 400)
 
+    def test_logs_endpoint_redacts_secrets(self) -> None:
+        log_path = self.temp.home / "amy.log"
+        log_path.write_text(
+            json.dumps({
+                "ts": "2026-11-07T15:00:00",
+                "level": "INFO",
+                "logger": "amy.test",
+                "msg": "token sk-1234567890 e Authorization: Bearer abcdef123456",
+            }) + "\n",
+            encoding="utf-8",
+        )
+        response, data = self.call("GET", "/api/logs?limit=10")
+        self.assertEqual(response.status, 200)
+        self.assertTrue(data["available"])
+        joined = "\n".join(data["lines"])
+        self.assertIn("[REDATTO]", joined)
+        self.assertNotIn("sk-1234567890", joined)
+        self.assertNotIn("abcdef123456", joined)
+
+    def test_logs_endpoint_without_file_is_honest(self) -> None:
+        response, data = self.call("GET", "/api/logs")
+        self.assertEqual(response.status, 200)
+        self.assertIn("available", data)
+        self.assertIsInstance(data["lines"], list)
+
     def test_dev_status_endpoint_is_read_only(self) -> None:
         response, data = self.call("GET", "/api/dev/status")
         self.assertEqual(response.status, 200)

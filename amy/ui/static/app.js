@@ -28,6 +28,7 @@
   // due minuti, non a ogni poll dello stato, e sempre su richiesta esplicita.
   const CALENDAR_POLL_MS = 120000;
   const PROJECT_POLL_MS = 60000;
+  const LOG_POLL_MS = 60000;
 
   const app = {
     sessionId: "",
@@ -49,6 +50,9 @@
     projectTimer: 0,
     projectLastFetch: 0,
     projectLoading: false,
+    logTimer: 0,
+    logLastFetch: 0,
+    logLoading: false,
     modulesTimer: 0,
     modulesLastFetch: 0,
     modulesLoading: false,
@@ -1080,52 +1084,48 @@
     }
   }
 
-  // --------------------------------------------------------------- progetto
-  function renderProject(payload) {
-    const statusResult = isObject(payload && payload.status) ? payload.status : {};
-    const diffResult = isObject(payload && payload.diff) ? payload.diff : {};
-    const status = isObject(statusResult.data) ? statusResult.data : {};
-    const diff = isObject(diffResult.data) ? diffResult.data : {};
-    const available = Boolean(payload && payload.available) && Boolean(statusResult.ok);
-    if (!available) {
-      tag("projectTag", "non disponibile", "muted");
-      text("projectBranch", "Non disponibile");
-      text("projectModified", "Non disponibile");
-      text("projectCommit", "Non disponibile");
-      const container = $("projectDiff");
-      if (container) container.textContent = String(
-        (statusResult.message || (payload && payload.error) || "Modulo Developer non disponibile.")
-      );
-      return;
-    }
-    const changes = Number(status.modified || 0) + Number(status.untracked || 0);
-    tag("projectTag", status.clean ? "pulito" : changes + " modifiche", status.clean ? "ok" : "warn");
-    text("projectBranch", status.branch || "non disponibile");
-    text("projectModified",
-      Number(status.modified || 0) + " modificati · " + Number(status.untracked || 0) + " non tracciati");
-    const commit = isObject(status.last_commit) ? status.last_commit : {};
-    text("projectCommit",
-      (commit.hash ? String(commit.hash) + " · " : "") + String(commit.subject || "non disponibile"));
-    const container = $("projectDiff");
+  // -------------------------------------------------------------------- log
+  function renderLogs(payload) {
+    const available = Boolean(payload && payload.available);
+    const lines = Array.isArray(payload && payload.lines) ? payload.lines : [];
+    tag("logTag", available ? lines.length + " righe" : "non disponibile", available ? "ok" : "warn");
+    const container = $("logView");
     if (!container) return;
-    const stat = String(diff.stat || "").trim();
-    container.textContent = stat || "Nessuna modifica da mostrare.";
+    if (lines.length) {
+      container.textContent = lines.join("\n");
+    } else {
+      container.textContent = String(
+        (payload && payload.error) || "Nessuna riga di log."
+      );
+    }
   }
 
-  async function loadProject(force) {
-    if (app.projectLoading) return;
-    const now = Date.now();
-    if (!force && app.projectLastFetch && now - app.projectLastFetch < PROJECT_POLL_MS) return;
-    app.projectLoading = true;
+  async function loadLogs() {
+    if (app.logLoading) return;
+    app.logLoading = true;
     try {
-      const data = await api("/api/dev/status");
-      app.projectLastFetch = Date.now();
-      renderProject(data);
+      const data = await api("/api/logs?limit=100");
+      app.logLastFetch = Date.now();
+      renderLogs(data);
     } catch (error) {
-      renderProject({ available: false, status: { ok: false, message: error.message } });
+      renderLogs({ available: false, error: error.message });
     } finally {
-      app.projectLoading = false;
+      app.logLoading = false;
     }
+  }
+
+  // --------------------------------------------------------------- progetto
+  function projectUi() {
+    return { app: app, api: api, $: $, text: text, tag: tag, isObject: isObject };
+  }
+
+  function renderProject(payload) {
+    if (window.AmyProject) window.AmyProject.render(payload, projectUi());
+  }
+
+  function loadProject(force) {
+    if (!window.AmyProject) return Promise.resolve();
+    return window.AmyProject.load(Boolean(force), projectUi());
   }
 
   // ---------------------------------------------------------------- moduli
@@ -1990,6 +1990,11 @@
       projectRefreshButton.addEventListener("click", () => loadProject(true));
     }
 
+    const logRefreshButton = $("logRefreshBtn");
+    if (logRefreshButton) {
+      logRefreshButton.addEventListener("click", () => loadLogs());
+    }
+
     const speakToggle = $("speakToggle");
     if (speakToggle) {
       app.speak = readSetting(SPEAK_KEY) === "1";
@@ -2011,6 +2016,7 @@
         refreshState();
         refreshCalendar();
         loadProject();
+        loadLogs();
         ensureFastPoll();
       }
     });
@@ -2046,12 +2052,14 @@
     // lento, così la chat resta immediatamente utilizzabile.
     refreshCalendar(true);
     loadProject(true);
+    loadLogs();
     loadModules();
     loadPermissions();
     app.pollTimer = window.setInterval(refreshState, BASE_POLL_MS);
     app.modulesTimer = window.setInterval(loadModules, MODULES_POLL_MS);
     app.calendarTimer = window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS);
     app.projectTimer = window.setInterval(() => loadProject(true), PROJECT_POLL_MS);
+    app.logTimer = window.setInterval(loadLogs, LOG_POLL_MS);
     ensureFastPoll();
   }
 

@@ -16,6 +16,7 @@ import threading
 import time
 import uuid
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .. import __version__
@@ -24,7 +25,7 @@ from ..ai.factory import build_provider
 from ..core.config import Config
 from ..core.errors import AIError, AmyError, ToolError, ToolValidationError
 from ..core.modules import ModuleError
-from ..core.logging_setup import get_logger, redact
+from ..core.logging_setup import get_logger, redact, redact_text
 from ..core.prompts import build_system_prompt, format_tool_result
 from ..core.system_info import collect_system_info
 from ..memory.store import MemoryStore
@@ -711,6 +712,46 @@ class Assistant:
                     "error_code": "dev_unavailable",
                 }
         return payload
+
+    def recent_logs(self, *, limit: int = 100) -> Dict[str, Any]:
+        """Ultime righe del log locale, già redatte.
+
+        Legge solo il file configurato in ``logging.file``: nessun percorso
+        arbitrario può essere richiesto dalla dashboard.
+        """
+        limit = max(1, min(int(limit), 300))
+        path = Path(str(self.config.get("logging.file", "~/.amy/amy.log"))).expanduser()
+        if not path.is_file():
+            return {"available": False, "path": str(path), "lines": [], "error": "File di log non trovato."}
+        try:
+            raw = path.read_text(encoding="utf-8", errors="replace")
+        except OSError as exc:
+            return {"available": False, "path": str(path), "lines": [], "error": str(exc)[:200]}
+        rows = raw.splitlines()[-limit:]
+        lines = []
+        for row in rows:
+            try:
+                item = json.loads(row)
+            except ValueError:
+                item = None
+            if isinstance(item, dict):
+                lines.append(
+                    redact_text(("%s  %-7s %s  %s" % (
+                        str(item.get("ts", ""))[:19],
+                        str(item.get("level", ""))[:7],
+                        str(item.get("logger", "")),
+                        str(item.get("msg", ""))[:500],
+                    )).rstrip())
+                )
+            else:
+                lines.append(redact_text(row)[:500])
+        return {
+            "available": True,
+            "path": str(path),
+            "lines": lines,
+            "count": len(lines),
+            "truncated": len(raw.splitlines()) > limit,
+        }
 
     def upcoming_events(self, *, days: int = 7, limit: int = 8) -> Dict[str, Any]:
         """Prossimi appuntamenti per la dashboard, letti con ``calendar.events``.

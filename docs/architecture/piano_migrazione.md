@@ -261,6 +261,10 @@ Passi:
 
 ### Fase 9 — Dashboard e documentazione finale
 
+**Stato: completata il 7 novembre 2026.** Pannello log, primo split di `app.js`
+in `static/project.js`, sintesi `docs/knowledge/stato_corrente.md`, documentazione
+allineata e verifica finale con 465 test.
+
 1. Pannello moduli completo, log, permessi, memoria, provider.
 2. Split graduale di `app.js` in moduli locali (senza bundler).
 3. Aggiornare `STATO_PROGETTO`, `CHANGELOG`, `TEST`, `CONTROLLO_MAC`,
