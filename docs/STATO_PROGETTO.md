@@ -17,12 +17,17 @@ ciò che è solo pianificato.
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 425 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
+| Test | 435 test, tutti superati, più il self-test dell'app nativa (verificato il 2 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
 ## 2. Implementato e verificato
 
+- Architettura (Fase 6): Personal Manager completo con `calendar.update` (B),
+  attività e note persistenti (`tasks.create/list/update/complete/delete`,
+  `notes.create/list/update/delete`). Agenda unica in `PersonalManager.agenda()`;
+  la dashboard mostra attività e note reali. Verificato il 7 novembre 2026 con un
+  evento creato, spostato, riletto e rimosso.
 - Architettura (Fase 5): memoria estesa con `memory_items` (categorie, tag,
   `verified`, `confidence`, scadenza) e tabelle `tasks`/`notes` pronte per la fase
   successiva. I `facts` esistenti sono migrati una volta sola, senza cancellarli;
@@ -80,7 +85,7 @@ ciò che è solo pianificato.
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 60 strumenti registrati e validati.
+- 70 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -175,7 +180,7 @@ ciò che è solo pianificato.
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 425 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 435 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

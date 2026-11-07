@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from ..core.logging_setup import get_logger
-from ..macos import create_event, delete_event, list_calendars, list_events
+from ..macos import create_event, delete_event, list_calendars, list_events, update_event
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
 
@@ -59,6 +59,22 @@ def _delete_event(args: Dict[str, Any], context: ToolContext) -> ToolResult:
         default_calendar=_default_calendar(context),
     )
     return ToolResult.success(data, "Evento eliminato dal calendario %s." % data["calendar"])
+
+
+def _update_event(args: Dict[str, Any], context: ToolContext) -> ToolResult:
+    data = update_event(
+        uid=str(args.get("uid", "") or ""),
+        title=str(args.get("title", "") or ""),
+        date=str(args.get("date", "") or ""),
+        new_title=str(args.get("new_title", "") or ""),
+        start=str(args.get("start", "") or ""),
+        duration_minutes=int(args.get("duration_minutes", 60)),
+        calendar_name=str(args.get("calendar", "") or ""),
+        default_calendar=_default_calendar(context),
+        notes=args.get("notes"),
+        location=args.get("location"),
+    )
+    return ToolResult.success(data, "Evento aggiornato nel calendario %s." % data["calendar"])
 
 
 def _create_event(args: Dict[str, Any], context: ToolContext) -> ToolResult:
@@ -281,8 +297,40 @@ def collect_upcoming(
     }
 
 
+
+
+CALENDAR_UPDATE = ToolSpec(
+    name="calendar.update",
+    description=(
+        "Modifica un evento esistente: titolo, data/ora, durata, note o luogo. "
+        "Indica l'UID oppure il titolo e la data (YYYY-MM-DD)."
+    ),
+    parameters={
+        "type": "object",
+        "properties": {
+            "uid": {"type": "string", "maxLength": 200},
+            "title": {"type": "string", "maxLength": 200},
+            "date": {"type": "string", "maxLength": 40},
+            "new_title": {"type": "string", "maxLength": 200},
+            "start": {"type": "string", "maxLength": 40},
+            "duration_minutes": {"type": "integer", "minimum": 5, "maximum": 1440},
+            "calendar": {"type": "string", "maxLength": 100},
+            "notes": {"type": "string", "maxLength": 2000},
+            "location": {"type": "string", "maxLength": 300},
+        },
+        "additionalProperties": False,
+    },
+    risk=RiskLevel.B,
+    reason="Modifica di un evento esistente nel calendario.",
+    consequences="L'evento cambia in Calendar e, se sincronizzato, sugli altri dispositivi.",
+    undo="Ripeti calendar.update con i valori precedenti.",
+    timeout_s=45.0,
+    tags=("macos", "calendario", "scrittura"),
+)
+
 def register(registry) -> None:
     registry.register(FunctionTool(CALENDAR_LIST, _list_calendars))
     registry.register(FunctionTool(CALENDAR_EVENTS, _list_events))
     registry.register(FunctionTool(CALENDAR_CREATE, _create_event))
+    registry.register(FunctionTool(CALENDAR_UPDATE, _update_event))
     registry.register(FunctionTool(CALENDAR_DELETE, _delete_event))

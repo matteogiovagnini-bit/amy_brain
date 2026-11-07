@@ -8,6 +8,7 @@ from .calendar import (
     list_events,
     parse_start,
     resolve_calendar,
+    update_event,
 )
 from .screen import (
     ScreenError,

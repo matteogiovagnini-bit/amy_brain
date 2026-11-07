@@ -18,6 +18,18 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.14.0] — 2026-11-07
+
+### Aggiunto
+
+- **Personal Manager completo (Fase 6).** `calendar.update` modifica titolo, ora,
+  durata, note e luogo di un evento (B). Attività e note persistenti con
+  `tasks.create/list/update/complete/delete` e `notes.create/list/update/delete`
+  (B per le scritture, C per le cancellazioni). Agenda unica in
+  `PersonalManager.agenda()`.
+- Pannello «Attività e note» nella dashboard con stato reale.
+- 10 test nuovi (435 totali, 70 strumenti). Verifica reale di calendar.update.
+
 ## [0.13.0] — 2026-11-07
 
 ### Aggiunto

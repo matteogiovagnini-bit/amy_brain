@@ -202,6 +202,8 @@ tornare alla lettura dei fatti.
 
 ### Fase 6 — Personal Manager completo
 
+**Stato: completata il 7 novembre 2026** (calendar.update, task, note, agenda, pannello UI; 10 test).
+
 **Obiettivo:** agenda unificata, task, note, modifiche eventi.
 
 Passi:

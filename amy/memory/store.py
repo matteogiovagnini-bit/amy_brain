@@ -459,6 +459,143 @@ class MemoryStore:
             ).fetchall()
         return [{"category": row["category"], "count": int(row["count"])} for row in rows]
 
+    # ------------------------------------------------------------ task e note
+    def add_task(
+        self,
+        title: str,
+        *,
+        priority: str = "normale",
+        due_at: Optional[str] = None,
+        list_name: str = "",
+        status: str = "aperta",
+    ) -> int:
+        title = str(title or "").strip()[:300]
+        if not title:
+            raise ValueError("Il titolo del task non può essere vuoto.")
+        now = utc_now()
+        with self._lock:
+            cursor = self._conn.execute(
+                """
+                INSERT INTO tasks(title, status, priority, due_at, list_name, created_at, updated_at)
+                VALUES(?,?,?,?,?,?,?)
+                """,
+                (
+                    title,
+                    str(status)[:30],
+                    str(priority)[:30],
+                    due_at,
+                    str(list_name)[:100],
+                    now,
+                    now,
+                ),
+            )
+            self._conn.commit()
+            return int(cursor.lastrowid)
+
+    def list_tasks(
+        self,
+        *,
+        status: Optional[str] = None,
+        list_name: Optional[str] = None,
+        limit: int = 100,
+    ) -> List[Dict[str, Any]]:
+        clauses = []
+        params: List[Any] = []
+        if status:
+            clauses.append("status=?")
+            params.append(str(status))
+        if list_name:
+            clauses.append("list_name=?")
+            params.append(str(list_name))
+        where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+        params.append(max(1, min(int(limit), 1000)))
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM tasks" + where + " ORDER BY "
+                "CASE WHEN due_at IS NULL THEN 1 ELSE 0 END, due_at, id DESC LIMIT ?",
+                tuple(params),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def update_task(self, task_id: int, **fields: Any) -> bool:
+        allowed = {"title", "status", "priority", "due_at", "list_name", "completed_at"}
+        values = {key: value for key, value in fields.items() if key in allowed}
+        if not values:
+            return False
+        values["updated_at"] = utc_now()
+        assignments = ", ".join("%s=?" % key for key in values)
+        params = list(values.values()) + [int(task_id)]
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE tasks SET " + assignments + " WHERE id=?", tuple(params)
+            )
+            self._conn.commit()
+            return cursor.rowcount > 0
+
+    def complete_task(self, task_id: int) -> bool:
+        return self.update_task(
+            task_id,
+            status="completata",
+            completed_at=utc_now(),
+        )
+
+    def delete_task(self, task_id: int) -> bool:
+        with self._lock:
+            cursor = self._conn.execute("DELETE FROM tasks WHERE id=?", (int(task_id),))
+            self._conn.commit()
+            return cursor.rowcount > 0
+
+    def add_note(self, body: str, *, title: str = "", tags: str = "") -> int:
+        body = str(body or "").strip()[:20000]
+        if not body:
+            raise ValueError("La nota è vuota.")
+        now = utc_now()
+        with self._lock:
+            cursor = self._conn.execute(
+                "INSERT INTO notes(title, body, tags, created_at, updated_at) VALUES(?,?,?,?,?)",
+                (str(title or "")[:200], body, str(tags or "")[:500], now, now),
+            )
+            self._conn.commit()
+            return int(cursor.lastrowid)
+
+    def list_notes(self, limit: int = 100) -> List[Dict[str, Any]]:
+        with self._lock:
+            rows = self._conn.execute(
+                "SELECT * FROM notes ORDER BY updated_at DESC, id DESC LIMIT ?",
+                (max(1, min(int(limit), 1000)),),
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def update_note(self, note_id: int, *, title: Optional[str] = None, body: Optional[str] = None, tags: Optional[str] = None) -> bool:
+        fields = []
+        params: List[Any] = []
+        if title is not None:
+            fields.append("title=?")
+            params.append(str(title)[:200])
+        if body is not None:
+            fields.append("body=?")
+            params.append(str(body)[:20000])
+        if tags is not None:
+            fields.append("tags=?")
+            params.append(str(tags)[:500])
+        if not fields:
+            return False
+        fields.append("updated_at=?")
+        params.append(utc_now())
+        params.append(int(note_id))
+        with self._lock:
+            cursor = self._conn.execute(
+                "UPDATE notes SET " + ", ".join(fields) + " WHERE id=?", tuple(params)
+            )
+            self._conn.commit()
+            return cursor.rowcount > 0
+
+    def delete_note(self, note_id: int) -> bool:
+        with self._lock:
+            cursor = self._conn.execute("DELETE FROM notes WHERE id=?", (int(note_id),))
+            self._conn.commit()
+            return cursor.rowcount > 0
+
     # ----------------------------------------------------------------- attività
     def start_activity(
         self,
@@ -543,6 +680,8 @@ class MemoryStore:
             activities = self._conn.execute("SELECT COUNT(*) FROM activities").fetchone()[0]
             facts = self._conn.execute("SELECT COUNT(*) FROM facts").fetchone()[0]
             memory_items = self._conn.execute("SELECT COUNT(*) FROM memory_items").fetchone()[0]
+            tasks = self._conn.execute("SELECT COUNT(*) FROM tasks").fetchone()[0]
+            notes = self._conn.execute("SELECT COUNT(*) FROM notes").fetchone()[0]
             categories = self._conn.execute("SELECT COUNT(DISTINCT category) FROM memory_items").fetchone()[0]
             sessions = self._conn.execute("SELECT COUNT(*) FROM sessions").fetchone()[0]
         return {
@@ -552,6 +691,8 @@ class MemoryStore:
             "facts": facts,
             "memory_items": memory_items,
             "memory_categories": categories,
+            "tasks": tasks,
+            "notes": notes,
             "db_path": str(self.path),
         }
 
@@ -560,6 +701,8 @@ class MemoryStore:
             "sessions": self.list_sessions(1000),
             "facts": self.list_facts(1000),
             "memory_items": self.list_memories(limit=1000, include_expired=True),
+            "tasks": self.list_tasks(limit=1000),
+            "notes": self.list_notes(limit=1000),
             "activities": self.list_activities(1000),
             "robot_events": self.list_robot_events(1000),
             "stats": self.stats(),

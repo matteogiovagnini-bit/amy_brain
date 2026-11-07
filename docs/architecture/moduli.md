@@ -3,7 +3,7 @@
 **Fase 1-2 — contratti e adapter implementati**
 Data: **7 novembre 2026**
 Stato: contratti e otto adapter pronti; **non ancora collegati** a Core e UI.
-`builtin.py` resta l'aggregatore di compatibilità con i 60 strumenti.
+`builtin.py` resta l'aggregatore di compatibilità con i 70 strumenti.
 
 ---
 
@@ -118,7 +118,7 @@ esistente senza spostarlo:
 | --- | --- | --- | --- |
 | Voice | `modules/voice/adapter.py` | `voice.speak`, `voice.stop` | attivo |
 | Mac Control | `modules/mac_control/adapter.py` | app, file, shell, sistema, web, `time.now` (25) | attivo |
-| Personal | `modules/personal/adapter.py` | calendario, promemoria, mail (15) | attivo |
+| Personal | `modules/personal/adapter.py` | calendario, promemoria, mail, task, note (25) | attivo |
 | Memory | `modules/memory/adapter.py` | `memory.remember/list/forget/search/update/categories` (6) | attivo |
 | Developer | `modules/developer/adapter.py` | OpenCode + `app.restart` (3) | spento |
 | Vision | `modules/vision/adapter.py` | `screen.capture/read` (2) | attivo |
@@ -127,7 +127,7 @@ esistente senza spostarlo:
 
 `build_module_registry()` in `amy/modules/registry.py` crea i registri; non li
 avvia. Il test `tests/test_module_adapters.py` verifica che l'unione degli
-strumenti dei moduli coincida esattamente con i 60 del registry esistente.
+strumenti dei moduli coincida esattamente con i 70 del registry esistente.
 
 Note:
 

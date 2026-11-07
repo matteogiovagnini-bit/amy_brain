@@ -258,6 +258,14 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS)", js)
         self.assertIn("window.setInterval(refreshState, BASE_POLL_MS)", js)
 
+    def test_personal_tasks_and_notes_panel(self) -> None:
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        for marker in ("tasksList", "notesList", "personalTag", "Attività e note"):
+            self.assertIn(marker, html)
+        self.assertIn("renderPersonal", js)
+        self.assertNotIn("innerHTML", js)
+
     def test_permissions_panel_can_revoke_and_restore(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         js = (STATIC / "app.js").read_text(encoding="utf-8")

@@ -31,7 +31,7 @@ concretamente utilizzabile non entra in roadmap come requisito.
 - Shell a enum chiuso.
 - Web con protezione SSRF.
 - Audit append-only.
-- 60 strumenti macOS, file, web, memoria, voce e robot.
+- 70 strumenti macOS, file, web, memoria, voce e robot.
 
 ## Fase 3 — Interfaccia (completata per uso locale)
 

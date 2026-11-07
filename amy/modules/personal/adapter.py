@@ -5,14 +5,20 @@ from __future__ import annotations
 from typing import Any, List
 
 from ...shared.module import ModuleManifest, ModuleStatus
-from ...tools import calendar_tools, mail_tools, reminders_tools
+from ...tools import calendar_tools, mail_tools, notes_tools, reminders_tools, tasks_tools
 from ..base import BaseAdapter, collect_tools, tool_names
 
 
 class PersonalAdapter(BaseAdapter):
     def __init__(self) -> None:
         tools: List[Any] = []
-        for register in (calendar_tools.register, reminders_tools.register, mail_tools.register):
+        for register in (
+            calendar_tools.register,
+            reminders_tools.register,
+            mail_tools.register,
+            tasks_tools.register,
+            notes_tools.register,
+        ):
             tools.extend(collect_tools(register))
         super().__init__(
             ModuleManifest(
@@ -25,6 +31,8 @@ class PersonalAdapter(BaseAdapter):
                     "personal.calendar",
                     "personal.reminders",
                     "personal.mail",
+                    "personal.tasks",
+                    "personal.notes",
                 ),
                 requires=("automation",),
                 tools=tool_names(tools),

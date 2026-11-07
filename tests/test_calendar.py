@@ -16,6 +16,7 @@ from amy.macos.calendar import (
     CalendarError,
     create_event,
     delete_event,
+    update_event,
     list_events,
     parse_start,
     resolve_calendar,
@@ -315,6 +316,45 @@ class UpcomingEventsTests(unittest.TestCase):
         self.assertEqual(long["days"], 14)
         self.assertEqual(len(execute.call_args_list), 14)
 
+
+class CalendarUpdateTests(unittest.TestCase):
+    def test_updates_by_uid_with_new_title_and_time(self) -> None:
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with mock.patch("amy.macos.calendar.run_osascript", return_value="aggiornato") as runner:
+                data = update_event(
+                    uid="UID-1",
+                    new_title="Riunione spostata",
+                    start="2026-11-04T11:00",
+                    duration_minutes=45,
+                )
+        script = runner.call_args[0][0]
+        self.assertTrue(data["updated"])
+        self.assertIn('set summary of theEvent to "Riunione spostata"', script)
+        self.assertIn("set hours of startDate to 11", script)
+        self.assertIn("set hours of endDate to 11", script)
+        self.assertIn("set minutes of endDate to 45", script)
+
+    def test_updates_by_title_and_date(self) -> None:
+        day = {
+            "date": "2026-11-04",
+            "calendar": "Calendario",
+            "events": [{"uid": "UID-2", "title": "Dentista", "start": "2026-11-04T16:00", "end": "2026-11-04T17:00"}],
+        }
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with mock.patch("amy.macos.calendar.list_events", return_value=day):
+                with mock.patch("amy.macos.calendar.run_osascript", return_value="aggiornato") as runner:
+                    data = update_event(title="dentista", date="2026-11-04", notes="nuova nota")
+        self.assertEqual(data["uid"], "UID-2")
+        self.assertIn('set description of theEvent to "nuova nota"', runner.call_args[0][0])
+
+    def test_no_changes_are_refused(self) -> None:
+        with mock.patch("amy.macos.calendar.list_calendars", return_value=calendars()):
+            with self.assertRaises(CalendarError):
+                update_event(uid="UID-1")
+
+    def test_update_requires_confirmation(self) -> None:
+        from amy.tools import calendar_tools
+        self.assertEqual(calendar_tools.CALENDAR_UPDATE.risk, RiskLevel.B)
 
 class CalendarToolSpecTests(unittest.TestCase):
     def test_creating_an_event_requires_confirmation(self) -> None:

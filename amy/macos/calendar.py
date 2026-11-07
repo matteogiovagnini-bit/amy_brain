@@ -296,3 +296,90 @@ return "eliminato"
 end tell""".format(calendar=_text(calendar["name"]), uid=_text(target_uid))
     run_osascript(script, timeout=30.0)
     return {"uid": target_uid, "calendar": calendar["name"], "deleted": True}
+
+def update_event(
+    *,
+    uid: str = "",
+    title: str = "",
+    date: str = "",
+    new_title: str = "",
+    start: str = "",
+    duration_minutes: int = 60,
+    calendar_name: str = "",
+    default_calendar: str = "Calendario",
+    notes: Optional[str] = None,
+    location: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Modifica un evento esistente per UID o per titolo e giorno.
+
+    Aggiorna solo i campi indicati. ``start`` e ``duration_minutes`` vanno usati
+    insieme; senza ``start`` le date restano invariate.
+    """
+    calendar = resolve_calendar(calendar_name, default_name=default_calendar)
+    target_uid = str(uid or "").strip()
+    if not target_uid:
+        if not title or not date:
+            raise CalendarError(
+                "Serve l'UID dell'evento oppure il titolo e la data.",
+            )
+        day = list_events(date=date, calendar_name=calendar["name"], default_calendar=default_calendar)
+        matches = [
+            event for event in day["events"]
+            if str(event.get("title", "")).strip().lower() == str(title).strip().lower()
+        ]
+        if not matches:
+            raise CalendarError(
+                "Nessun evento «%s» trovato il %s." % (title, day["date"]),
+                detail="Controlla il titolo con calendar.events.",
+            )
+        if len(matches) > 1:
+            raise CalendarError(
+                "Ci sono %d eventi con questo titolo: indica l'UID." % len(matches),
+                detail="UID: " + ", ".join(event["uid"] for event in matches),
+            )
+        target_uid = matches[0]["uid"]
+
+    clean_title = " ".join(str(new_title or "").split())
+    if new_title and not clean_title:
+        raise CalendarError("Il nuovo titolo è vuoto.")
+    if duration_minutes is not None and start and not (5 <= int(duration_minutes) <= 1440):
+        raise CalendarError("La durata deve essere tra 5 e 1440 minuti.")
+    if not any([clean_title, start, notes is not None, location is not None]):
+        raise CalendarError("Non c'è nulla da aggiornare.")
+
+    lines = []
+    if clean_title:
+        lines.append('set summary of theEvent to "%s"' % _text(clean_title))
+    if notes is not None:
+        lines.append('set description of theEvent to "%s"' % _text(notes))
+    if location is not None:
+        lines.append('set location of theEvent to "%s"' % _text(location))
+    if start:
+        begin = parse_start(start).replace(second=0, microsecond=0)
+        end = begin + timedelta(minutes=max(5, min(int(duration_minutes), 1440)))
+        lines.append(_set_date_script("startDate", begin))
+        lines.append(_set_date_script("endDate", end))
+        lines.append("set start date of theEvent to startDate")
+        lines.append("set end date of theEvent to endDate")
+
+    script = """tell application "Calendar"
+tell calendar "{calendar}"
+set found to (every event whose uid is "{uid}")
+if (count of found) is 0 then error "Evento non trovato."
+set theEvent to item 1 of found
+{changes}
+end tell
+return "aggiornato"
+end tell""".format(
+        calendar=_text(calendar["name"]),
+        uid=_text(target_uid),
+        changes="\n".join(lines),
+    )
+    run_osascript(script, timeout=45.0)
+    return {
+        "uid": target_uid,
+        "calendar": calendar["name"],
+        "updated": True,
+        "title": clean_title or title,
+        "start": start or "",
+    }

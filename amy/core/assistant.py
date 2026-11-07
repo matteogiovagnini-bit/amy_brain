@@ -29,6 +29,7 @@ from ..core.prompts import build_system_prompt, format_tool_result
 from ..core.system_info import collect_system_info
 from ..memory.store import MemoryStore
 from ..modules import build_module_registry
+from ..modules.personal import PersonalManager
 from ..modules.registry import DEFAULT_MODULES
 from ..robot.links import RobotLink, build_robot_link
 from ..security.audit import AuditLog
@@ -222,6 +223,7 @@ class Assistant:
         self.config = config
         self.memory = memory or MemoryStore(config.require_str("memory.db_path"))
         self.registry = registry or build_default_registry()
+        self.personal = PersonalManager(self.registry, lambda: self.tool_context())
         self.audit = audit or AuditLog(config.require_str("security.audit_path"))
         self.policy = policy or PolicyEngine(
             auto_approve_levels=config.get("security.auto_approve_levels", ["A"]),
@@ -696,7 +698,7 @@ class Assistant:
         È una lettura di livello A richiesta dalla UI locale, non un'azione
         proposta dal modello: non modifica nulla e non richiede conferma.
         """
-        return collect_upcoming(self.registry, self.tool_context(), days=days, limit=limit)
+        return self.personal.agenda(days=days, limit=limit)
 
     def provider_status(self, *, cache_s: float = 30.0) -> Dict[str, Any]:
         now = time.monotonic()
@@ -787,6 +789,8 @@ class Assistant:
             "permissions": self.authorization.snapshot(),
             "pending_confirmations": len(self.pending_confirmations()),
             "facts": self.memory.list_facts(12),
+            "tasks": self.memory.list_tasks(limit=10),
+            "notes": self.memory.list_notes(limit=10),
             "activities": self.memory.list_activities(12),
             "robot_events": self.memory.list_robot_events(12),
             "config": {

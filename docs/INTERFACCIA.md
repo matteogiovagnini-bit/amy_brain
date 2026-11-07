@@ -194,6 +194,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
   strumenti e interruttore. Disabilitare un modulo rimuove i suoi strumenti dal
   catalogo attivo; **Memory** è essenziale e non può essere spento. Lo stato dei
   toggle è a runtime: al riavvio i moduli tornano abilitati.
+- Il pannello **Attività e note** legge i campi `tasks` e `notes` di
+  `GET /api/state`: mostra le attività con stato, priorità e scadenza e le note
+  recenti. Creazione e modifica avvengono tramite gli strumenti di Amy.
 - Il pannello **Permessi** legge `GET /api/permissions`: elenca le capacità dei
   moduli e permette di revocarle o ripristinarle. Una capacità revocata blocca
   gli strumenti corrispondenti; il livello C resta sempre soggetto a conferma.
@@ -326,7 +329,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**425 test, tutti superati**. La verifica **visiva a mano** nella finestra
+**435 test, tutti superati**. La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

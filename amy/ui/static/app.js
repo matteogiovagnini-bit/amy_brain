@@ -928,6 +928,43 @@
     });
   }
 
+  function renderPersonal(data) {
+    const tasks = Array.isArray(data && data.tasks) ? data.tasks : [];
+    const notes = Array.isArray(data && data.notes) ? data.notes : [];
+    tag("personalTag", tasks.length + " attività · " + notes.length + " note", "ok");
+
+    const tasksContainer = $("tasksList");
+    if (tasksContainer) {
+      tasksContainer.replaceChildren();
+      if (!tasks.length) {
+        tasksContainer.appendChild(node("div", "empty", "Nessuna attività."));
+      } else {
+        tasks.slice(0, 6).forEach((task) => {
+          const row = node("div", "fact");
+          row.appendChild(node("b", "", String(task.title || "Senza titolo")));
+          const due = task.due_at ? " · scadenza " + String(task.due_at).slice(0, 16) : "";
+          row.appendChild(node("span", "", String(task.status || "aperta") + " · " + String(task.priority || "normale") + due));
+          tasksContainer.appendChild(row);
+        });
+      }
+    }
+
+    const notesContainer = $("notesList");
+    if (notesContainer) {
+      notesContainer.replaceChildren();
+      if (!notes.length) {
+        notesContainer.appendChild(node("div", "empty", "Nessuna nota."));
+      } else {
+        notes.slice(0, 6).forEach((note) => {
+          const row = node("div", "fact");
+          row.appendChild(node("b", "", String(note.title || "Nota")));
+          row.appendChild(node("span", "", String(note.body || "").slice(0, 120)));
+          notesContainer.appendChild(row);
+        });
+      }
+    }
+  }
+
   function activityTone(status) {
     if (status === "errore") return "bad";
     if (status === "rifiutato") return "warn";
@@ -1288,6 +1325,7 @@
     renderVoice(data);
     renderRobot(data);
     renderMemory(data);
+    renderPersonal(data);
     renderActivities(data);
     renderTools(data.tools || []);
     renderSettings(data);
