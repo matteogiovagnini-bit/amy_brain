@@ -62,7 +62,7 @@ def capability_for_tool(tool_name: str) -> str:
         return "personal.reminders"
     if name.startswith("mail."):
         return "personal.mail"
-    if name == "memory.list":
+    if name in {"memory.list", "memory.search", "memory.categories"}:
         return "memory.read"
     if name == "memory.forget":
         return "memory.delete"

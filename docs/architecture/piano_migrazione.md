@@ -178,6 +178,8 @@ tornando alla policy attuale.
 
 ### Fase 5 — Memoria estesa
 
+**Stato: completata il 7 novembre 2026** (memory_items, migrazione, 3 strumenti nuovi, prompt, 9 test).
+
 **Obiettivo:** categorie, progetti, note, task, ricerca, verifica.
 
 Passi:

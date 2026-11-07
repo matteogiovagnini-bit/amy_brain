@@ -18,6 +18,20 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.13.0] — 2026-11-07
+
+### Aggiunto
+
+- **Memoria estesa (Fase 5).** Nuova tabella `memory_items` con categorie
+  (`personal`, `project`, `operational`, …), tag, `verified`, `confidence`,
+  `expires_at`; migrazione non distruttiva da `facts` (schema 2). Tabelle `tasks`
+  e `notes` pronte per la Fase 6.
+- Strumenti `memory.search`, `memory.update`, `memory.categories`; `memory.remember`
+  accetta categoria, tag, verificabilità, confidenza e scadenza; `memory.list`
+  filtra per categoria e cerca testo.
+- Il prompt include la memoria di progetto entro il budget dei fatti.
+- 9 test nuovi (425 totali); migrazione verificata sul database reale.
+
 ## [0.12.0] — 2026-11-07
 
 ### Aggiunto

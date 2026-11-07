@@ -275,7 +275,16 @@ class Assistant:
 
     # ------------------------------------------------------------- contesto
     def _facts(self) -> List[Dict[str, Any]]:
-        return self.memory.list_facts(int(self.config.get("memory.max_facts_in_prompt", 40)))
+        limit = int(self.config.get("memory.max_facts_in_prompt", 40))
+        facts = self.memory.list_facts(limit)
+        # La memoria di progetto è utile quanto i fatti personali, ma resta
+        # entro il budget: il prompt non deve crescere senza limite.
+        try:
+            for item in self.memory.list_memories(category="project", limit=limit):
+                facts.append({"key": item["key"], "value": item["value"]})
+        except Exception:  # noqa: BLE001 - la memoria non deve rompere il turno
+            pass
+        return facts[:limit]
 
     def _robot_context(self) -> str:
         transport = str(self.config.get("robot.transport", "simulated"))
