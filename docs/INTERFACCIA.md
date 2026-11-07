@@ -194,6 +194,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
   strumenti e interruttore. Disabilitare un modulo rimuove i suoi strumenti dal
   catalogo attivo; **Memory** è essenziale e non può essere spento. Lo stato dei
   toggle è a runtime: al riavvio i moduli tornano abilitati.
+- Il pannello **Permessi** legge `GET /api/permissions`: elenca le capacità dei
+  moduli e permette di revocarle o ripristinarle. Una capacità revocata blocca
+  gli strumenti corrispondenti; il livello C resta sempre soggetto a conferma.
 - Il pannello **Prossimi appuntamenti** legge `GET /api/calendar/upcoming`: il
   backend esegue `calendar.events` (livello A, sola lettura) per ogni giorno dei
   prossimi 7, scarta gli eventi già terminati, unisce gli eventi che coprono più
@@ -214,6 +217,9 @@ Ogni stato cambia colore, animazione e testo (`#coreState`, `#coreActivity`,
 - Moduli: `GET /api/modules`, `GET /api/modules/{name}` e
   `POST /api/modules/{name}/enabled` con `{"enabled": true|false}`. Il toggle è
   a runtime e aggiorna il catalogo strumenti; Memory non è disabilitabile.
+- Permessi: `GET /api/permissions`, `POST /api/permissions/revoke` e
+  `POST /api/permissions/restore` con `{"capability": "..."}`. La revoca è a
+  runtime e impedisce l'esecuzione degli strumenti collegati.
 - Aggiornamento stato da `/api/state`, polling base ogni 5 s e più frequente
   (1 s) durante un turno, un'attività, l'ascolto o la sintesi.
 - Calendario da `/api/calendar/upcoming`, con polling separato ogni 2 minuti,
@@ -320,7 +326,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**405 test, tutti superati**. La verifica **visiva a mano** nella finestra
+**416 test, tutti superati**. La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

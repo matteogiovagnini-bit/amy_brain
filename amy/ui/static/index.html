@@ -255,6 +255,20 @@
           <p class="hint" id="modulesNote">Stato reale dal backend. Un modulo disabilitato non espone strumenti.</p>
         </section>
 
+        <section class="card" aria-labelledby="permissionsTitle">
+          <div class="card-title">
+            <h3 id="permissionsTitle">Permessi</h3>
+            <span class="tag" id="permissionsTag">Verifica…</span>
+          </div>
+          <div class="module-list" id="permissionsList" aria-live="polite">
+            <div class="empty">Verifica dei permessi…</div>
+          </div>
+          <div class="card-actions">
+            <button class="ghost" id="permissionsRefreshBtn" type="button" aria-describedby="permissionsNote">Aggiorna</button>
+          </div>
+          <p class="hint" id="permissionsNote">Una capacità revocata blocca gli strumenti corrispondenti. Il livello C resta sempre soggetto a conferma.</p>
+        </section>
+
         <details class="card tools-card">
           <summary>
             <span id="toolsTitle">Strumenti</span>

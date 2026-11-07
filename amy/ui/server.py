@@ -145,6 +145,8 @@ class AmyHandler(BaseHTTPRequestHandler):
                     self._send_json({"error": "percorso non valido"}, 400)
                     return
                 self._send_file(STATIC / name)
+            elif path == "/api/permissions":
+                self._send_json(self.assistant.authorization.snapshot())
             elif path == "/api/modules":
                 self._send_json({"modules": self.assistant.modules.statuses()})
             elif path.startswith("/api/modules/"):
@@ -250,6 +252,16 @@ class AmyHandler(BaseHTTPRequestHandler):
                 data = self.assistant.robot_link.stop(str(body.get("reason", "dashboard")))
                 self.assistant.memory.record_robot_event("stop", data)
                 self._send_json({"ok": True, "result": data})
+            elif path in {"/api/permissions/revoke", "/api/permissions/restore"}:
+                capability = str(body.get("capability", "")).strip()
+                if not capability:
+                    self._send_json({"error": "Capacità mancante."}, 400)
+                    return
+                if path.endswith("/revoke"):
+                    snapshot = self.assistant.authorization.revoke(capability)
+                else:
+                    snapshot = self.assistant.authorization.restore(capability)
+                self._send_json({"ok": True, "permissions": snapshot})
             elif path.startswith("/api/modules/") and path.endswith("/enabled"):
                 name = path[len("/api/modules/"):-len("/enabled")].strip("/")
                 if "enabled" not in body:

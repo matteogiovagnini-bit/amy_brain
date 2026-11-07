@@ -163,6 +163,27 @@ class ServerTests(unittest.TestCase):
             self.call("POST", "/api/modules/memory/enabled", {"enabled": False})
         self.assertEqual(context.exception.code, 400)
 
+    def test_permissions_endpoint_and_revocation(self) -> None:
+        _, data = self.call("GET", "/api/permissions")
+        capabilities = {item["capability"] for item in data["capabilities"]}
+        self.assertIn("vision.screen", capabilities)
+        _, state = self.call("GET", "/api/state")
+        self.assertIn("permissions", state)
+
+        _, result = self.call("POST", "/api/permissions/revoke", {"capability": "vision.screen"})
+        self.assertIn("vision.screen", result["permissions"]["revoked"])
+        from amy.security.risk import RiskLevel
+        self.assertFalse(self.assistant.authorization.check("screen.read", RiskLevel.B).allowed)
+
+        _, result = self.call("POST", "/api/permissions/restore", {"capability": "vision.screen"})
+        self.assertNotIn("vision.screen", result["permissions"]["revoked"])
+        self.assertTrue(self.assistant.authorization.check("screen.read", RiskLevel.B).allowed)
+
+    def test_unknown_capability_is_rejected(self) -> None:
+        with self.assertRaises(urllib.error.HTTPError) as context:
+            self.call("POST", "/api/permissions/revoke", {"capability": "inesistente"})
+        self.assertEqual(context.exception.code, 400)
+
     def test_disabling_a_module_cancels_its_pending_confirmation(self) -> None:
         from amy.core.assistant import _Pending, _Turn
         from amy.security.policy import ConfirmationRequest

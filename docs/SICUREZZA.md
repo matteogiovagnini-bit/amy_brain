@@ -179,6 +179,25 @@ contenere password, messaggi o documenti aperti. Il primo uso richiede il permes
 - il **testo** riconosciuto può essere inviato al provider IA configurato: con un
   provider online è un dato che lascia il Mac.
 
+## 5.4 Autorizzazioni per modulo e capacità
+
+`AuthorizationBroker` (`amy/security/authorization.py`) aggiunge un controllo
+prima della policy:
+
+1. lo strumento appartiene a un modulo registrato;
+2. il modulo è abilitato;
+3. la capacità richiesta è dichiarata dal manifest;
+4. la capacità non è revocata.
+
+Solo dopo interviene `PolicyEngine` con A/B/C. Il broker **non** decide le
+conferme e non può rendere automatico un livello C. Una capacità revocata o un
+modulo disabilitato impediscono l'esecuzione con `authorization_denied`; l'audit
+registra `module` e `capability`.
+
+Revoche e toggle sono a runtime, non persistenti. Non sono una sandbox: fermano
+le azioni richieste attraverso Amy, non un processo esterno con i permessi
+dell'utente.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:

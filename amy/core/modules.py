@@ -88,6 +88,24 @@ class ModuleRegistry:
         with self._lock:
             return sorted(self._modules)
 
+    def manifest_of(self, name: str) -> Optional[ModuleManifest]:
+        with self._lock:
+            return self._manifests.get(name)
+
+    def owner_of(self, tool_name: str) -> Optional[ModuleManifest]:
+        """Restituisce il manifest del modulo che possiede lo strumento."""
+        tool_name = str(tool_name or "")
+        for name in self.names():
+            module = self.get(name)
+            try:
+                tools = module.tools()
+            except Exception:  # noqa: BLE001 - un modulo rotto non nasconde gli altri
+                continue
+            for tool in tools:
+                if getattr(getattr(tool, "spec", None), "name", "") == tool_name:
+                    return self.manifest_of(name)
+        return None
+
     def enabled(self, name: str) -> bool:
         with self._lock:
             return bool(self._enabled.get(name, False))

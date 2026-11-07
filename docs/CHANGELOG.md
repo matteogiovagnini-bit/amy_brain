@@ -18,6 +18,24 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.12.0] — 2026-11-07
+
+### Aggiunto
+
+- **Autorizzazioni per modulo e capacità (Fase 4).** `AuthorizationBroker`
+  verifica che lo strumento appartenga a un modulo abilitato, che la capacità sia
+  dichiarata e non revocata. La policy A/B/C resta l'ultima parola: il livello C
+  non diventa mai automatico.
+- `GET /api/permissions`, `POST /api/permissions/revoke`,
+  `POST /api/permissions/restore`; pannello «Permessi» nella dashboard.
+- Audit con `module` e `capability`; `tool_rejected` con
+  `authorization_denied`.
+- 11 test nuovi (416 totali).
+
+### Nota
+
+Le revoche sono a runtime: al riavvio tornano tutte attive.
+
 ## [0.11.0] — 2026-11-07
 
 ### Aggiunto

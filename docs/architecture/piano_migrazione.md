@@ -155,6 +155,8 @@ Passi:
 
 ### Fase 4 — Autorizzazioni per modulo
 
+**Stato: completata il 7 novembre 2026** (broker, capacità, revoche, audit, API e pannello UI; 11 test).
+
 **Obiettivo:** capacità dichiarate e applicate dal codice.
 
 Passi:

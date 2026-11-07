@@ -200,7 +200,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (405 test)
+tests/        suite unittest (416 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -214,13 +214,13 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 2 novembre 2026: **405 test, tutti superati**, più il
+Risultato verificato il 2 novembre 2026: **416 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il
 provider online richiede una chiave personale e non viene esercitato dalla suite con
 traffico reale. Verifica del 6 novembre 2026 dopo l'aggiunta del riquadro
-«Prossimi appuntamenti»: **405 test, tutti superati**; il self-test dell'app nativa
+«Prossimi appuntamenti»: **416 test, tutti superati**; il self-test dell'app nativa
 non è stato rieseguito in questa modifica. Vedi [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione

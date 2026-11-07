@@ -48,6 +48,7 @@
     modulesTimer: 0,
     modulesLastFetch: 0,
     modulesLoading: false,
+    permissionsLoading: false,
     refreshing: false,
     loadingPending: false,
     resolving: false,
@@ -1116,6 +1117,70 @@
     }
   }
 
+  async function loadPermissions() {
+    if (app.permissionsLoading) return;
+    app.permissionsLoading = true;
+    try {
+      const data = await api("/api/permissions");
+      renderPermissions(data);
+    } catch (error) {
+      tag("permissionsTag", "non disponibile", "bad");
+      const container = $("permissionsList");
+      if (container) {
+        container.replaceChildren();
+        container.appendChild(node("div", "empty", "Permessi non disponibili: " + error.message));
+      }
+    } finally {
+      app.permissionsLoading = false;
+    }
+  }
+
+  function renderPermissions(data) {
+    const capabilities = data && Array.isArray(data.capabilities) ? data.capabilities : [];
+    tag("permissionsTag", capabilities.length ? capabilities.length + " capacità" : "non disponibile", capabilities.length ? "ok" : "bad");
+    const container = $("permissionsList");
+    if (!container) return;
+    container.replaceChildren();
+    if (!capabilities.length) {
+      container.appendChild(node("div", "empty", "Nessuna capacità dichiarata."));
+      return;
+    }
+    capabilities.forEach((item) => {
+      const capability = String(item.capability || "");
+      if (!capability) return;
+      const row = node("div", "module-row");
+      const head = node("div", "module-head");
+      head.appendChild(node("strong", "", capability));
+      head.appendChild(node("span", "tag " + (item.revoked ? "bad" : "ok"), item.revoked ? "revocata" : "attiva"));
+      row.appendChild(head);
+      row.appendChild(node("p", "module-detail", "Modulo " + String(item.module || "?") + " · " + String(item.title || "")));
+      const actions = node("div", "module-actions");
+      actions.appendChild(node("span", "module-tools", "capacità"));
+      const toggle = node("button", "ghost small", item.revoked ? "Ripristina" : "Revoca");
+      toggle.type = "button";
+      toggle.title = item.revoked ? "Ripristina la capacità" : "Blocca gli strumenti di questa capacità";
+      toggle.addEventListener("click", () => togglePermission(capability, !item.revoked));
+      actions.appendChild(toggle);
+      row.appendChild(actions);
+      container.appendChild(row);
+    });
+  }
+
+  async function togglePermission(capability, revoke) {
+    if (!capability) return;
+    clearError();
+    try {
+      const path = revoke ? "/api/permissions/revoke" : "/api/permissions/restore";
+      const data = await post(path, { capability: capability });
+      toast(revoke ? "Capacità revocata: " + capability : "Capacità ripristinata: " + capability);
+      if (data && isObject(data.permissions)) renderPermissions(data.permissions);
+      await refreshState();
+    } catch (error) {
+      toast("Permesso non modificato: " + error.message, true);
+      markError("Permesso non modificato: " + error.message);
+    }
+  }
+
   async function toggleModule(name, enabled) {
     if (!name) return;
     clearError();
@@ -1815,6 +1880,11 @@
     const fullscreenButton = $("fullscreenBtn");
     if (fullscreenButton) fullscreenButton.addEventListener("click", toggleFullscreen);
 
+    const permissionsRefreshButton = $("permissionsRefreshBtn");
+    if (permissionsRefreshButton) {
+      permissionsRefreshButton.addEventListener("click", () => loadPermissions());
+    }
+
     const modulesRefreshButton = $("modulesRefreshBtn");
     if (modulesRefreshButton) {
       modulesRefreshButton.addEventListener("click", () => loadModules());
@@ -1880,6 +1950,7 @@
     // lento, così la chat resta immediatamente utilizzabile.
     refreshCalendar(true);
     loadModules();
+    loadPermissions();
     app.pollTimer = window.setInterval(refreshState, BASE_POLL_MS);
     app.modulesTimer = window.setInterval(loadModules, MODULES_POLL_MS);
     app.calendarTimer = window.setInterval(() => refreshCalendar(true), CALENDAR_POLL_MS);

@@ -32,6 +32,7 @@ from ..modules import build_module_registry
 from ..modules.registry import DEFAULT_MODULES
 from ..robot.links import RobotLink, build_robot_link
 from ..security.audit import AuditLog
+from ..security.authorization import AuthorizationBroker
 from ..security.policy import ConfirmationRequest, PathGuard, PolicyEngine
 from ..security.risk import RiskLevel
 from ..shared.events import EventBus
@@ -253,6 +254,7 @@ class Assistant:
             enabled={name: True for name in DEFAULT_MODULES},
         )
         self.modules.start_all(self._module_context)
+        self.authorization = AuthorizationBroker(self.modules)
         self._pending: Dict[str, _Pending] = {}
         self._pending_lock = threading.RLock()
         self._provider_status_cache: Tuple[float, Dict[str, Any]] = (0.0, {})
@@ -402,6 +404,23 @@ class Assistant:
                 continue
 
             risk = tool.risk_for(args)
+            authorization = self.authorization.check(tool_name, risk)
+            if not authorization.allowed:
+                result = ToolResult.failure(
+                    authorization.reason,
+                    error_code="authorization_denied",
+                )
+                self._record_rejected(
+                    turn,
+                    tool_name,
+                    args,
+                    risk.value,
+                    result,
+                    module=authorization.module,
+                    capability=authorization.capability,
+                )
+                self._append_action(turn, raw, tool_name, result)
+                continue
             reason = _dynamic_reason(tool_name, args, tool.spec.reason)
             decision = self.policy.evaluate(
                 tool_name,
@@ -437,6 +456,8 @@ class Assistant:
                     pending_id=pending_id,
                     tool=tool_name,
                     risk=risk.value,
+                    module=authorization.module,
+                    capability=authorization.capability,
                     args=_preview_args(args, 200),
                 )
                 return TurnResult(
@@ -464,6 +485,9 @@ class Assistant:
         args: Dict[str, Any],
         risk: str,
         result: ToolResult,
+        *,
+        module: str = "",
+        capability: str = "",
     ) -> None:
         """Registra un'azione scartata prima dell'esecuzione.
 
@@ -485,6 +509,8 @@ class Assistant:
             session_id=turn.session_id,
             tool=tool_name,
             risk=risk,
+            module=module,
+            capability=capability,
             error_code=result.error_code,
             args=_preview_args(args, 200),
         )
@@ -514,11 +540,14 @@ class Assistant:
             args=args,
             risk=risk.value,
         )
+        authorization = self.authorization.describe(tool_name)
         self.audit.record(
             "tool_execution_started",
             session_id=turn.session_id,
             tool=tool_name,
             risk=risk.value,
+            module=authorization.get("module", ""),
+            capability=authorization.get("capability", ""),
             approved_by=approved_by,
             args=_preview_args(args, 200),
         )
@@ -573,6 +602,27 @@ class Assistant:
         tool_name = pending.action["tool"]
         args = pending.action["args"]
         if approved:
+            authorization = self.authorization.check(tool_name, pending.risk)
+            if not authorization.allowed:
+                result = ToolResult.failure(
+                    authorization.reason,
+                    error_code="authorization_denied",
+                )
+                self._record_rejected(
+                    pending.turn,
+                    tool_name,
+                    args,
+                    pending.risk.value,
+                    result,
+                    module=authorization.module,
+                    capability=authorization.capability,
+                )
+                return TurnResult(
+                    reply=authorization.reason,
+                    status="error",
+                    session_id=pending.turn.session_id,
+                    error_code="authorization_denied",
+                )
             self.audit.record(
                 "confirmation_approved",
                 session_id=pending.turn.session_id,
@@ -725,6 +775,7 @@ class Assistant:
                 for item in self.registry.catalog()
             ],
             "modules": self.modules.statuses(),
+            "permissions": self.authorization.snapshot(),
             "pending_confirmations": len(self.pending_confirmations()),
             "facts": self.memory.list_facts(12),
             "activities": self.memory.list_activities(12),
