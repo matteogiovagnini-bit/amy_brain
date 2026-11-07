@@ -82,6 +82,8 @@ duplicazione.
 
 ### Fase 1 — Contratti condivisi, senza cambiare comportamento
 
+**Stato: completata il 7 novembre 2026** (contratti, registro, bus e 13 test; nessun modulo reale registrato).
+
 **Obiettivo:** introdurre `shared/module.py`, `shared/events.py`, `core/modules.py`
 e i test di contratto, senza registrare ancora i moduli reali.
 

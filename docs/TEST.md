@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **6 novembre 2026**.
 
 ```text
-Ran 376 tests in 20.2s
+Ran 389 tests in 20.2s
 
 OK
 ```
@@ -39,6 +39,7 @@ OK
 | `tests/test_calendar.py` | 25 | date ISO, scelta del calendario, escaping AppleScript, evento di un giorno intero, durata limitata, lettura e ordinamento eventi, rischio B per la creazione, raccolta dei prossimi appuntamenti via `calendar.events`, filtro, deduplica, limite, fallimenti dichiarati, blocco se il tool non è più di livello A |
 | `tests/test_config.py` | 16 | default gratuiti, endpoint remoto, fallback, schema URL, segreti, init |
 | `tests/test_conversation.py` | 9 | stati vocali, conversazione continua senza wake word, «basta», timeout con verifica presenza, barge-in durante la sintesi, filtro dell'eco |
+| `tests/test_events.py` | 6 | consegna, wildcard, errori isolati, unsubscribe, storico, concorrenza |
 | `tests/test_files.py` | 12 | radici, deny-list, symlink, backup, cestino, ricerca, diff |
 | `tests/test_free_only.py` | 6 | nessuna dipendenza obbligatoria, host commerciali, default locali |
 | `tests/test_native_app.py` | 14 | app nativa: file, sole dipendenze di sistema, nessuna risorsa esterna, loopback, heartbeat su coda dedicata, App Nap disattivata, controllo di salute su /api/health, avviso non modale, self-test isolato dalla cronologia, versione del bundle sincronizzata |
@@ -47,6 +48,7 @@ OK
 | `tests/test_offline.py` | 13 | intenzioni italiane, ora, file, web, memoria, conversazione |
 | `tests/test_online_presets.py` | 17 | preset gratuiti, consenso esplicito, default locale, fallback, sonda chiave senza rete, `User-Agent`, retry sul limite |
 | `tests/test_orchestrator.py` | 13 | turno, conferme, rifiuti, limite passaggi, audit, storia |
+| `tests/test_modules.py` | 7 | manifest, ciclo di vita, duplicati, errore isolato, moduli disabilitati, eventi |
 | `tests/test_opencode.py` | 7 | comando senza shell, sessione persistente, nuova sessione, directory fuori dalle radici rifiutata, rischio C |
 | `tests/test_restart.py` | 5 | helper staccato, rifiuto senza app nativa, limite del ritardo, rischio C |
 | `tests/test_policy.py` | 12 | livelli A/B/C, allow-list, E-stop non bloccato, TTL |
@@ -68,7 +70,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **376** | |
+| **Totale** | **389** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

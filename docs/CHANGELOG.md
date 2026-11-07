@@ -18,6 +18,23 @@ iniziale: non tutte le voci sono state verificate su hardware.
 - Nessuna nuova dipendenza e nessuna nuova impostazione: il riquadro usa
   Calendar.app locale e il tool `calendar.events` già esistente.
 
+## [0.10.0] — 2026-11-07
+
+### Aggiunto
+
+- **Contratti dei moduli (Fase 1).** `amy/shared/module.py` definisce
+  `ModuleState`, `ModuleManifest`, `ModuleStatus`, `ModuleContext` e il protocollo
+  `AmyModule`. `amy/core/modules.py` aggiunge `ModuleRegistry` con ciclo di vita,
+  stato, strumenti per modulo e isolamento degli errori.
+- **Bus di eventi locale.** `amy/shared/events.py` offre pub/sub thread-safe,
+  wildcard, storico circolare, `flush()` e isolamento dei listener rotti.
+- 13 test nuovi (389 totali).
+
+### Nota
+
+L'infrastruttura non è ancora collegata a Core, strumenti o UI: nessun
+comportamento esistente è cambiato.
+
 ## [0.9.0] — 2026-11-06
 
 ### Aggiunto
