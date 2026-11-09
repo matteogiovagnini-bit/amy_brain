@@ -1,6 +1,6 @@
 # Stato corrente di Amy
 
-Sintesi operativa al **7 novembre 2026**. La fonte completa resta
+Sintesi operativa al **9 novembre 2026**. La fonte completa resta
 [`../STATO_PROGETTO.md`](../STATO_PROGETTO.md); questo file serve come punto di
 ingresso rapido per agenti e collaboratori.
 
@@ -17,7 +17,7 @@ ingresso rapido per agenti e collaboratori.
 
 ## Verificato
 
-- **465 test** superati; **79 strumenti** registrati.
+- **466 test** superati; **79 strumenti** registrati.
 - App macOS «Amy Core» compilata, installata in `~/Applications` e verificata con
   self-test end-to-end.
 - Voce locale completa (`sounddevice`, `faster-whisper`, `say`, wake word «Amy»)
@@ -30,6 +30,8 @@ ingresso rapido per agenti e collaboratori.
   `dev.test`; suite reale eseguita sul repository.
 - Dashboard: moduli, permessi, memoria, provider, attività/note, progetto e log
   locali redatti. `project.js` è il primo modulo locale estratto da `app.js`.
+- Nucleo con neuroni fluttuanti su canvas (`neurons.js`), rispettosi del movimento
+  ridotto e fermi a scheda nascosta.
 
 ## Non verificato o parziale
 

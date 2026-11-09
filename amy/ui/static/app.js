@@ -561,6 +561,7 @@
     if (!stage) return;
     const view = coreView();
     stage.dataset.state = view.state;
+    if (window.AmyNeurons) window.AmyNeurons.setState(view.state);
     stage.setAttribute("aria-label", "Amy Core: " + view.label + ". " + view.activity);
     text("coreState", view.label);
     text("coreActivity", view.activity);
@@ -2025,6 +2026,7 @@
   async function start() {
     bind();
     initMotion();
+    if (window.AmyNeurons) window.AmyNeurons.start();
     renderCore();
     // Il self-test dell'app nativa apre la dashboard con `?selftest=1`: la
     // cronologia non viene caricata, così la prima risposta in chat è quella

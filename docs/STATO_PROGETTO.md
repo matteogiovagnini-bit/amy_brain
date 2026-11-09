@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Ultima verifica: **7 novembre 2026**. Ogni voce è separata tra ciò che è stato
+Ultima verifica: **9 novembre 2026**. Ogni voce è separata tra ciò che è stato
 eseguito davvero, ciò che è implementato ma non verificato, ciò che è sperimentale e
 ciò che è solo pianificato.
 
@@ -19,12 +19,15 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 465 test, tutti superati, più il self-test dell'app nativa (verificato il 7 novembre 2026) |
+| Test | 466 test, tutti superati, più il self-test dell'app nativa (verificato il 9 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
 ## 2. Implementato e verificato
 
+- Interfaccia: campo neuronale su canvas attorno al nucleo, con nodi, dendriti e
+  sinapsi; rispetta «Movimento: ridotto», si ferma a scheda nascosta e non usa
+  risorse esterne. Verificato visivamente sull'app installata.
 - Architettura (Fase 9): pannello «Log recenti» con sola lettura del file
   configurato e redazione dei segreti; primo split di `app.js` nel modulo locale
   `static/project.js`; creata la sintesi `docs/knowledge/stato_corrente.md`.
@@ -196,7 +199,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 465 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 466 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

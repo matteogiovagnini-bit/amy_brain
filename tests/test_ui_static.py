@@ -287,6 +287,20 @@ class StaticUiTests(unittest.TestCase):
         self.assertNotIn("innerHTML", js)
         self.assertNotIn("innerHTML", module)
 
+    def test_neuron_field_is_local_and_respects_reduced_motion(self) -> None:
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "neurons.js").read_text(encoding="utf-8")
+        self.assertIn('id="neuronField"', html)
+        self.assertIn("/static/neurons.js", html)
+        self.assertLess(html.index("/static/neurons.js"), html.index("/static/app.js"))
+        self.assertIn("window.AmyNeurons", js)
+        self.assertIn("prefers-reduced-motion", js)
+        self.assertIn("requestAnimationFrame", js)
+        self.assertIn("visibilitychange", js)
+        self.assertNotIn("innerHTML", js)
+        self.assertNotIn("http://", js)
+        self.assertNotIn("https://", js)
+
     def test_log_panel_reads_only_the_local_file(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         js = (STATIC / "app.js").read_text(encoding="utf-8")

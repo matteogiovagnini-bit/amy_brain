@@ -77,6 +77,7 @@
 
       <section class="panel core-panel" aria-labelledby="coreTitle">
         <div class="core-stage" id="amyCore" data-state="idle" role="img" aria-label="Amy Core: pronta, in attesa di una richiesta">
+          <canvas class="neuron-field" id="neuronField" aria-hidden="true"></canvas>
           <div class="core-glow" aria-hidden="true"></div>
           <svg class="core-svg" viewBox="0 0 320 320" role="presentation" focusable="false" aria-hidden="true">
             <defs>
@@ -374,6 +375,7 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
   <script src="/static/project.js"></script>
+  <script src="/static/neurons.js"></script>
   <script src="/static/app.js"></script>
 </body>
 </html>

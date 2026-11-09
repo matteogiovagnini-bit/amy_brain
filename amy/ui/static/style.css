@@ -838,6 +838,18 @@ kbd {
   filter: saturate(0.55);
 }
 
+.neuron-field {
+  position: absolute;
+  inset: -11%;
+  width: 122%;
+  height: 122%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.95;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, #000 48%, transparent 76%);
+  mask-image: radial-gradient(circle at 50% 50%, #000 48%, transparent 76%);
+}
+
 .core-glow {
   position: absolute;
   inset: 13%;

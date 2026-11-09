@@ -12,8 +12,11 @@ terminale o da un browser remoto sulla stessa macchina). Backend e frontend sono
 identici in entrambi i casi.
 
 Identità visiva: **Amy Core**. Sfondo nero/notte, firma ciano e blu elettrico,
-nucleo centrale con anelli e archi originali disegnati in SVG e CSS. Nessuna risorsa
-esterna, nessun font remoto, nessuna CDN, nessuna immagine di terze parti.
+nucleo centrale con anelli e archi originali disegnati in SVG e CSS. Attorno al
+nucleo fluttua un **campo di neuroni** su canvas: nodi luminosi, dendriti brevi e
+sinapsi tra vicini. È disegnato in locale, senza immagini né risorse esterne, si
+ferma quando la scheda è nascosta e con «Movimento: ridotto» mostra un solo
+fotogramma statico. Nessun font remoto, nessuna CDN, nessuna immagine di terze parti.
 
 ## 1. Avvio
 
@@ -289,6 +292,8 @@ viene mai aggirata dalla UI.
 | `amy/ui/static/index.html` | palco, nucleo a tutto schermo, chat satellite, barra comandi, campo stellato, pannelli sovrapposti, modali |
 | `amy/ui/static/style.css` | token, layout, stati, animazioni, responsive, reduced motion |
 | `amy/ui/static/app.js` | stato, polling, chat, conferme, pannelli, accessibilità, fullscreen |
+| `amy/ui/static/neurons.js` | campo neuronale decorativo su canvas, con reduced motion e pausa a scheda nascosta |
+| `amy/ui/static/project.js` | pannello Progetto in sola lettura, primo modulo locale estratto da `app.js` |
 | `amy/ui/server.py` | server HTTP locale, API, header di sicurezza, watchdog heartbeat |
 | `amy/core/system_info.py` | informazioni locali di sistema |
 | `amy/core/assistant.py` | `status()` con `system`, `tool_context()`, `upcoming_events()`, chat e conferme |
@@ -336,7 +341,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**465 test, tutti superati**. La verifica **visiva a mano** nella finestra
+**466 test, tutti superati** (9 novembre 2026). La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

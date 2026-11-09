@@ -23,15 +23,15 @@ python3 -m amy memory sessions
 
 ## 2. Esito verificato
 
-Data della verifica: **7 novembre 2026**.
+Data della verifica: **9 novembre 2026**.
 
 ```text
-Ran 465 tests in 27.9s
+Ran 466 tests in 32.8s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 465, tutti superati.
+`compileall` non produce errori. I test sono 466, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
@@ -73,11 +73,11 @@ OK
 | `tests/test_system_info.py` | 8 | dati locali reali, disco, nessun segreto o dato robot |
 | `tests/test_tts_cache.py` | 3 | elenco voci calcolato una sola volta; status non lancia `say -v ?` |
 | `tests/test_tts_echo.py` | 5 | intervalli di sintesi: sovrappposizione, sintesi conclusa, TTS nullo |
-| `tests/test_ui_static.py` | 27 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
+| `tests/test_ui_static.py` | 28 | otto stati, palco a strati, barra comandi separata, campo stellato locale, pulsante ascolto «Amy», accessibilità, reduced motion, fullscreen, nessuno stile inline, nessun `innerHTML`, nessuna risorsa esterna, riquadro «Prossimi appuntamenti», dati mancanti dichiarati, polling del calendario separato |
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **465** | |
+| **Totale** | **466** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.
