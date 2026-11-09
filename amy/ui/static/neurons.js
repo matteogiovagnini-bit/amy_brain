@@ -10,6 +10,16 @@
     [122, 242, 226],
     [47, 123, 255],
   ];
+  const ACTIVE_STATES = new Set([
+    "conversation",
+    "processing",
+    "executing",
+    "speaking",
+    "waiting_confirmation",
+    "interrupted",
+    "error",
+  ]);
+  const FRAME_INTERVAL = 1 / 24;
   const STATES = {
     idle: { speed: 0.7, glow: 0.75 },
     listening: { speed: 1.25, glow: 1.15 },
@@ -35,6 +45,9 @@
   let time = 0;
   let state = "idle";
   let reduced = false;
+  let active = false;
+  let focused = true;
+  let accumulator = 0;
   let resizeObserver = null;
 
   function random(min, max) {
@@ -81,7 +94,7 @@
     canvas.height = Math.round(height * dpr);
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     seed();
-    if (reduced) draw(0);
+    if (reduced || !active) draw(0);
   }
 
   function position(node) {
@@ -182,21 +195,28 @@
 
   function frame(timestamp) {
     if (!running) return;
-    if (reduced) {
-      running = false;
+    if (reduced || !active || document.hidden || !focused) {
+      stop();
       draw(0);
       return;
     }
     if (!last) last = timestamp;
-    const delta = Math.min(0.05, (timestamp - last) / 1000);
+    const delta = Math.min(0.1, (timestamp - last) / 1000);
     last = timestamp;
-    time += delta * ((STATES[state] || STATES.idle).speed);
+    accumulator += delta;
+    if (accumulator < FRAME_INTERVAL) {
+      raf = window.requestAnimationFrame(frame);
+      return;
+    }
+    const step = Math.min(accumulator, 0.1);
+    accumulator = 0;
+    time += step * ((STATES[state] || STATES.idle).speed);
     for (const node of nodes) {
-      node.angle += node.drift * delta;
+      node.angle += node.drift * step;
       if (node.angle > TAU) node.angle -= TAU;
       if (node.angle < 0) node.angle += TAU;
     }
-    draw(delta);
+    draw(step);
     raf = window.requestAnimationFrame(frame);
   }
 
@@ -215,6 +235,8 @@
       window.addEventListener("resize", resize);
     }
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
+    window.addEventListener("blur", onBlur);
     const observer = new MutationObserver(() => {
       const next = motionReduced();
       if (next === reduced) return;
@@ -230,16 +252,18 @@
       attributes: true,
       attributeFilter: ["data-motion"],
     });
-    startLoop();
+    updateActive();
   }
 
   function startLoop() {
-    if (running || reduced) {
-      if (reduced) draw(0);
+    if (running) return;
+    if (!active || reduced) {
+      draw(0);
       return;
     }
     running = true;
     last = 0;
+    accumulator = 0;
     raf = window.requestAnimationFrame(frame);
   }
 
@@ -249,17 +273,35 @@
     raf = 0;
   }
 
-  function onVisibility() {
-    if (document.hidden) {
-      stop();
-    } else {
+  function updateActive() {
+    active = ACTIVE_STATES.has(state) && !document.hidden && focused;
+    if (active && !reduced) {
       startLoop();
+    } else {
+      stop();
+      draw(0);
     }
   }
 
+  function onVisibility() {
+    updateActive();
+  }
+
+  function onFocus() {
+    focused = true;
+    updateActive();
+  }
+
+  function onBlur() {
+    focused = false;
+    updateActive();
+  }
+
   function setState(next) {
-    state = STATES[next] ? next : "idle";
-    if (reduced) draw(0);
+    const value = STATES[next] ? next : "idle";
+    if (value === state) return;
+    state = value;
+    updateActive();
   }
 
   window.AmyNeurons = { start: start, setState: setState };

@@ -2023,6 +2023,14 @@
       });
     }
 
+    document.documentElement.dataset.appFocus = "on";
+    window.addEventListener("focus", () => {
+      document.documentElement.dataset.appFocus = "on";
+    });
+    window.addEventListener("blur", () => {
+      document.documentElement.dataset.appFocus = "off";
+    });
+
     document.addEventListener("keydown", trapFocus);
     document.addEventListener("keydown", handleEscape);
     document.addEventListener("fullscreenchange", onFullscreenChange);

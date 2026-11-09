@@ -26,7 +26,7 @@ python3 -m amy memory sessions
 Data della verifica: **9 novembre 2026**.
 
 ```text
-Ran 467 tests in 34.3s
+Ran 467 tests in 30.1s
 
 OK
 ```

@@ -919,7 +919,6 @@ kbd {
   stroke-opacity: 0.4;
   stroke-width: 4;
   stroke-dasharray: 1 7;
-  animation: spin 110s linear infinite;
 }
 
 .hud-tick-b {
@@ -927,7 +926,6 @@ kbd {
   stroke-opacity: 0.22;
   stroke-width: 2;
   stroke-dasharray: 1 5;
-  animation: spin 86s linear infinite reverse;
 }
 
 .hud-sweep {
@@ -973,6 +971,30 @@ kbd {
 .hud-ne { top: 16%; right: -9%; text-align: right; align-items: flex-end; }
 .hud-sw { bottom: 16%; left: -9%; }
 .hud-se { bottom: 16%; right: -9%; text-align: right; align-items: flex-end; }
+
+/* Prestazioni: in idle e offline le animazioni decorative si fermano. */
+.core-stage[data-state="idle"] .orbit,
+.core-stage[data-state="idle"] .particle,
+.core-stage[data-state="idle"] .hud-arc,
+.core-stage[data-state="idle"] .hud-sweep,
+.core-stage[data-state="listening"] .orbit,
+.core-stage[data-state="listening"] .particle,
+.core-stage[data-state="listening"] .hud-arc,
+.core-stage[data-state="listening"] .hud-sweep,
+.core-stage[data-state="offline"] .orbit,
+.core-stage[data-state="offline"] .particle,
+.core-stage[data-state="offline"] .hud-arc,
+.core-stage[data-state="offline"] .hud-sweep {
+  animation-play-state: paused;
+}
+
+/* Se la finestra perde il fuoco, ferma anche gli archi attivi. */
+html[data-app-focus="off"] .core-stage .orbit,
+html[data-app-focus="off"] .core-stage .particle,
+html[data-app-focus="off"] .core-stage .hud-arc,
+html[data-app-focus="off"] .core-stage .hud-sweep {
+  animation-play-state: paused;
+}
 
 .ring-outer {
   stroke: var(--line);

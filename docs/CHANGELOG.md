@@ -12,6 +12,10 @@ iniziale: non tutte le voci sono state verificate su hardware.
   luminosità aumentano negli stati attivi. Rispetta «Movimento: ridotto», disegna
   un solo fotogramma statico e si ferma quando la scheda è nascosta.
 - 1 test nuovo (466 totali) e verifica visiva sull'app installata.
+- **Ottimizzazione delle animazioni.** Neuroni a 24 fps e solo durante
+  un'interazione; in attesa e offline il canvas resta statico. Archi e particelle
+  CSS in pausa in attesa/offline e quando la finestra perde il fuoco. Misura:
+  WebKit GPU da ~50% a ~0,3% con Amy in attesa.
 - **HUD radiale attorno al nucleo.** Archi segmentati, tacche e quattro etichette
   con dati reali (IA, MEM, VOICE, ROBOT) in SVG, coerenti con gli stati del nucleo.
   Un test nuovo (467 totali) e verifica visiva sull'app installata.

@@ -27,8 +27,9 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 
 - Interfaccia: campo neuronale su canvas attorno al nucleo, con nodi, dendriti e
   sinapsi; HUD radiale in SVG con archi, tacche e dati reali (IA, MEM, VOICE,
-  ROBOT). Rispetta «Movimento: ridotto», si ferma a scheda nascosta e non usa
-  risorse esterne. Verificato visivamente sull'app installata.
+  ROBOT). Per prestazioni, animazioni attive solo durante l'interazione, 24 fps,
+  statiche in attesa/offline e in finestra non attiva. Verificato visivamente e
+  con misura CPU: WebKit GPU da ~50% a ~0,3% in attesa.
 - Architettura (Fase 9): pannello «Log recenti» con sola lettura del file
   configurato e redazione dei segreti; primo split di `app.js` nel modulo locale
   `static/project.js`; creata la sintesi `docs/knowledge/stato_corrente.md`.
