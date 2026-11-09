@@ -301,6 +301,27 @@ class StaticUiTests(unittest.TestCase):
         self.assertNotIn("http://", js)
         self.assertNotIn("https://", js)
 
+    def test_core_hud_uses_real_data_without_remote_assets(self) -> None:
+        html = (STATIC / "index.html").read_text(encoding="utf-8")
+        js = (STATIC / "app.js").read_text(encoding="utf-8")
+        css = (STATIC / "style.css").read_text(encoding="utf-8")
+        for marker in (
+            "core-hud",
+            "hudProvider",
+            "hudMemory",
+            "hudVoice",
+            "hudRobot",
+            "hud-arc",
+            "hud-tick",
+        ):
+            self.assertIn(marker, html)
+        self.assertIn("renderHud", js)
+        self.assertIn(".core-hud", css)
+        self.assertIn("hud-arc-a", css)
+        self.assertNotIn("innerHTML", js)
+        self.assertNotIn("http://", html)
+        self.assertNotIn("https://", html)
+
     def test_log_panel_reads_only_the_local_file(self) -> None:
         html = (STATIC / "index.html").read_text(encoding="utf-8")
         js = (STATIC / "app.js").read_text(encoding="utf-8")

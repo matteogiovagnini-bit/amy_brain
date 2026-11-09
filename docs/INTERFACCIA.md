@@ -14,8 +14,10 @@ identici in entrambi i casi.
 Identità visiva: **Amy Core**. Sfondo nero/notte, firma ciano e blu elettrico,
 nucleo centrale con anelli e archi originali disegnati in SVG e CSS. Attorno al
 nucleo fluttua un **campo di neuroni** su canvas: nodi luminosi, dendriti brevi e
-sinapsi tra vicini. È disegnato in locale, senza immagini né risorse esterne, si
-ferma quando la scheda è nascosta e con «Movimento: ridotto» mostra un solo
+sinapsi tra vicini. Sopra gli anelli, un **HUD radiale** in SVG mostra archi
+segmentati, tacche e quattro etichette con dati reali (IA, MEM, VOICE, ROBOT).
+Tutto è disegnato in locale, senza immagini né risorse esterne; il campo neuronale
+si ferma quando la scheda è nascosta e con «Movimento: ridotto» mostra un solo
 fotogramma statico. Nessun font remoto, nessuna CDN, nessuna immagine di terze parti.
 
 ## 1. Avvio
@@ -341,7 +343,7 @@ form della chat), verifica che la risposta compaia in chat e controlla che il ba
 venga chiuso. Esito del 31 ottobre 2026: self-test superato.
 
 Esito del 31 ottobre 2026: **189 test, tutti superati**. Esito del 6 novembre 2026:
-**466 test, tutti superati** (9 novembre 2026). La verifica **visiva a mano** nella finestra
+**467 test, tutti superati** (9 novembre 2026). La verifica **visiva a mano** nella finestra
 (ridimensionamento, schermo intero, navigazione da tastiera, movimento ridotto,
 aspetto dei pannelli, compreso quello del calendario) non è stata eseguita: non
 viene dichiarata come eseguita.

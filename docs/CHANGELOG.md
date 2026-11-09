@@ -12,6 +12,9 @@ iniziale: non tutte le voci sono state verificate su hardware.
   luminosità aumentano negli stati attivi. Rispetta «Movimento: ridotto», disegna
   un solo fotogramma statico e si ferma quando la scheda è nascosta.
 - 1 test nuovo (466 totali) e verifica visiva sull'app installata.
+- **HUD radiale attorno al nucleo.** Archi segmentati, tacche e quattro etichette
+  con dati reali (IA, MEM, VOICE, ROBOT) in SVG, coerenti con gli stati del nucleo.
+  Un test nuovo (467 totali) e verifica visiva sull'app installata.
 
 - **Dashboard e documentazione finale (Fase 9).** Pannello «Log recenti» con
   `GET /api/logs`: legge solo il file configurato, limita le righe e redige i

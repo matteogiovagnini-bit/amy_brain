@@ -17,7 +17,7 @@ ingresso rapido per agenti e collaboratori.
 
 ## Verificato
 
-- **466 test** superati; **79 strumenti** registrati.
+- **467 test** superati; **79 strumenti** registrati.
 - App macOS «Amy Core» compilata, installata in `~/Applications` e verificata con
   self-test end-to-end.
 - Voce locale completa (`sounddevice`, `faster-whisper`, `say`, wake word «Amy»)
@@ -30,8 +30,8 @@ ingresso rapido per agenti e collaboratori.
   `dev.test`; suite reale eseguita sul repository.
 - Dashboard: moduli, permessi, memoria, provider, attività/note, progetto e log
   locali redatti. `project.js` è il primo modulo locale estratto da `app.js`.
-- Nucleo con neuroni fluttuanti su canvas (`neurons.js`), rispettosi del movimento
-  ridotto e fermi a scheda nascosta.
+- Nucleo con neuroni fluttuanti su canvas (`neurons.js`) e HUD radiale con archi,
+  tacche e dati reali; rispettosi del movimento ridotto e fermi a scheda nascosta.
 
 ## Non verificato o parziale
 

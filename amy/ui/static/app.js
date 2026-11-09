@@ -556,6 +556,21 @@
     };
   }
 
+  function renderHud(data) {
+    const provider = providerView(data);
+    text("hudProvider", provider.name || "—");
+    const memory = isObject(data && data.memory) ? data.memory : {};
+    text("hudMemory", memory.messages != null ? String(memory.messages) : "—");
+    const voice = isObject(data && data.voice) ? data.voice : {};
+    text(
+      "hudVoice",
+      voice.speaking ? "parla" : (voice.available === false ? "off" : "pronta")
+    );
+    const robot = isObject(data && data.robot) ? data.robot : {};
+    const transport = data && data.config ? data.config.robot_transport : "";
+    text("hudRobot", String(robot.mode || transport || "—"));
+  }
+
   function renderCore() {
     const stage = $("amyCore");
     if (!stage) return;
@@ -1381,6 +1396,7 @@
     renderPersonal(data);
     renderActivities(data);
     renderTools(data.tools || []);
+    renderHud(data);
     renderSettings(data);
     updateFooter();
     updateControls();
