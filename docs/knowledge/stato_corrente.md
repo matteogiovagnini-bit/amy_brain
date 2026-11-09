@@ -31,8 +31,8 @@ ingresso rapido per agenti e collaboratori.
 - Dashboard: moduli, permessi, memoria, provider, attività/note, progetto e log
   locali redatti. `project.js` è il primo modulo locale estratto da `app.js`.
 - Nucleo con neuroni fluttuanti su canvas (`neurons.js`) e HUD radiale con archi,
-  tacche e dati reali. Animazioni attive solo durante l'interazione, 24 fps,
-  statiche in attesa/offline e in finestra non attiva.
+  tacche e dati reali. Neuroni a 12 fps in attesa e 24 fps durante l'interazione;
+  archi CSS in pausa in attesa/offline e tutto fermo in finestra non attiva.
 
 ## Non verificato o parziale
 

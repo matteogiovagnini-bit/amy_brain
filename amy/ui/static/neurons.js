@@ -20,8 +20,9 @@
     "error",
   ]);
   const FRAME_INTERVAL = 1 / 24;
+  const SLOW_FRAME_INTERVAL = 1 / 12;
   const STATES = {
-    idle: { speed: 0.7, glow: 0.75 },
+    idle: { speed: 1.0, glow: 0.75 },
     listening: { speed: 1.25, glow: 1.15 },
     conversation: { speed: 1.0, glow: 0.95 },
     processing: { speed: 1.5, glow: 1.2 },
@@ -75,7 +76,7 @@
         angle: angle,
         radius: radius,
         baseRadius: radius,
-        drift: random(0.02, 0.075) * (Math.random() < 0.5 ? -1 : 1),
+        drift: random(0.04, 0.11) * (Math.random() < 0.5 ? -1 : 1),
         wobble: random(0.5, 1.4),
         phase: random(0, TAU),
         size: random(1.0, 2.4),
@@ -204,7 +205,7 @@
     const delta = Math.min(0.1, (timestamp - last) / 1000);
     last = timestamp;
     accumulator += delta;
-    if (accumulator < FRAME_INTERVAL) {
+    if (accumulator < frameInterval()) {
       raf = window.requestAnimationFrame(frame);
       return;
     }
@@ -218,6 +219,10 @@
     }
     draw(step);
     raf = window.requestAnimationFrame(frame);
+  }
+
+  function frameInterval() {
+    return ACTIVE_STATES.has(state) ? FRAME_INTERVAL : SLOW_FRAME_INTERVAL;
   }
 
   function start() {
@@ -274,7 +279,8 @@
   }
 
   function updateActive() {
-    active = ACTIVE_STATES.has(state) && !document.hidden && focused;
+    // Anche in attesa i neuroni fluttuano, ma a 8 fps invece di 24.
+    active = !document.hidden && focused;
     if (active && !reduced) {
       startLoop();
     } else {

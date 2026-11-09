@@ -16,11 +16,11 @@ nucleo centrale con anelli e archi originali disegnati in SVG e CSS. Attorno al
 nucleo fluttua un **campo di neuroni** su canvas: nodi luminosi, dendriti brevi e
 sinapsi tra vicini. Sopra gli anelli, un **HUD radiale** in SVG mostra archi
 segmentati, tacche e quattro etichette con dati reali (IA, MEM, VOICE, ROBOT).
-Tutto è disegnato in locale, senza immagini né risorse esterne. Per contenere
-CPU e temperatura, neuroni e archi si animano solo durante un'interazione
-(conversazione, elaborazione, voce, conferma): in attesa e offline restano
-visibili ma statici. Il campo neuronale si ferma anche quando la scheda o la
-finestra perdono il fuoco; con «Movimento: ridotto» mostra un solo fotogramma. Nessun font remoto, nessuna CDN, nessuna immagine di terze parti.
+Tutto è disegnato in locale, senza immagini né risorse esterne. Per contenere CPU e temperatura, i neuroni fluttuano a **12 fps in attesa** e a
+**24 fps durante un'interazione** (conversazione, elaborazione, voce, conferma).
+Gli archi e le particelle CSS restano in pausa in attesa/offline. Il campo
+neuronale si ferma quando la scheda o la finestra perdono il fuoco; con
+«Movimento: ridotto» mostra un solo fotogramma statico. Nessun font remoto, nessuna CDN, nessuna immagine di terze parti.
 
 ## 1. Avvio
 

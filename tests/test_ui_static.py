@@ -300,6 +300,7 @@ class StaticUiTests(unittest.TestCase):
         self.assertIn("ACTIVE_STATES", js)
         self.assertIn("FRAME_INTERVAL", js)
         self.assertIn("1 / 24", js)
+        self.assertIn("1 / 12", js)
         self.assertIn("onBlur", js)
         self.assertNotIn("innerHTML", js)
         self.assertNotIn("http://", js)
