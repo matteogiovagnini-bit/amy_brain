@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Esposizione della fotocamera corretta.** Prima di catturare, l'app avvia la
+  sessione, imposta esposizione/fuoco/bilanciamento automatici e attende 2 secondi
+  di warm-up: il primo fotogramma della webcam era quasi nero. Verificato con una
+  nuova foto (luminanza media ~181/255) inviata su Telegram.
+
 - **Foto di Amy su Telegram.** Dopo un turno che usa `vision.capture`, il servizio
   Telegram invia il JPEG con `sendPhoto` all’utente autorizzato. Il percorso è
   verificato dentro `~/Downloads/Amy/camera`; l’immagine lascia il Mac e passa dai

@@ -444,6 +444,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             return false
         }
         do {
+            try? device.lockForConfiguration()
+            if device.isFocusModeSupported(.continuousAutoFocus) {
+                device.focusMode = .continuousAutoFocus
+            }
+            if device.isExposureModeSupported(.continuousAutoExposure) {
+                device.exposureMode = .continuousAutoExposure
+            }
+            if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
+                device.whiteBalanceMode = .continuousAutoWhiteBalance
+            }
+            device.unlockForConfiguration()
+
             let session = AVCaptureSession()
             session.sessionPreset = .photo
             let input = try AVCaptureDeviceInput(device: device)
@@ -459,9 +471,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
                 return false
             }
             session.addOutput(output)
+            session.startRunning()
+            // Lascia tempo all'esposizione automatica: il primo fotogramma di
+            // una webcam è spesso quasi nero. Il delegate viene collegato solo
+            // dopo il warm-up, così non cattura quel frame.
+            CFRunLoopRunInMode(.defaultMode, 2.0, false)
             let delegate = CameraFrameDelegate()
             output.setSampleBufferDelegate(delegate, queue: DispatchQueue(label: "amy.camera.frames"))
-            session.startRunning()
             CFRunLoopRunInMode(.defaultMode, 10.0, false)
             session.stopRunning()
             guard let data = delegate.data else {

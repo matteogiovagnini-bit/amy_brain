@@ -40,8 +40,9 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   nessuna shell arbitraria, percorso confinato al progetto; verificati sul
   repository reale (stato, diff, analisi di `amy/dev`, 462 test eseguiti).
 - Vision: permesso Fotocamera richiesto e concesso dall'utente; `vision.capture`
-  cattura nel processo Amy Core e salva un JPEG 1280×720. Verificato il
-  10 novembre 2026; le immagini di prova sono state eliminate.
+  cattura nel processo Amy Core con warm-up di 2 secondi per l'esposizione e
+  salva un JPEG 1280×720. Verificato il 10 novembre 2026 con luminanza media
+  ~181/255; le immagini di prova sono state eliminate.
 - Architettura (Fase 7): Vision opzionale con `vision.capture` (B, spento per
   default, `vision.camera`), cattura reale verificata con un JPEG 1280×720;
   `vision.describe` resta non implementato. Smart Home opzionale con
