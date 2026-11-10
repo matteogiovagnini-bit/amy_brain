@@ -579,7 +579,12 @@ class VoiceService:
         aperta.
         """
         if self._loop_thread and self._loop_thread.is_alive():
-            return self._loop_thread
+            if not self._stop_event.is_set():
+                return self._loop_thread
+            # Il vecchio ciclo sta ancora chiudendo l'ultima registrazione:
+            # diamogli un attimo, poi avviane uno nuovo. Senza questo, dopo
+            # «Ferma ascolto» il pulsante «Ascolta Amy» sembra non ripartire.
+            self._loop_thread.join(timeout=1.0)
         recorder_status = self.recorder.status()
         if not recorder_status.get("available"):
             raise VoiceError("Serve ffmpeg o sox per l'ascolto continuo.")
@@ -636,16 +641,16 @@ class VoiceService:
         except Exception:  # noqa: BLE001
             _log.exception("Riavvio del registratore non riuscito")
 
-    def stop_wake_loop(self) -> None:
+    def request_stop_wake_loop(self) -> None:
+        """Segnala lo stop senza attendere sintesi o lock audio."""
         self._stop_event.set()
         self._wake_deadline = None
         self.cancel_confirmation()
         self.end_conversation("ciclo fermato")
-        # La sintesi può essere bloccata nel processo `say`: non deve
-        # impedire al pulsante «Ferma ascolto» di rispondere.
-        stopper = threading.Thread(target=self.stop_speaking, daemon=True)
-        stopper.start()
-        stopper.join(timeout=0.5)
+        threading.Thread(target=self.stop_speaking, daemon=True).start()
+
+    def stop_wake_loop(self) -> None:
+        self.request_stop_wake_loop()
 
     @property
     def wake_running(self) -> bool:

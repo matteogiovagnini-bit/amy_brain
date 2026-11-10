@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Ferma ascolto / Ascolta Amy immediati.** Lo stop segnala subito l'evento e
+  ferma la sintesi in background; la risposta HTTP non attende `say`. Se si
+  riavvia l'ascolto mentre il vecchio ciclo sta chiudendo, il servizio attende al
+  massimo un secondo e avvia un ciclo nuovo. 484 test superati.
+
 - **«Ferma ascolto» non si blocca più.** `stop_wake_loop()` non attende la
   sintesi vocale: avvia lo stop in un thread con attesa massima di mezzo secondo.
   `MacSayTTS.stop()` e `is_speaking()` usano un timeout sul lock, così il pulsante

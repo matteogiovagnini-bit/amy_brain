@@ -238,7 +238,11 @@ class AmyHandler(BaseHTTPRequestHandler):
                     return
                 self._send_json(self.assistant.speak(text[:4000]))
             elif path == "/api/voice/stop":
-                self.assistant.voice.stop_speaking()
+                threading.Thread(
+                    target=self.assistant.voice.stop_speaking,
+                    name="amy-stop-voice",
+                    daemon=True,
+                ).start()
                 self._send_json({"stopped": True})
             elif path == "/api/voice/greet":
                 self._send_json(self.assistant.voice.greet())
@@ -250,8 +254,18 @@ class AmyHandler(BaseHTTPRequestHandler):
             elif path == "/api/voice/wake/start":
                 self._start_wake_loop()
             elif path == "/api/voice/wake/stop":
-                self.assistant.voice.stop_wake_loop()
-                self._send_json({"ok": True, "voice": self.assistant.voice.status()})
+                voice = self.assistant.voice
+                if hasattr(voice, "request_stop_wake_loop"):
+                    # Imposta subito l'evento di stop; la sintesi viene fermata
+                    # in background e non può bloccare la risposta.
+                    voice.request_stop_wake_loop()
+                    self._send_json({
+                        "ok": True,
+                        "voice": {"state": "idle", "wake_word": {"running": False}},
+                    })
+                else:
+                    voice.stop_wake_loop()
+                    self._send_json({"ok": True, "voice": voice.status()})
             elif path == "/api/robot/estop":
                 reason = str(body.get("reason", "dashboard"))
                 data = self.assistant.robot_link.estop(reason)
