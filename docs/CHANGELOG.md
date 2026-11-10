@@ -7,6 +7,12 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Recupero del ciclo wake word.** Dopo 12 registrazioni vuote consecutive
+  (circa 80 secondi di silenzio) Amy ricrea il registratore, perché il HAL di
+  CoreAudio può smettere di consegnare frame dopo un lungo silenzio. Un errore
+  imprevisto del ciclo ora viene registrato e dichiara lo stato offline, invece
+  di far morire il thread in silenzio. 483 test superati.
+
 - **`telegram.send_last_photo`.** Amy può inviare su richiesta l'ultima foto della
   sessione alla chat Telegram corrente, anche in un turno successivo alla cattura.
   Lo strumento è di livello B, funziona solo da Telegram e non accetta percorsi

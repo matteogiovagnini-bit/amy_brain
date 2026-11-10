@@ -414,6 +414,7 @@ class VoiceService:
             follow_seconds = 3.5
         follow_seconds = max(1.5, min(follow_seconds, seconds))
         barge_chunk = self._barge_chunk()
+        empty_runs = 0
         self.state.set(VoiceState.IDLE, "in attesa della wake word")
 
         while not stop.is_set():
@@ -462,8 +463,20 @@ class VoiceService:
             started = time.monotonic()
             try:
                 text = self.listen_once(chunk_seconds)
+                empty_runs = 0
             except VoiceError as exc:
                 _log.warning("Errore di ascolto: %s", exc.message)
+                if "vuota" in exc.message.lower():
+                    empty_runs += 1
+                    if empty_runs >= 12:
+                        _log.warning(
+                            "Microfono silenzioso per %d cicli: riavvio il registratore.",
+                            empty_runs,
+                        )
+                        self._recover_recorder()
+                        empty_runs = 0
+                else:
+                    empty_runs = 0
                 if self.recorder.status().get("stuck"):
                     self._wake_stop_reason = "microfono non rispondente"
                     _log.warning("Ascolto wake word terminato: %s", self._wake_stop_reason)
@@ -591,13 +604,37 @@ class VoiceService:
         self._wake_stop_reason = ""
         self._stop_event.clear()
         self._loop_thread = threading.Thread(
-            target=self.run_wake_loop,
+            target=self._wake_loop_entry,
             args=(on_command,),
             name="amy-wake-loop",
             daemon=True,
         )
         self._loop_thread.start()
         return self._loop_thread
+
+    def _wake_loop_entry(self, on_command: Callable[[str], None]) -> None:
+        """Esegue il ciclo e dichiara un errore imprevisto invece di tacere."""
+        try:
+            self.run_wake_loop(on_command)
+        except BaseException as exc:  # noqa: BLE001 - il thread non deve morire in silenzio
+            _log.exception("Ciclo wake word terminato inaspettatamente")
+            self._wake_stop_reason = "errore del ciclo vocale"
+            self.state.set(VoiceState.OFFLINE, "errore del ciclo vocale")
+            if not isinstance(exc, VoiceError):
+                _log.warning("Dettaglio: %s", exc)
+
+    def _recover_recorder(self) -> None:
+        """Ricrea il registratore dopo una lunga serie di registrazioni vuote.
+
+        Il HAL di CoreAudio può smettere di consegnare frame dopo un lungo
+        silenzio. Ricreare l'oggetto riapre lo stream; se il problema è più
+        profondo, il ciclo continua a riprovare e la UI resta onesta.
+        """
+        try:
+            self.recorder = build_recorder(self.config)
+            _log.info("Registratore ricreato dopo silenzio prolungato")
+        except Exception:  # noqa: BLE001
+            _log.exception("Riavvio del registratore non riuscito")
 
     def stop_wake_loop(self) -> None:
         self._stop_event.set()
