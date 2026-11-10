@@ -25,7 +25,8 @@ ingresso rapido per agenti e collaboratori.
 - Memoria SQLite con `memory_items`, task e note; migrazione da `facts` con backup.
 - Personal Manager: calendario, promemoria, mail, task, note e agenda unica.
   `calendar.update` verificato dal vivo.
-- Vision: OCR locale; `vision.capture` verificato con un JPEG 1280×720.
+- Vision: OCR locale; `vision.capture` verificato con un JPEG 1280×720 e
+  permesso Fotocamera concesso dall'utente.
 - Developer Assistant nativo: `dev.status`, `dev.diff`, `dev.analyze`,
   `dev.test`; suite reale eseguita sul repository.
 - Dashboard: moduli, permessi, memoria, provider, attività/note, progetto e log
@@ -42,7 +43,6 @@ ingresso rapido per agenti e collaboratori.
 - Robot fisico, broker MQTT reale e uso prolungato.
 - Smart Home con dispositivi reali: solo configurazione e mock.
 - `vision.describe`: non implementato.
-- Permesso TCC della telecamera non provato in modo interattivo.
 - Qualità della wake word con parlanti diversi e con altoparlanti.
 - Split di `app.js`: solo il pannello Progetto è stato estratto.
 - Telegram con bot reale: manca token e prova end-to-end.

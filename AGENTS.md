@@ -142,8 +142,8 @@ comando eseguito, risposta scritta e pronunciata), protezione dall'eco half-dupl
 verificata dal vivo (frammento sovrapposto alla sintesi scartato con il log atteso),
 strumento `system.battery` con lettura reale di `pmset -g batt`, registrazione con
 limite di tempo quando il HAL di Core Audio non risponde, telecamera reale verificata
-(cattura JPEG 1280×720 tramite AVFoundation, permesso TCC non provato in modo
-interattivo), Smart Home solo con configurazione e test offline (nessun broker reale),
+(cattura JPEG 1280×720 tramite AVFoundation, permesso Fotocamera concesso
+dall'utente e cattura nativa nel processo Amy Core), Smart Home solo con configurazione e test offline (nessun broker reale),
 robot solo simulato, MQTT non verificato, Telegram implementato e coperto da test
 con API finta ma non verificato con un bot reale, Developer Assistant nativo
 verificato su questo repository (`dev.status`, `dev.diff`, `dev.analyze`, `dev.test`),

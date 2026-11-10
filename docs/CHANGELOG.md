@@ -7,6 +7,10 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Permesso Fotocamera verificato.** La richiesta TCC è stata mostrata
+  dall'app, l'utente ha concesso l'accesso e `vision.capture` ha prodotto un
+  JPEG 1280×720 nel processo Amy Core. Le immagini di prova sono state eliminate.
+
 - **Fotocamera nel processo Amy Core.** La cattura non passa più da un helper
   esterno: l'app nativa espone `--request-camera` e `--capture-camera`, e un
   watcher su `~/.amy/camera_request.json` esegue la richiesta nel processo che

@@ -39,6 +39,9 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   `dev.diff` (A), `dev.analyze` (A) e `dev.test` (B). Comandi Git in lista chiusa,
   nessuna shell arbitraria, percorso confinato al progetto; verificati sul
   repository reale (stato, diff, analisi di `amy/dev`, 462 test eseguiti).
+- Vision: permesso Fotocamera richiesto e concesso dall'utente; `vision.capture`
+  cattura nel processo Amy Core e salva un JPEG 1280×720. Verificato il
+  10 novembre 2026; le immagini di prova sono state eliminate.
 - Architettura (Fase 7): Vision opzionale con `vision.capture` (B, spento per
   default, `vision.camera`), cattura reale verificata con un JPEG 1280×720;
   `vision.describe` resta non implementato. Smart Home opzionale con
@@ -221,7 +224,6 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Verifica visiva della finestra dell'app | Non ispezionata a mano | Verifica programmatica: pagina montata, invio reale, risposta in chat, chiusura del backend |
 | Riquadro «Prossimi appuntamenti» con Calendar.app reale | La lettura end-to-end del nuovo endpoint non è stata provata a mano in questo ambiente | 13 test automatici con AppleScript sostituito da mock: aggregazione, filtro, deduplica, errori dichiarati, nessun dato inventato |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
-| Permesso Telecamera interattivo | La cattura nativa è pronta, ma il prompt TCC è ancora da confermare a mano; un vecchio prompt Microfono blocca il dialogo | Cattura JPEG 1280×720 riuscita dal binario dell'app; watcher e richiesta TCC implementati |
 | Smart Home con broker reale | Nessun broker o dispositivo configurato | Strumenti A/A/B/C, config, mock MQTT, errori onesti senza broker |
 | Telegram con bot reale | Nessun token/bot fornito | 13 test con API finta: allowlist, chat, note vocali, sessioni, conferme, token mancante |
 
