@@ -26,12 +26,12 @@ python3 -m amy memory sessions
 Data della verifica: **10 novembre 2026**.
 
 ```text
-Ran 480 tests in 28.4s
+Ran 481 tests in 28.2s
 
 OK
 ```
 
-`compileall` non produce errori. I test sono 480, tutti superati.
+`compileall` non produce errori. I test sono 481, tutti superati.
 
 | File | Test | Copertura |
 | --- | --- | --- |
@@ -56,7 +56,7 @@ OK
 | `tests/test_restart.py` | 5 | helper staccato, rifiuto senza app nativa, limite del ritardo, rischio C |
 | `tests/test_dev_tools.py` | 10 | repository Git temporaneo: stato, modifiche, diff, percorso vietato, TODO, errori di sintassi, suite superata e fallita, livelli A/B |
 | `tests/test_personal_tools.py` | 5 | ciclo attività e note, scadenza non valida, livelli di rischio |
-| `tests/test_telegram.py` | 13 | allowlist, chat, note vocali, sessioni, comandi, conferme a pulsanti, token/allowlist mancanti, stato del modulo |
+| `tests/test_telegram.py` | 14 | allowlist, chat, note vocali, sessioni, comandi, conferme a pulsanti, invio foto, token/allowlist mancanti, stato del modulo |
 | `tests/test_home_tools.py` | 10 | Smart Home spenta, elenco dispositivi, set/state con client finto, scene, dispositivo ignoto, broker assente, livelli A/B/C |
 | `tests/test_vision_camera.py` | 5 | telecamera spenta per default, cattura con mock, errore dichiarato, livello B, capacità `vision.camera` |
 | `tests/test_policy.py` | 12 | livelli A/B/C, allow-list, E-stop non bloccato, TTL |
@@ -78,7 +78,7 @@ OK
 | `tests/test_voice_service.py` | 10 | `speaking` reale dal TTS, stop della sintesi, saluto di avvio, sintesi che non conclude |
 | `tests/test_voice.py` | 8 | TTS, stato, wake word testuale, STT assente, limite di tempo della sintesi bloccante, prompt STT italiano |
 | `tests/test_voice_wake.py` | 27 | wake word tollerante, comando estratto, avvio automatico disattivabile, conferma vocale senza wake word, scadenza e annullamento, limite di durata, stop esplicito, microfono bloccato, protezione half-duplex (nessuna registrazione durante la sintesi, frammenti contaminati scartati, pausa dopo la sintesi) |
-| **Totale** | **480** | |
+| **Totale** | **481** | |
 
 I conteggi sono quelli osservati con `unittest`. Se si aggiungono test, aggiornare
 questa tabella.

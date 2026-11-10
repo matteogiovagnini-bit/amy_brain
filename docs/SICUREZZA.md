@@ -237,6 +237,9 @@ dell'utente.
   ricevuta.
 - Le note vocali sono file esterni: vengono scaricati con limite di dimensione e
   durata, trascritti in locale e cancellati dopo l’uso.
+- Le foto di `vision.capture` vengono inviate come immagini Telegram solo quando
+  richieste da un utente autorizzato: lasciano il Mac e passano dai server
+  Telegram, che non sono end-to-end encrypted.
 - Le chat dei bot Telegram non sono end-to-end encrypted. Non vanno usate per
   segreti, password o dati particolarmente sensibili.
 - Il telefono diventa un telecomando del Mac: se viene perso, revocare il token

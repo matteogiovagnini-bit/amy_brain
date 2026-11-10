@@ -275,6 +275,7 @@ degli altri moduli.
 - Solo chat private e utenti in allowlist per ID numerico.
 - Sessioni dedicate per chat, conferme con pulsanti inline.
 - Note vocali scaricate, trascritte in locale e cancellate dopo l'uso.
+- Le foto di `vision.capture` vengono inviate come immagini Telegram.
 - Risposte vocali opzionali con `say` + `afconvert`.
 - Le chiamate vocali non sono supportate dalla Bot API.
 

@@ -17,7 +17,7 @@ ingresso rapido per agenti e collaboratori.
 
 ## Verificato
 
-- **480 test** superati; **79 strumenti** registrati.
+- **481 test** superati; **79 strumenti** registrati.
 - App macOS «Amy Core» compilata, installata in `~/Applications` e verificata con
   self-test end-to-end.
 - Voce locale completa (`sounddevice`, `faster-whisper`, `say`, wake word «Amy»)
@@ -31,9 +31,9 @@ ingresso rapido per agenti e collaboratori.
   `dev.test`; suite reale eseguita sul repository.
 - Dashboard: moduli, permessi, memoria, provider, attività/note, progetto e log
   locali redatti. `project.js` è il primo modulo locale estratto da `app.js`.
-- Telegram: modulo opzionale con chat, note vocali trascritte in locale, sessioni
-  e conferme a pulsanti. Implementato e testato con API finta; **non verificato
-  con un bot reale**.
+- Telegram: modulo opzionale con chat, note vocali trascritte in locale, sessioni,
+  conferme a pulsanti e invio delle foto di `vision.capture`. Bot collegato come
+  `@AmyCoreAssistantBot`; invio reale di una foto di prova riuscito.
 - Nucleo con neuroni fluttuanti su canvas (`neurons.js`) e HUD radiale con archi,
   tacche e dati reali. Neuroni a 12 fps in attesa e 24 fps durante l'interazione;
   archi CSS in pausa in attesa/offline e tutto fermo in finestra non attiva.
@@ -45,7 +45,8 @@ ingresso rapido per agenti e collaboratori.
 - `vision.describe`: non implementato.
 - Qualità della wake word con parlanti diversi e con altoparlanti.
 - Split di `app.js`: solo il pannello Progetto è stato estratto.
-- Telegram con bot reale: manca token e prova end-to-end.
+- Telegram con un messaggio in arrivo reale: il bot è collegato, ma non è stato
+  possibile simulare il messaggio dell’utente dagli strumenti.
 - Chiamate vocali Telegram: non supportate dalla Bot API.
 
 ## Vincoli permanenti

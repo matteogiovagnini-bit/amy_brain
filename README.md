@@ -125,9 +125,10 @@ Serve solo un **bot**: Amy non ha un account Telegram né un numero di telefono.
 ```
 
 5. Riavvia Amy e cerca il bot su Telegram. Amy risponde solo in chat privata
-   agli ID autorizzati. Puoi scrivere o inviare **note vocali**: vengono
-   trascritte in locale. Le **chiamate vocali** Telegram non sono supportate dai
-   bot. Dettagli: [docs/CONFIGURAZIONE.md](docs/CONFIGURAZIONE.md#telegram).
+   agli ID autorizzati. Puoi scrivere, inviare **note vocali** (trascritte in
+   locale) e chiedere una **foto**: lo scatto di `vision.capture` arriva come
+   immagine Telegram. Le **chiamate vocali** Telegram non sono supportate dai bot.
+   Dettagli: [docs/CONFIGURAZIONE.md](docs/CONFIGURAZIONE.md#telegram).
 
 ## Cosa sa fare oggi
 
@@ -182,8 +183,9 @@ Serve solo un **bot**: Amy non ha un account Telegram né un numero di telefono.
   Creazione, modifica e completamento via chat; la dashboard mostra lo stato reale.
 - **Telegram opzionale**: chat e note vocali dal telefono tramite Bot API, con
   allowlist per ID, sessioni dedicate e conferme a pulsanti. Le note vocali sono
-  trascritte in locale; le chiamate vocali Telegram non sono supportate dai bot.
-  Spento per default: richiede token e `telegram.allowed_user_ids`.
+  trascritte in locale; le foto di `vision.capture` vengono inviate come immagini
+  Telegram. Le chiamate vocali Telegram non sono supportate dai bot. Spento per
+  default: richiede token e `telegram.allowed_user_ids`.
 - **Moduli**: la dashboard mostra i nove moduli (Voice, Mac Control, Personal,
   Memory, Developer, Vision, Home, Robot, Telegram) con stato reale e interruttore;
   un modulo disabilitato non espone strumenti.
@@ -241,7 +243,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (480 test)
+tests/        suite unittest (481 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -255,13 +257,13 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 10 novembre 2026: **480 test, tutti superati**, più il
+Risultato verificato il 10 novembre 2026: **481 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il
 provider online richiede una chiave personale e non viene esercitato dalla suite con
 traffico reale. Verifica del 6 novembre 2026 dopo l'aggiunta del riquadro
-«Prossimi appuntamenti»: **480 test, tutti superati**; il self-test dell'app nativa
+«Prossimi appuntamenti»: **481 test, tutti superati**; il self-test dell'app nativa
 non è stato rieseguito in questa modifica. Vedi [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione

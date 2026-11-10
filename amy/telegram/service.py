@@ -153,11 +153,21 @@ class TelegramAPI:
             raise TelegramError("Download del file Telegram non riuscito.", detail=self._redact(exc)) from exc
         return destination
 
-    def send_audio(self, chat_id: int, audio_path: Path, caption: str = "") -> Any:
+    def _post_file(
+        self,
+        method: str,
+        chat_id: int,
+        file_field: str,
+        file_path: Path,
+        mime: str,
+        *,
+        caption: str = "",
+        label: str = "file",
+    ) -> Any:
         boundary = "amy" + uuid.uuid4().hex
         fields = {
             "chat_id": str(int(chat_id)),
-            "caption": str(caption)[:200],
+            "caption": str(caption)[:1024],
         }
         body = bytearray()
         for name, value in fields.items():
@@ -168,15 +178,15 @@ class TelegramAPI:
         body.extend(("--%s\r\n" % boundary).encode())
         body.extend(
             (
-                'Content-Disposition: form-data; name="audio"; filename="%s"\r\n'
-                "Content-Type: audio/mp4\r\n\r\n" % audio_path.name
+                'Content-Disposition: form-data; name="%s"; filename="%s"\r\n'
+                "Content-Type: %s\r\n\r\n" % (file_field, file_path.name, mime)
             ).encode()
         )
-        body.extend(audio_path.read_bytes())
+        body.extend(file_path.read_bytes())
         body.extend(b"\r\n")
         body.extend(("--%s--\r\n" % boundary).encode())
         request = Request(
-            "%s/sendAudio" % self._base,
+            "%s/%s" % (self._base, method),
             data=bytes(body),
             headers={"Content-Type": "multipart/form-data; boundary=%s" % boundary},
             method="POST",
@@ -185,10 +195,35 @@ class TelegramAPI:
             with urlopen(request, timeout=self.timeout) as response:
                 result = json.loads(response.read().decode("utf-8", errors="replace"))
         except (HTTPError, URLError, OSError, ValueError) as exc:
-            raise TelegramError("Invio della nota vocale non riuscito.", detail=self._redact(exc)) from exc
+            raise TelegramError(
+                "Invio del %s non riuscito." % label,
+                detail=self._redact(exc),
+            ) from exc
         if not isinstance(result, dict) or not result.get("ok"):
-            raise TelegramError("Telegram ha rifiutato la nota vocale.")
+            raise TelegramError("Telegram ha rifiutato il %s." % label)
         return result.get("result")
+
+    def send_audio(self, chat_id: int, audio_path: Path, caption: str = "") -> Any:
+        return self._post_file(
+            "sendAudio",
+            chat_id,
+            "audio",
+            audio_path,
+            "audio/mp4",
+            caption=caption,
+            label="nota vocale",
+        )
+
+    def send_photo(self, chat_id: int, photo_path: Path, caption: str = "") -> Any:
+        return self._post_file(
+            "sendPhoto",
+            chat_id,
+            "photo",
+            photo_path,
+            "image/jpeg",
+            caption=caption,
+            label="foto",
+        )
 
 
 class TelegramService:
@@ -567,6 +602,7 @@ class TelegramService:
             self._send(chat_id, reply)
             if self._voice_replies(chat_id):
                 self._send_voice_reply(chat_id, reply)
+        self._send_capture_photo(chat_id, result)
 
     def _send(self, chat_id: int, text: str) -> None:
         if self.api is None:
@@ -691,6 +727,7 @@ class TelegramService:
         reply = str(getattr(result, "reply", "") or "").strip()
         if reply:
             self._send(chat_id, reply)
+        self._send_capture_photo(chat_id, result)
 
     # ------------------------------------------------------------ sessione
     def _session_for(self, chat_id: int) -> str:
@@ -740,6 +777,42 @@ class TelegramService:
         if chat_id in self._voice_chats:
             return True
         return bool(self.config.get("telegram.voice_replies", False))
+
+    def _send_capture_photo(self, chat_id: int, result: Any) -> None:
+        """Se il turno ha scattato una foto, inviala come immagine Telegram."""
+        tools = getattr(result, "tools_used", []) or []
+        if "vision.capture" not in tools or self.api is None or self.memory is None:
+            return
+        session = str(getattr(result, "session_id", "") or "")
+        try:
+            activities = self.memory.list_activities(200)
+        except Exception:  # noqa: BLE001 - la foto non deve rompere la risposta
+            return
+        root = (Path.home() / "Downloads" / "Amy" / "camera").resolve()
+        for item in activities:
+            if str(item.get("session_id", "")) != session:
+                continue
+            if item.get("tool") != "vision.capture" or item.get("status") != "ok":
+                continue
+            payload = item.get("result")
+            data = payload.get("data") if isinstance(payload, dict) else {}
+            image = str((data or {}).get("image", "") or "")
+            if not image:
+                continue
+            path = Path(image).expanduser()
+            try:
+                resolved = path.resolve()
+            except OSError:
+                continue
+            if root != resolved.parent and root not in resolved.parents:
+                continue
+            if not path.is_file():
+                continue
+            try:
+                self.api.send_photo(chat_id, path, caption="Foto scattata da Amy.")
+            except TelegramError as exc:
+                _log.warning("Invio della foto Telegram non riuscito: %s", exc.message)
+            return
 
     def _send_voice_reply(self, chat_id: int, text: str) -> None:
         say = shutil.which("say")

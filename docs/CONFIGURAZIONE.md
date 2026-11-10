@@ -597,6 +597,9 @@ python3 -m amy secret set AMY_TELEGRAM_TOKEN
   nuova richiesta.
 - Le note vocali vengono scaricate, trascritte in locale e trattate come testo.
   Se `faster-whisper` non decodifica il formato OGG/Opus, serve `ffmpeg`.
+- Quando chiedi una foto, `vision.capture` scatta nel processo Amy Core e Amy
+  invia il JPEG come immagine Telegram. La foto lascia il Mac e passa dai server
+  Telegram: vale solo per gli utenti in allowlist.
 - `telegram.voice_replies` (default `false`) invia anche una risposta audio M4A
   generata con `say` e `afconvert`; non è una nota vocale OGG/Opus.
 - `telegram.max_voice_seconds` e `max_voice_bytes` limitano i file accettati;

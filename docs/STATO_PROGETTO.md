@@ -19,7 +19,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 480 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
+| Test | 481 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -205,7 +205,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 480 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 481 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
@@ -225,7 +225,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Riquadro «Prossimi appuntamenti» con Calendar.app reale | La lettura end-to-end del nuovo endpoint non è stata provata a mano in questo ambiente | 13 test automatici con AppleScript sostituito da mock: aggregazione, filtro, deduplica, errori dichiarati, nessun dato inventato |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
 | Smart Home con broker reale | Nessun broker o dispositivo configurato | Strumenti A/A/B/C, config, mock MQTT, errori onesti senza broker |
-| Telegram con bot reale | Nessun token/bot fornito | 13 test con API finta: allowlist, chat, note vocali, sessioni, conferme, token mancante |
+| Telegram con un messaggio in arrivo reale | Il bot è collegato, ma non è stato possibile simulare un messaggio dell’utente dagli strumenti | 14 test con API finta e invio reale di una foto di prova con `sendPhoto` (message_id 33); allowlist, chat, note vocali e conferme coperte dai test |
 
 ## 4. Sperimentale
 

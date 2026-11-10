@@ -19,6 +19,7 @@ class FakeAPI:
         self.messages = []
         self.callbacks = []
         self.audio = []
+        self.photos = []
         self.downloads = []
         self.file_info = {"file_path": "voice/nota.ogg"}
 
@@ -43,6 +44,10 @@ class FakeAPI:
         self.audio.append((chat_id, str(audio_path), caption))
         return {"message_id": 99}
 
+    def send_photo(self, chat_id, photo_path, caption=""):
+        self.photos.append((chat_id, str(photo_path), caption))
+        return {"message_id": 100}
+
 
 class FakeSTT:
     available = True
@@ -65,14 +70,15 @@ class FakeVoice:
 
 
 class FakeHandler:
-    def __init__(self, reply="Risposta di prova", pending=None) -> None:
+    def __init__(self, reply="Risposta di prova", pending=None, tools_used=None) -> None:
         self.reply = reply
         self.pending = pending
+        self.tools_used = list(tools_used or [])
         self.calls = []
 
     def __call__(self, text, session_id=None):
         self.calls.append((text, session_id))
-        return SimpleNamespace(reply=self.reply, pending=self.pending)
+        return SimpleNamespace(reply=self.reply, pending=self.pending, tools_used=self.tools_used, session_id=session_id or "S-1")
 
 
 class TelegramServiceTests(unittest.TestCase):
@@ -178,6 +184,27 @@ class TelegramServiceTests(unittest.TestCase):
         self.service._handle_update({"message": self._message("/new")})
         self.assertIn("Nuova sessione", self.api.messages[-1]["text"])
         self.assertEqual(self.handler.calls, [])
+
+    def test_capture_photo_is_sent_to_telegram(self) -> None:
+        photo = self.temp.home / "Downloads" / "Amy" / "camera" / "foto.jpg"
+        photo.parent.mkdir(parents=True, exist_ok=True)
+        photo.write_bytes(b"\xff\xd8" + b"0" * 2000)
+
+        class FakeMemory:
+            def list_activities(self, limit=200):
+                return [{
+                    "session_id": "S-1",
+                    "tool": "vision.capture",
+                    "status": "ok",
+                    "result": {"data": {"image": str(photo)}},
+                }]
+
+        self.service.memory = FakeMemory()
+        self.handler.tools_used = ["vision.capture"]
+        with mock.patch("amy.telegram.service.Path.home", return_value=self.temp.home):
+            self.service._handle_update({"message": self._message("scatta una foto")})
+        self.assertEqual(len(self.api.photos), 1)
+        self.assertEqual(self.api.photos[0][1], str(photo))
 
     def test_status_command_reports_connection(self) -> None:
         self.service._handle_update({"message": self._message("/status")})

@@ -7,6 +7,12 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Foto di Amy su Telegram.** Dopo un turno che usa `vision.capture`, il servizio
+  Telegram invia il JPEG con `sendPhoto` all’utente autorizzato. Il percorso è
+  verificato dentro `~/Downloads/Amy/camera`; l’immagine lascia il Mac e passa dai
+  server Telegram. Test con API finta (14 test Telegram, 481 totali) e invio reale
+  di una foto di prova riuscito.
+
 - **Permesso Fotocamera verificato.** La richiesta TCC è stata mostrata
   dall'app, l'utente ha concesso l'accesso e `vision.capture` ha prodotto un
   JPEG 1280×720 nel processo Amy Core. Le immagini di prova sono state eliminate.

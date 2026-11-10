@@ -132,7 +132,7 @@ chiave nel repository, nei log o nei test. Se hai toccato la voce, verifica alme
 sintesi su file (`amy doctor` la esegue). Se hai toccato il robot, esegui i test del
 simulatore e **non** affermare che l'hardware funziona.
 
-Stato verificato il 10 novembre 2026: 480 test superati, doctor con TTS funzionante e
+Stato verificato il 10 novembre 2026: 481 test superati, doctor con TTS funzionante e
 sonda reale del microfono, provider personale configurato su GroqCloud piano Free con
 chiave valida e risposta reale del modello `openai/gpt-oss-120b`, default del
 repository ancora Ollama locale, voce completa e locale (`sounddevice` per il
