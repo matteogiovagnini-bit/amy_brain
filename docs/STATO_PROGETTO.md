@@ -221,7 +221,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Verifica visiva della finestra dell'app | Non ispezionata a mano | Verifica programmatica: pagina montata, invio reale, risposta in chat, chiusura del backend |
 | Riquadro «Prossimi appuntamenti» con Calendar.app reale | La lettura end-to-end del nuovo endpoint non è stata provata a mano in questo ambiente | 13 test automatici con AppleScript sostituito da mock: aggregazione, filtro, deduplica, errori dichiarati, nessun dato inventato |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
-| Permesso Telecamera interattivo | La cattura è stata provata da terminale; il prompt TCC dell'app non è stato verificato a mano | JPEG 1280×720 catturato con AVFoundation e salvato localmente |
+| Permesso Telecamera interattivo | La cattura nativa è pronta, ma il prompt TCC è ancora da confermare a mano; un vecchio prompt Microfono blocca il dialogo | Cattura JPEG 1280×720 riuscita dal binario dell'app; watcher e richiesta TCC implementati |
 | Smart Home con broker reale | Nessun broker o dispositivo configurato | Strumenti A/A/B/C, config, mock MQTT, errori onesti senza broker |
 | Telegram con bot reale | Nessun token/bot fornito | 13 test con API finta: allowlist, chat, note vocali, sessioni, conferme, token mancante |
 

@@ -8,6 +8,8 @@
 // (AppKit, WebKit, Foundation). Nessun servizio a pagamento, nessun account.
 
 import AppKit
+import AVFoundation
+import CoreImage
 import Darwin
 import WebKit
 
@@ -313,6 +315,31 @@ final class Backend {
     }
 }
 
+// MARK: - Cattura fotocamera nativa
+
+/// Cattura un fotogramma dal processo dell'app, così il permesso TCC è
+/// attribuito ad Amy Core e non a un helper esterno.
+final class CameraFrameDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
+    var data: Data?
+
+    func captureOutput(_ output: AVCaptureOutput,
+                       didOutput sampleBuffer: CMSampleBuffer,
+                       from connection: AVCaptureConnection) {
+        if data != nil { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+        let image = CIImage(cvPixelBuffer: pixelBuffer)
+        let context = CIContext()
+        guard let colorSpace = CGColorSpace(name: CGColorSpace.sRGB),
+              let jpeg = context.jpegRepresentation(of: image, colorSpace: colorSpace, options: [:]) else {
+            return
+        }
+        data = jpeg
+        DispatchQueue.main.async {
+            CFRunLoopStop(CFRunLoopGetMain())
+        }
+    }
+}
+
 // MARK: - Delegate applicazione
 
 final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, NSWindowDelegate {
@@ -327,6 +354,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private var signalSources: [DispatchSourceSignal] = []
     private var failedHealthChecks = 0
     private var didReportCrash = false
+    private var cameraRequestTimer: Timer?
     private let selfTestMode = CommandLine.arguments.contains("--selftest")
     private var selfTestStarted = false
     private var selfTestDeadline = Date()
@@ -348,6 +376,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         return NSSize(width: width, height: height)
     }()
 
+    /// Modalità cattura: `--capture-camera /percorso/immagine.jpg`.
+    private let cameraCapturePath: String? = {
+        let args = CommandLine.arguments
+        guard let index = args.firstIndex(of: "--capture-camera"), index + 1 < args.count else { return nil }
+        return args[index + 1]
+    }()
+
     /// Selettore CSS da portare in vista prima dello snapshot:
     /// `--snapshot-scroll "[aria-labelledby='voiceTitle']"`. Serve a verificare
     /// le schede che stanno dentro il pannello scorrevole.
@@ -357,12 +392,152 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         return args[index + 1]
     }()
 
+    /// Chiede a macOS il permesso Fotocamera per il bundle Amy Core.
+    /// Viene usato una volta sola con `AmyCore --request-camera`.
+    private func requestCameraPermission() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            AppLog.write("Fotocamera già autorizzata per Amy Core.")
+            NSApp.terminate(nil)
+        case .notDetermined:
+            AVCaptureDevice.requestAccess(for: .video) { granted in
+                AppLog.write(granted
+                    ? "Permesso Fotocamera concesso ad Amy Core."
+                    : "Permesso Fotocamera negato ad Amy Core.")
+                DispatchQueue.main.async {
+                    if !granted {
+                        self.openCameraSettings()
+                    }
+                    NSApp.terminate(nil)
+                }
+            }
+        default:
+            AppLog.write("Fotocamera non autorizzata: apri Impostazioni di Sistema.")
+            openCameraSettings()
+            NSApp.terminate(nil)
+        }
+    }
+
+    /// Cattura un fotogramma nel processo Amy Core. Restituisce false senza
+    /// terminare l'app: serve sia alla modalità CLI sia al watcher del backend.
+    @discardableResult
+    private func captureFrame(to path: String) -> Bool {
+        var status = AVCaptureDevice.authorizationStatus(for: .video)
+        if status == .notDetermined {
+            var granted = false
+            AVCaptureDevice.requestAccess(for: .video) { allowed in
+                granted = allowed
+                DispatchQueue.main.async {
+                    CFRunLoopStop(CFRunLoopGetMain())
+                }
+            }
+            // Il prompt è dell'app: attendi che l'utente risponda.
+            CFRunLoopRunInMode(.defaultMode, 90.0, false)
+            status = granted ? .authorized : AVCaptureDevice.authorizationStatus(for: .video)
+        }
+        guard status == .authorized else {
+            AppLog.write("Cattura fotocamera rifiutata: permesso non concesso.")
+            return false
+        }
+        guard let device = AVCaptureDevice.default(for: .video) else {
+            AppLog.write("Cattura fotocamera: nessun dispositivo disponibile.")
+            return false
+        }
+        do {
+            let session = AVCaptureSession()
+            session.sessionPreset = .photo
+            let input = try AVCaptureDeviceInput(device: device)
+            guard session.canAddInput(input) else {
+                AppLog.write("Cattura fotocamera: input non disponibile.")
+                return false
+            }
+            session.addInput(input)
+            let output = AVCaptureVideoDataOutput()
+            output.alwaysDiscardsLateVideoFrames = true
+            guard session.canAddOutput(output) else {
+                AppLog.write("Cattura fotocamera: output non disponibile.")
+                return false
+            }
+            session.addOutput(output)
+            let delegate = CameraFrameDelegate()
+            output.setSampleBufferDelegate(delegate, queue: DispatchQueue(label: "amy.camera.frames"))
+            session.startRunning()
+            CFRunLoopRunInMode(.defaultMode, 10.0, false)
+            session.stopRunning()
+            guard let data = delegate.data else {
+                AppLog.write("Cattura fotocamera: nessun fotogramma ricevuto.")
+                return false
+            }
+            try data.write(to: URL(fileURLWithPath: path))
+            AppLog.write("Cattura fotocamera completata: \(path)")
+            return true
+        } catch {
+            AppLog.write("Cattura fotocamera non riuscita: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    private func captureCamera(to path: String) {
+        exit(captureFrame(to: path) ? 0 : 8)
+    }
+
+    /// Il backend scrive una richiesta JSON; il watcher la esegue nel processo
+    /// già autorizzato e scrive il file richiesto. Evita che il permesso TCC
+    /// venga attribuito al processo Python.
+    private func startCameraRequestWatcher() {
+        cameraRequestTimer = Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
+            self?.checkCameraRequest()
+        }
+    }
+
+    private func checkCameraRequest() {
+        let requestURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".amy", isDirectory: true)
+            .appendingPathComponent("camera_request.json")
+        guard let data = try? Data(contentsOf: requestURL),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let path = object["path"] as? String,
+              let errorPath = object["error"] as? String else {
+            return
+        }
+        try? FileManager.default.removeItem(at: requestURL)
+        let target = URL(fileURLWithPath: path).standardizedFileURL
+        let cameraRoot = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Downloads", isDirectory: true)
+            .appendingPathComponent("Amy", isDirectory: true)
+            .appendingPathComponent("camera", isDirectory: true)
+            .standardizedFileURL
+        guard target.path.hasPrefix(cameraRoot.path + "/") else {
+            try? "Percorso di cattura non autorizzato.".write(toFile: errorPath, atomically: true, encoding: .utf8)
+            return
+        }
+        if captureFrame(to: target.path) {
+            return
+        }
+        try? "Cattura fotocamera non riuscita.".write(toFile: errorPath, atomically: true, encoding: .utf8)
+    }
+
+    private func openCameraSettings() {
+        if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.regular)
+        if CommandLine.arguments.contains("--request-camera") {
+            requestCameraPermission()
+            return
+        }
+        if let path = cameraCapturePath {
+            captureCamera(to: path)
+            return
+        }
         buildMainMenu()
         installSignalHandlers()
         terminateStaleInstance()
         writePidFile()
+        startCameraRequestWatcher()
         // L'heartbeat deve esistere prima del backend: se manca, il backend
         // deduce che il genitore è morto e si chiude subito. Il timer parte
         // qui, non dopo l'avvio del backend: durante l'attesa il file deve

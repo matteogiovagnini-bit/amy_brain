@@ -7,6 +7,13 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Fotocamera nel processo Amy Core.** La cattura non passa più da un helper
+  esterno: l'app nativa espone `--request-camera` e `--capture-camera`, e un
+  watcher su `~/.amy/camera_request.json` esegue la richiesta nel processo che
+  possiede il permesso TCC. Il backend attende il JPEG con un limite di tempo.
+  Il vecchio helper Swift resta come fallback. Test di sistema aggiornati
+  (`AVFoundation`, `CoreImage`, `NSCameraUsageDescription`).
+
 - **Modulo Telegram (chat e note vocali).** Bot API ufficiale in long polling,
   spento per default, allowlist per ID numerico, sole chat private, sessioni
   dedicate, comandi `/start`, `/help`, `/new`, `/status`, `/stop`, `/voce`.

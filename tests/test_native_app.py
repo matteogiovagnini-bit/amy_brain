@@ -36,7 +36,7 @@ class NativeAppTests(unittest.TestCase):
     def test_only_system_frameworks(self) -> None:
         text = SOURCES.read_text(encoding="utf-8")
         imports = set(re.findall(r"^import\s+([A-Za-z]+)", text, re.MULTILINE))
-        allowed = {"AppKit", "WebKit", "Foundation", "Darwin"}
+        allowed = {"AppKit", "WebKit", "Foundation", "Darwin", "AVFoundation", "CoreImage"}
         self.assertTrue(imports)
         self.assertEqual(imports - allowed, set(), "import non di sistema: %s" % (imports - allowed))
 
@@ -57,6 +57,7 @@ class NativeAppTests(unittest.TestCase):
             "CFBundleShortVersionString",
             "LSMinimumSystemVersion",
             "NSAppTransportSecurity",
+            "NSCameraUsageDescription",
         ):
             self.assertIn(key, text, key)
         self.assertIn("AmyCore", text)
