@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Errori fotocamera più precisi.** Quando la cattura fallisce, lo strumento
+  riporta il motivo reale (permesso negato, nessun dispositivo, telecamera
+  occupata, nessun fotogramma) con `camera_error`, invece di un generico errore
+  interno che il modello poteva scambiare per un problema di permessi.
+
 - **Esposizione della fotocamera corretta.** Prima di catturare, l'app avvia la
   sessione, imposta esposizione/fuoco/bilanciamento automatici e attende 2 secondi
   di warm-up: il primo fotogramma della webcam era quasi nero. Verificato con una

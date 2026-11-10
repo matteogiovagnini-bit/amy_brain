@@ -59,11 +59,12 @@ class VisionCameraTests(unittest.TestCase):
 
         with mock.patch(
             "amy.tools.screen_tools.capture_camera",
-            side_effect=CameraError("Cattura dalla telecamera non riuscita."),
+            side_effect=CameraError("Cattura dalla telecamera non riuscita.", detail="La telecamera non ha restituito fotogrammi."),
         ):
             result = self.registry.execute("vision.capture", {}, self.context)
         self.assertFalse(result.ok)
-        self.assertEqual(result.error_code, "internal_error")
+        self.assertEqual(result.error_code, "camera_error")
+        self.assertEqual(result.data["detail"], "La telecamera non ha restituito fotogrammi.")
 
     def test_vision_capture_is_risk_b(self) -> None:
         self.assertEqual(screen_tools.VISION_CAPTURE.risk, RiskLevel.B)

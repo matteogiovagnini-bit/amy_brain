@@ -355,6 +355,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     private var failedHealthChecks = 0
     private var didReportCrash = false
     private var cameraRequestTimer: Timer?
+    private var cameraError = ""
     private let selfTestMode = CommandLine.arguments.contains("--selftest")
     private var selfTestStarted = false
     private var selfTestDeadline = Date()
@@ -422,6 +423,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     /// terminare l'app: serve sia alla modalità CLI sia al watcher del backend.
     @discardableResult
     private func captureFrame(to path: String) -> Bool {
+        cameraError = ""
         var status = AVCaptureDevice.authorizationStatus(for: .video)
         if status == .notDetermined {
             var granted = false
@@ -436,10 +438,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             status = granted ? .authorized : AVCaptureDevice.authorizationStatus(for: .video)
         }
         guard status == .authorized else {
+            cameraError = "Permesso Fotocamera non concesso per Amy Core."
             AppLog.write("Cattura fotocamera rifiutata: permesso non concesso.")
             return false
         }
         guard let device = AVCaptureDevice.default(for: .video) else {
+            cameraError = "Nessuna telecamera disponibile."
             AppLog.write("Cattura fotocamera: nessun dispositivo disponibile.")
             return false
         }
@@ -460,6 +464,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             session.sessionPreset = .photo
             let input = try AVCaptureDeviceInput(device: device)
             guard session.canAddInput(input) else {
+                cameraError = "La telecamera non è disponibile (input)."
                 AppLog.write("Cattura fotocamera: input non disponibile.")
                 return false
             }
@@ -467,6 +472,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             let output = AVCaptureVideoDataOutput()
             output.alwaysDiscardsLateVideoFrames = true
             guard session.canAddOutput(output) else {
+                cameraError = "La telecamera non è disponibile (output)."
                 AppLog.write("Cattura fotocamera: output non disponibile.")
                 return false
             }
@@ -481,6 +487,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             CFRunLoopRunInMode(.defaultMode, 10.0, false)
             session.stopRunning()
             guard let data = delegate.data else {
+                cameraError = "La telecamera non ha restituito fotogrammi. Potrebbe essere occupata da un'altra app."
                 AppLog.write("Cattura fotocamera: nessun fotogramma ricevuto.")
                 return false
             }
@@ -488,6 +495,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
             AppLog.write("Cattura fotocamera completata: \(path)")
             return true
         } catch {
+            cameraError = "Errore della telecamera: \(error.localizedDescription)"
             AppLog.write("Cattura fotocamera non riuscita: \(error.localizedDescription)")
             return false
         }
@@ -530,7 +538,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         if captureFrame(to: target.path) {
             return
         }
-        try? "Cattura fotocamera non riuscita.".write(toFile: errorPath, atomically: true, encoding: .utf8)
+        let message = cameraError.isEmpty ? "Cattura fotocamera non riuscita." : cameraError
+        try? message.write(toFile: errorPath, atomically: true, encoding: .utf8)
     }
 
     private func openCameraSettings() {

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from ..macos import capture, capture_camera, read_screen
+from ..macos import CameraError, capture, capture_camera, read_screen
 from ..security.risk import RiskLevel
 from .base import FunctionTool, ToolContext, ToolResult, ToolSpec
 
@@ -42,7 +42,14 @@ def _camera(args: Dict[str, Any], context: ToolContext) -> ToolResult:
             "Telecamera disattivata nella configurazione.",
             error_code="camera_disabled",
         )
-    path = capture_camera()
+    try:
+        path = capture_camera()
+    except CameraError as exc:
+        return ToolResult.failure(
+            exc.message,
+            error_code="camera_error",
+            data={"detail": exc.detail} if exc.detail else None,
+        )
     return ToolResult.success(
         {"image": str(path), "bytes": path.stat().st_size},
         "Fotogramma salvato in %s." % path,
