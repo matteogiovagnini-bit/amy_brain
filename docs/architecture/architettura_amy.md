@@ -50,6 +50,10 @@ Stato: **proposta da approvare**. Nessun codice è stato spostato o riscritto.
                                    ▼                   ▼
                              07 SMART HOME       08 ROBOT CONTROL
                              MQTT • sensori      protocollo • simulatore
+                                   │
+                                   ▼
+                             09 TELEGRAM
+                             chat • note vocali
                              luci • scene        MQTT • sicurezza • E-stop
 ```
 
@@ -189,7 +193,7 @@ degli altri moduli.
 
 ---
 
-## 5. Gli otto moduli
+## 5. I nove moduli
 
 | # | Modulo | Responsabilità | Codice esistente riusato | Stato attuale | Default |
 | --- | --- | --- | --- | --- | --- |
@@ -201,6 +205,7 @@ degli altri moduli.
 | 06 | **Vision** | OCR schermo, immagini, telecamera, descrizione scena | `screen.py`, `screen_tools.py`, `macos/camera.py`, `camera.swift` | OCR + telecamera verificata; describe assente | OCR attivo; camera spenta |
 | 07 | **Smart Home** | MQTT, dispositivi, sensori, luci, scene | `home/service.py`, `home_tools.py` | config e mock; nessun broker reale | spento |
 | 08 | **Robot Control** | protocollo, simulatore, MQTT, sicurezza, telecamera robot | `amy/robot/*`, `robot_tools.py` | simulatore verificato; hardware no | simulatore attivo |
+| 09 | **Telegram** | chat, note vocali, sessioni, conferme da smartphone | `amy/telegram/*`, `modules/telegram/adapter.py` | implementato; non verificato con bot reale | spento |
 
 ### 5.1 Voice Engine
 - File target: `amy/modules/voice/`.
@@ -263,6 +268,15 @@ degli altri moduli.
 - La sicurezza resta nel robot/Pi/ESP32; Amy invia solo comandi di alto livello.
 - Telecamera robot tramite Vision, se disponibile.
 - Nessuna modifica alla catena di sicurezza senza hardware e test dedicati.
+
+### 5.9 Telegram
+- File target: `amy/telegram/` e `amy/modules/telegram/`.
+- Bot API ufficiale in long polling: nessuna porta in ingresso, nessun webhook.
+- Solo chat private e utenti in allowlist per ID numerico.
+- Sessioni dedicate per chat, conferme con pulsanti inline.
+- Note vocali scaricate, trascritte in locale e cancellate dopo l'uso.
+- Risposte vocali opzionali con `say` + `afconvert`.
+- Le chiamate vocali non sono supportate dalla Bot API.
 
 ---
 

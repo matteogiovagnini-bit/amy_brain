@@ -1,6 +1,6 @@
 """Test degli adapter dei moduli (Fase 2).
 
-Gli adapter devono esporre gli stessi 57 strumenti del registry esistente,
+Gli adapter devono esporre gli stessi 79 strumenti del registry esistente,
 senza modificare `builtin.py` né il comportamento dell'assistente.
 """
 
@@ -29,7 +29,7 @@ class ModuleAdapterTests(unittest.TestCase):
             enabled={name: True for name in DEFAULT_MODULES},
         )
 
-    def test_eight_modules_are_registered(self) -> None:
+    def test_nine_modules_are_registered(self) -> None:
         registry = build_module_registry(self.temp.config)
         self.assertEqual(registry.names(), sorted(DEFAULT_MODULES))
 
@@ -43,6 +43,7 @@ class ModuleAdapterTests(unittest.TestCase):
         self.assertTrue(registry.enabled("robot"))
         self.assertFalse(registry.enabled("developer"))
         self.assertFalse(registry.enabled("home"))
+        self.assertFalse(registry.enabled("telegram"))
 
     def test_tool_union_matches_the_existing_registry(self) -> None:
         registry = self._all_enabled()

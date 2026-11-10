@@ -132,7 +132,7 @@ chiave nel repository, nei log o nei test. Se hai toccato la voce, verifica alme
 sintesi su file (`amy doctor` la esegue). Se hai toccato il robot, esegui i test del
 simulatore e **non** affermare che l'hardware funziona.
 
-Stato verificato il 9 novembre 2026: 467 test superati, doctor con TTS funzionante e
+Stato verificato il 10 novembre 2026: 480 test superati, doctor con TTS funzionante e
 sonda reale del microfono, provider personale configurato su GroqCloud piano Free con
 chiave valida e risposta reale del modello `openai/gpt-oss-120b`, default del
 repository ancora Ollama locale, voce completa e locale (`sounddevice` per il
@@ -144,8 +144,9 @@ strumento `system.battery` con lettura reale di `pmset -g batt`, registrazione c
 limite di tempo quando il HAL di Core Audio non risponde, telecamera reale verificata
 (cattura JPEG 1280×720 tramite AVFoundation, permesso TCC non provato in modo
 interattivo), Smart Home solo con configurazione e test offline (nessun broker reale),
-robot solo simulato, MQTT non verificato, Developer Assistant nativo verificato su
-questo repository (`dev.status`, `dev.diff`, `dev.analyze`, `dev.test`),
+robot solo simulato, MQTT non verificato, Telegram implementato e coperto da test
+con API finta ma non verificato con un bot reale, Developer Assistant nativo
+verificato su questo repository (`dev.status`, `dev.diff`, `dev.analyze`, `dev.test`),
 applicazione macOS «Amy Core» compilata, reinstallata in `~/Applications`
 e verificata con self-test end-to-end (dashboard montata, messaggio inviato dal DOM,
 risposta in chat, backend chiuso), senza verifica visiva a mano della finestra.

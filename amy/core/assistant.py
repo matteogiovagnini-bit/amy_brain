@@ -39,6 +39,7 @@ from ..security.policy import ConfirmationRequest, PathGuard, PolicyEngine
 from ..security.risk import RiskLevel
 from ..shared.events import EventBus
 from ..shared.module import ModuleContext
+from ..telegram.service import TelegramService
 from ..tools.base import ToolContext, ToolResult
 from ..tools.builtin import build_default_registry
 from ..tools.calendar_tools import collect_upcoming
@@ -237,6 +238,14 @@ class Assistant:
         self.provider = provider or build_provider(config)
         self.robot_link = robot_link or build_robot_link(config)
         self.voice = voice or VoiceService(config)
+        self.telegram = TelegramService(
+            self.config,
+            handler=self.handle,
+            resolver=self.resolve_confirmation,
+            voice=self.voice,
+            new_session=self.new_session,
+            memory=self.memory,
+        )
         self.events = events or EventBus()
         self._module_context = ModuleContext(
             config=self.config,
@@ -254,6 +263,7 @@ class Assistant:
             voice=self.voice,
             memory=self.memory,
             robot_link=self.robot_link,
+            telegram_service=self.telegram,
             enabled={name: True for name in DEFAULT_MODULES},
         )
         self.modules.start_all(self._module_context)
@@ -693,6 +703,10 @@ class Assistant:
             voice=self.voice,
         )
 
+    def start_telegram(self) -> Dict[str, Any]:
+        """Avvia il bot Telegram, se configurato. Non blocca l'avvio."""
+        return self.telegram.start()
+
     def dev_status(self) -> Dict[str, Any]:
         """Stato del progetto per la dashboard, in sola lettura (livello A)."""
         if not self.modules.enabled("developer"):
@@ -819,6 +833,14 @@ class Assistant:
                 if tool_name:
                     self.registry.unregister(tool_name)
             status = self.modules.disable(name)
+        if name == "telegram":
+            try:
+                if enabled:
+                    self.telegram.start()
+                else:
+                    self.telegram.stop()
+            except Exception:  # noqa: BLE001 - il modulo non deve rompere il Core
+                _log.exception("Avvio/stop Telegram dal toggle non riuscito")
         self.audit.record(
             "module_toggled",
             detail="%s=%s" % (name, "enabled" if enabled else "disabled"),
@@ -847,6 +869,7 @@ class Assistant:
                 for item in self.registry.catalog()
             ],
             "modules": self.modules.statuses(),
+            "telegram": self.telegram.status(),
             "permissions": self.authorization.snapshot(),
             "pending_confirmations": len(self.pending_confirmations()),
             "facts": self.memory.list_facts(12),
@@ -871,6 +894,10 @@ class Assistant:
         return self.voice.speak(text, block=False)
 
     def close(self) -> None:
+        try:
+            self.telegram.stop()
+        except Exception:
+            pass
         try:
             self.voice.stop_speaking()
         except Exception:

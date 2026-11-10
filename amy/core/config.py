@@ -105,6 +105,16 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "max_output_chars": 8000,
         "restart_delay_s": 12,
     },
+    "telegram": {
+        "enabled": False,
+        "token_env": "AMY_TELEGRAM_TOKEN",
+        "allowed_user_ids": [],
+        "poll_timeout_s": 25,
+        "voice_replies": False,
+        "max_voice_seconds": 120,
+        "max_voice_bytes": 20971520,
+        "max_message_chars": 3000,
+    },
     "dev": {
         "project_dir": "",
         "test_timeout_s": 300,

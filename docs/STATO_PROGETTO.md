@@ -1,6 +1,6 @@
 # Stato del progetto
 
-Ultima verifica: **9 novembre 2026**. Ogni voce è separata tra ciò che è stato
+Ultima verifica: **10 novembre 2026**. Ogni voce è separata tra ciò che è stato
 eseguito davvero, ciò che è implementato ma non verificato, ciò che è sperimentale e
 ciò che è solo pianificato.
 
@@ -19,7 +19,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 467 test, tutti superati, più il self-test dell'app nativa (verificato il 9 novembre 2026) |
+| Test | 480 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -61,15 +61,15 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   prima della policy A/B/C; `role` e `capability` entrano nell'audit. `/api/permissions`
   espone le 26 capacità, il pannello «Permessi» permette revoca/ripristino. Il
   livello C resta sempre confermato; revoche e toggle sono a runtime.
-- Architettura (Fase 3): `/api/state` espone `modules`, `/api/modules` elenca gli
-  otto moduli e `/api/modules/{name}/enabled` li abilita/disabilita a runtime. La
+- Architettura (Fase 3): `/api/state` espone `modules`, `/api/modules` elenca i
+  nove moduli e `/api/modules/{name}/enabled` li abilita/disabilita a runtime. La
   dashboard ha il pannello «Moduli» con stato reale e interruttori; disabilitare un
   modulo rimuove i suoi strumenti dal catalogo attivo. Memory è essenziale e non
   può essere disabilitato. Disabilitare un modulo annulla le conferme pendenti dei
   suoi strumenti. Lo stato dei toggle non è ancora persistito: al riavvio i moduli
   tornano abilitati.
-- Architettura (Fase 2): otto adapter (`voice`, `mac_control`, `personal`,
-  `memory`, `developer`, `vision`, `home`, `robot`) avvolgono il codice esistente
+- Architettura (Fase 2): nove adapter (`voice`, `mac_control`, `personal`,
+  `memory`, `developer`, `vision`, `home`, `robot`, `telegram`) avvolgono il codice esistente
   senza spostare file. L'unione dei loro strumenti coincide con i 57 del registry
   attuale; `builtin.py` resta invariato. 10 test di contratto.
 - Architettura (Fase 1): contratti condivisi `Module`, `ModuleManifest`,
@@ -202,7 +202,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 467 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 480 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
@@ -223,6 +223,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
 | Permesso Telecamera interattivo | La cattura è stata provata da terminale; il prompt TCC dell'app non è stato verificato a mano | JPEG 1280×720 catturato con AVFoundation e salvato localmente |
 | Smart Home con broker reale | Nessun broker o dispositivo configurato | Strumenti A/A/B/C, config, mock MQTT, errori onesti senza broker |
+| Telegram con bot reale | Nessun token/bot fornito | 13 test con API finta: allowlist, chat, note vocali, sessioni, conferme, token mancante |
 
 ## 4. Sperimentale
 

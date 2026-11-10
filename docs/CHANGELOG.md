@@ -7,6 +7,15 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Modulo Telegram (chat e note vocali).** Bot API ufficiale in long polling,
+  spento per default, allowlist per ID numerico, sole chat private, sessioni
+  dedicate, comandi `/start`, `/help`, `/new`, `/status`, `/stop`, `/voce`.
+  Le note vocali vengono scaricate, trascritte in locale e passate all’assistente;
+  le conferme usano pulsanti inline. Risposte vocali opzionali con `say` +
+  `afconvert`. Le chiamate vocali non sono supportate dai bot. 13 test nuovi
+  (480 totali); nessuna verifica con un bot reale perché non è stato fornito un
+  token.
+
 - **Neuroni fluttuanti attorno al nucleo.** Campo decorativo su canvas locale
   (`static/neurons.js`) con nodi luminosi, dendriti e sinapsi; la densità e la
   luminosità aumentano negli stati attivi. Rispetta «Movimento: ridotto», disegna

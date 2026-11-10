@@ -604,6 +604,10 @@ def run_server(config: Config, *, host: Optional[str] = None, port: Optional[int
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
     _schedule_greeting(assistant)
     server.start_wake_loop_on_launch()
+    try:
+        assistant.start_telegram()
+    except Exception:  # noqa: BLE001 - Telegram non deve impedire l'avvio
+        _log.exception("Avvio Telegram non riuscito")
     parent_pid = os.environ.get("AMY_PARENT_PID", "").strip()
     watch_stdin = os.environ.get("AMY_WATCH_STDIN", "") == "1"
     heartbeat = os.environ.get("AMY_HEARTBEAT_FILE", "").strip()

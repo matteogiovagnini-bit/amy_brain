@@ -224,6 +224,24 @@ dell'utente.
 - OpenCode resta l'unico strumento che può modificare il codice ed è livello C.
   `dev.*` non sostituisce la conferma delle modifiche.
 
+## 5.7 Telegram
+
+- Modulo opzionale e spento per default. Richiede token del bot e una
+  **allowlist di ID numerici**: senza allowlist il servizio non parte.
+- Solo chat private; gruppi, canali e utenti non autorizzati vengono ignorati.
+- Il token è un segreto: si legge da `AMY_TELEGRAM_TOKEN` o `~/.amy/secrets.json`
+  e non compare in log, prompt, configurazione o dashboard.
+- Il bot usa la Bot API ufficiale in long polling: nessuna porta in ingresso.
+- Conferme: i pulsanti Telegram chiamano `resolve_confirmation`; il livello C
+  resta sempre confermato. Una conferma è valida solo per la chat che l’ha
+  ricevuta.
+- Le note vocali sono file esterni: vengono scaricati con limite di dimensione e
+  durata, trascritti in locale e cancellati dopo l’uso.
+- Le chat dei bot Telegram non sono end-to-end encrypted. Non vanno usate per
+  segreti, password o dati particolarmente sensibili.
+- Il telefono diventa un telecomando del Mac: se viene perso, revocare il token
+  con BotFather e riavviare Amy.
+
 ## 6. Web e prompt injection
 
 `web.fetch`:

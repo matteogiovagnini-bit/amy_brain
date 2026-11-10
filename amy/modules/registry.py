@@ -17,6 +17,7 @@ from .mac_control import MacControlAdapter
 from .memory import MemoryAdapter
 from .personal import PersonalAdapter
 from .robot import RobotAdapter
+from .telegram import TelegramAdapter
 from .vision import VisionAdapter
 from .voice import VoiceAdapter
 
@@ -29,6 +30,7 @@ DEFAULT_MODULES = (
     "vision",
     "home",
     "robot",
+    "telegram",
 )
 
 
@@ -39,9 +41,10 @@ def build_module_registry(
     voice: Optional[Any] = None,
     memory: Optional[Any] = None,
     robot_link: Optional[Any] = None,
+    telegram_service: Optional[Any] = None,
     enabled: Optional[Dict[str, bool]] = None,
 ) -> ModuleRegistry:
-    """Crea gli otto adapter e li registra, senza avviarli."""
+    """Crea i nove adapter e li registra, senza avviarli."""
     registry = ModuleRegistry(events=events)
     adapters = [
         VoiceAdapter(voice),
@@ -52,6 +55,7 @@ def build_module_registry(
         VisionAdapter(),
         HomeAdapter(),
         RobotAdapter(robot_link),
+        TelegramAdapter(telegram_service),
     ]
     overrides = dict(enabled or {})
     for adapter in adapters:

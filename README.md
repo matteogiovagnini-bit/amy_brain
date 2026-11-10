@@ -106,6 +106,29 @@ La dashboard ascolta su `127.0.0.1:8765` per impostazione predefinita. Non ha
 autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esplicito
 (`ui.allow_remote`), e resta sconsigliata.
 
+### Telegram (opzionale)
+
+Serve solo un **bot**: Amy non ha un account Telegram né un numero di telefono.
+
+1. Su Telegram apri `@BotFather`, esegui `/newbot` e scegli un username.
+2. Salva il token con `python3 -m amy secret set AMY_TELEGRAM_TOKEN`.
+3. Recupera il tuo ID numerico (per esempio con `@userinfobot`).
+4. In `~/.amy/config.json` imposta:
+
+```json
+{
+  "telegram": {
+    "enabled": true,
+    "allowed_user_ids": [123456789]
+  }
+}
+```
+
+5. Riavvia Amy e cerca il bot su Telegram. Amy risponde solo in chat privata
+   agli ID autorizzati. Puoi scrivere o inviare **note vocali**: vengono
+   trascritte in locale. Le **chiamate vocali** Telegram non sono supportate dai
+   bot. Dettagli: [docs/CONFIGURAZIONE.md](docs/CONFIGURAZIONE.md#telegram).
+
 ## Cosa sa fare oggi
 
 - Conversazione in italiano con provider astratti: Ollama locale, preset online
@@ -157,9 +180,13 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
   scartati, così la sua risposta non viene scambiata per un comando.
 - **Attività e note**: task con priorità, scadenza, stato e liste; note con tag.
   Creazione, modifica e completamento via chat; la dashboard mostra lo stato reale.
-- **Moduli**: la dashboard mostra gli otto moduli (Voice, Mac Control, Personal,
-  Memory, Developer, Vision, Home, Robot) con stato reale e interruttore; un modulo
-  disabilitato non espone strumenti.
+- **Telegram opzionale**: chat e note vocali dal telefono tramite Bot API, con
+  allowlist per ID, sessioni dedicate e conferme a pulsanti. Le note vocali sono
+  trascritte in locale; le chiamate vocali Telegram non sono supportate dai bot.
+  Spento per default: richiede token e `telegram.allowed_user_ids`.
+- **Moduli**: la dashboard mostra i nove moduli (Voice, Mac Control, Personal,
+  Memory, Developer, Vision, Home, Robot, Telegram) con stato reale e interruttore;
+  un modulo disabilitato non espone strumenti.
 - **OpenCode 2**: Amy affida una richiesta a una sessione persistente di
   `opencode2` nella cartella di progetto. È un agente esterno con i permessi
   dell'utente: lo strumento è di livello C e richiede sempre conferma. Con
@@ -187,6 +214,7 @@ autenticazione: l'esposizione su altre interfacce è bloccata salvo consenso esp
 | Wake word audio | Non è un motore audio dedicato: rileva la parola dopo la trascrizione. Consumi CPU e falsi positivi restano possibili |
 | Qualità vocale su più parlanti | Verificato solo con una voce di prova | Trascrizioni con voci diverse, rumore e accenti |
 | Dashboard remota | Volutamente bloccata di default; nessuna autenticazione |
+| Telegram | Implementato e testato con API finta; non ancora provato con un bot reale. Le chiamate vocali non sono supportate dalla Bot API |
 | Uso continuativo / produzione | Non dichiarato stabile |
 
 ## Sicurezza in una frase
@@ -213,7 +241,7 @@ amy/
   ui/         server HTTP locale e dashboard statica
   macos/      integrazione AppleScript e informazioni di sistema
 apps/AmyCore/ applicazione macOS nativa (Swift) e self-test
-tests/        suite unittest (467 test)
+tests/        suite unittest (480 test)
 docs/         documentazione italiana del progetto
 ```
 
@@ -227,13 +255,13 @@ python3 -m unittest discover -s tests -t . -v
 ./apps/AmyCore/build.sh && python3 apps/AmyCore/selftest.py
 ```
 
-Risultato verificato il 9 novembre 2026: **467 test, tutti superati**, più il
+Risultato verificato il 10 novembre 2026: **480 test, tutti superati**, più il
 self-test dell'app nativa (messaggio inviato dal DOM, risposta in chat, backend
 chiuso correttamente). I test non dimostrano il funzionamento su hardware robotico
 reale; la voce è stata verificata a mano sul microfono del Mac, non dalla suite; il
 provider online richiede una chiave personale e non viene esercitato dalla suite con
 traffico reale. Verifica del 6 novembre 2026 dopo l'aggiunta del riquadro
-«Prossimi appuntamenti»: **467 test, tutti superati**; il self-test dell'app nativa
+«Prossimi appuntamenti»: **480 test, tutti superati**; il self-test dell'app nativa
 non è stato rieseguito in questa modifica. Vedi [docs/TEST.md](docs/TEST.md).
 
 ## Documentazione

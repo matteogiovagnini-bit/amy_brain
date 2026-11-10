@@ -136,13 +136,13 @@ class ServerTests(unittest.TestCase):
         names = {item["manifest"]["name"] for item in data["modules"]}
         self.assertEqual(
             names,
-            {"voice", "mac_control", "personal", "memory", "developer", "vision", "home", "robot"},
+            {"voice", "mac_control", "personal", "memory", "developer", "vision", "home", "robot", "telegram"},
         )
         for item in data["modules"]:
             self.assertIn("status", item)
             self.assertIn("enabled", item)
         _, state = self.call("GET", "/api/state")
-        self.assertEqual(len(state["modules"]), 8)
+        self.assertEqual(len(state["modules"]), 9)
 
     def test_disable_and_enable_a_module_changes_the_tools(self) -> None:
         _, before = self.call("GET", "/api/tools")

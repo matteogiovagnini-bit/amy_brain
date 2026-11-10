@@ -176,6 +176,16 @@ python3 -m amy config path   # percorso del file in uso
     "test_timeout_s": 300,
     "max_output_chars": 6000
   },
+  "telegram": {
+    "enabled": false,
+    "token_env": "AMY_TELEGRAM_TOKEN",
+    "allowed_user_ids": [],
+    "poll_timeout_s": 25,
+    "voice_replies": false,
+    "max_voice_seconds": 120,
+    "max_voice_bytes": 20971520,
+    "max_message_chars": 3000
+  },
   "home": {
     "enabled": false,
     "broker": "",
@@ -552,6 +562,51 @@ Configurazione vocale e robotica sono descritte in dettaglio in
 - Gli strumenti leggono il progetto con comandi Git in lista chiusa e con la
   libreria standard: nessuna shell arbitraria. `dev.test` è livello B; le
   modifiche restano a OpenCode, livello C.
+
+### Telegram
+
+Il collegamento usa **solo Bot API ufficiale in long polling**: nessuna porta
+aperta, nessun webhook pubblico, nessun account utente di Amy.
+
+1. Su Telegram apri `@BotFather`, esegui `/newbot` e scegli un username.
+2. Salva il token senza scriverlo in chat o nel repository:
+
+```bash
+python3 -m amy secret set AMY_TELEGRAM_TOKEN
+```
+
+3. Scopri il tuo **ID numerico** (per esempio con `@userinfobot`) e inseriscilo
+   in `telegram.allowed_user_ids`.
+4. Imposta `telegram.enabled = true` e riavvia Amy.
+
+```json
+{
+  "telegram": {
+    "enabled": true,
+    "token_env": "AMY_TELEGRAM_TOKEN",
+    "allowed_user_ids": [123456789],
+    "voice_replies": false
+  }
+}
+```
+
+- Il bot è raggiungibile all’username scelto, per esempio `@AmyCoreBot`.
+- Amy risponde solo a chat **private** con utenti in allowlist; gruppi e canali
+  sono ignorati.
+- Dopo che hai premuto **Start**, il bot può inviarti messaggi anche senza una tua
+  nuova richiesta.
+- Le note vocali vengono scaricate, trascritte in locale e trattate come testo.
+  Se `faster-whisper` non decodifica il formato OGG/Opus, serve `ffmpeg`.
+- `telegram.voice_replies` (default `false`) invia anche una risposta audio M4A
+  generata con `say` e `afconvert`; non è una nota vocale OGG/Opus.
+- `telegram.max_voice_seconds` e `max_voice_bytes` limitano i file accettati;
+  `max_message_chars` limita il testo in ingresso.
+- **Le chiamate vocali non sono supportate** dalla Bot API: Amy non può chiamare
+  né ricevere chiamate. Sono possibili solo chat e note vocali.
+- Il token si legge da `AMY_TELEGRAM_TOKEN` o da `~/.amy/secrets.json`; non
+  compare mai in configurazione, log, prompt o dashboard.
+- Telegram è un servizio gratuito, ma le chat dei bot non sono end-to-end
+  encrypted: non inviare password o dati sensibili.
 
 ### Visione e telecamera
 

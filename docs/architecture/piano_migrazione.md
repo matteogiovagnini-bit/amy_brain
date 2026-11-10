@@ -280,6 +280,16 @@ verificata; test verdi.
 
 ---
 
+### Fase 10 — Telegram (chat e note vocali)
+
+**Stato: implementata il 10 novembre 2026, non verificata con un bot reale.**
+Modulo opzionale spento per default; Bot API in long polling, allowlist per ID,
+chat private, sessioni, conferme a pulsanti, note vocali trascritte in locale,
+risposte vocali opzionali. Le chiamate vocali restano fuori scope: la Bot API non
+le supporta. 13 test con API finta.
+
+---
+
 ## 5. Shim di compatibilità
 
 | Shim | Scopo | Durata |
