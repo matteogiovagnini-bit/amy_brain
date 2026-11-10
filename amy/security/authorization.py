@@ -92,6 +92,8 @@ def capability_for_tool(tool_name: str) -> str:
         return "robot.estop"
     if name.startswith("home."):
         return "home.set" if name in {"home.set", "home.scene"} else "home.read"
+    if name.startswith("telegram."):
+        return "telegram.chat"
     return ""
 
 

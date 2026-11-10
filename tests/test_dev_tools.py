@@ -143,7 +143,7 @@ class DevToolsTests(unittest.TestCase):
         self.assertEqual(dev_tools.DEV_TEST.risk, RiskLevel.B)
 
     def test_tool_count_includes_developer_tools(self) -> None:
-        self.assertEqual(len(self.registry.names()), 79)
+        self.assertEqual(len(self.registry.names()), 80)
 
 
 if __name__ == "__main__":

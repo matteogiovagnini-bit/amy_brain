@@ -19,7 +19,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 481 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
+| Test | 483 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -111,7 +111,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   registrazione di strumenti inesistenti/argomenti invalidi.
 - Policy A/B/C: A automatico, B su conferma o allow-list, C sempre su conferma.
 - E-stop e stop robot non bloccati da conferma.
-- 79 strumenti registrati e validati.
+- 80 strumenti registrati e validati.
 - File confinati nelle radici, deny-list per percorsi sensibili, backup prima della
   sovrascrittura, cestino recuperabile.
 - Shell a enum chiuso di sola lettura, senza `shell=True`.
@@ -206,7 +206,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 481 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 483 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e
@@ -226,7 +226,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Riquadro «Prossimi appuntamenti» con Calendar.app reale | La lettura end-to-end del nuovo endpoint non è stata provata a mano in questo ambiente | 13 test automatici con AppleScript sostituito da mock: aggregazione, filtro, deduplica, errori dichiarati, nessun dato inventato |
 | Notifiche e Dock dell'app | Solo icona e menu di base | Bundle firmato ad-hoc e avviato dal Finder |
 | Smart Home con broker reale | Nessun broker o dispositivo configurato | Strumenti A/A/B/C, config, mock MQTT, errori onesti senza broker |
-| Telegram con un messaggio in arrivo reale | Il bot è collegato, ma non è stato possibile simulare un messaggio dell’utente dagli strumenti | 14 test con API finta e invio reale di una foto di prova con `sendPhoto` (message_id 33); allowlist, chat, note vocali e conferme coperte dai test |
+| Telegram con un messaggio in arrivo reale | Il bot è collegato, ma non è stato possibile simulare un messaggio dell’utente dagli strumenti | 16 test con API finta, invio reale di una foto con `sendPhoto` e strumento `telegram.send_last_photo` |
 
 ## 4. Sperimentale
 

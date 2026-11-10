@@ -1,6 +1,6 @@
 """Test degli adapter dei moduli (Fase 2).
 
-Gli adapter devono esporre gli stessi 79 strumenti del registry esistente,
+Gli adapter devono esporre gli stessi 80 strumenti del registry esistente,
 senza modificare `builtin.py` né il comportamento dell'assistente.
 """
 
@@ -52,7 +52,7 @@ class ModuleAdapterTests(unittest.TestCase):
         module_tools = sorted(tool.spec.name for tool in registry.tools())
         builtin_tools = sorted(build_default_registry().names())
         self.assertEqual(module_tools, builtin_tools)
-        self.assertEqual(len(module_tools), 79)
+        self.assertEqual(len(module_tools), 80)
 
     def test_disabling_a_module_removes_its_tools(self) -> None:
         registry = self._all_enabled()

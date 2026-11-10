@@ -701,6 +701,7 @@ class Assistant:
             session_id=session_id,
             robot_link=self.robot_link,
             voice=self.voice,
+            telegram=self.telegram,
         )
 
     def start_telegram(self) -> Dict[str, Any]:

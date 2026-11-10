@@ -258,11 +258,13 @@ class TelegramService:
         self._voice_chats: Set[int] = set()
         self._pending_chat: Dict[str, int] = {}
         self._chat_pending: Dict[int, str] = {}
+        self._chat_session: Dict[int, str] = {}
         self._queue: "queue.Queue[Optional[Dict[str, Any]]]" = queue.Queue()
         self._stop = threading.Event()
         self._poll_thread: Optional[threading.Thread] = None
         self._worker_thread: Optional[threading.Thread] = None
         self._lock = threading.Lock()
+        self._turn_context = threading.local()
         self._state = "disabled"
         self._error = ""
         self._username = ""
@@ -584,12 +586,18 @@ class TelegramService:
             self._send(chat_id, "Il messaggio è troppo lungo (massimo %d caratteri)." % maximum)
             return
         session = self._session_for(chat_id)
+        self._chat_session[chat_id] = session
+        self._turn_context.chat_id = chat_id
+        self._turn_context.session_id = session
         try:
             result = self.handler(text, session_id=session)
         except Exception:  # noqa: BLE001
             _log.exception("Richiesta Telegram non riuscita")
             self._send(chat_id, "Errore interno durante l'elaborazione della richiesta.")
             return
+        finally:
+            self._turn_context.chat_id = None
+            self._turn_context.session_id = ""
         reply = str(getattr(result, "reply", "") or "").strip()
         pending = getattr(result, "pending", None)
         if pending is not None:
@@ -715,12 +723,17 @@ class TelegramService:
         return False
 
     def _resolve_pending(self, chat_id: int, pending_id: str, approved: bool) -> None:
+        self._turn_context.chat_id = chat_id
+        self._turn_context.session_id = self._chat_session.get(chat_id, "")
         try:
             result = self.resolver(pending_id, approved)
         except Exception:  # noqa: BLE001
             _log.exception("Conferma Telegram non riuscita")
             self._send(chat_id, "Non sono riuscita a risolvere la conferma.")
             return
+        finally:
+            self._turn_context.chat_id = None
+            self._turn_context.session_id = ""
         self._pending_chat.pop(pending_id, None)
         if self._chat_pending.get(chat_id) == pending_id:
             self._chat_pending.pop(chat_id, None)
@@ -778,16 +791,13 @@ class TelegramService:
             return True
         return bool(self.config.get("telegram.voice_replies", False))
 
-    def _send_capture_photo(self, chat_id: int, result: Any) -> None:
-        """Se il turno ha scattato una foto, inviala come immagine Telegram."""
-        tools = getattr(result, "tools_used", []) or []
-        if "vision.capture" not in tools or self.api is None or self.memory is None:
-            return
-        session = str(getattr(result, "session_id", "") or "")
+    def _latest_capture_path(self, session: str) -> Optional[Path]:
+        if self.memory is None or not session:
+            return None
         try:
             activities = self.memory.list_activities(200)
-        except Exception:  # noqa: BLE001 - la foto non deve rompere la risposta
-            return
+        except Exception:  # noqa: BLE001
+            return None
         root = (Path.home() / "Downloads" / "Amy" / "camera").resolve()
         for item in activities:
             if str(item.get("session_id", "")) != session:
@@ -806,13 +816,49 @@ class TelegramService:
                 continue
             if root != resolved.parent and root not in resolved.parents:
                 continue
-            if not path.is_file():
-                continue
-            try:
-                self.api.send_photo(chat_id, path, caption="Foto scattata da Amy.")
-            except TelegramError as exc:
-                _log.warning("Invio della foto Telegram non riuscito: %s", exc.message)
+            if path.is_file():
+                return path
+        return None
+
+    def send_last_photo(self) -> Dict[str, Any]:
+        """Invia l'ultima foto della sessione alla chat Telegram corrente.
+
+        Va chiamato solo durante un turno Telegram: il contesto della chat è
+        impostato dal servizio. Da locale non esiste un destinatario.
+        """
+        chat_id = getattr(self._turn_context, "chat_id", None)
+        session = str(getattr(self._turn_context, "session_id", "") or "")
+        if not chat_id:
+            raise TelegramError(
+                "Nessuna chat Telegram attiva.",
+                detail="Chiedi l'invio della foto scrivendo ad Amy da Telegram.",
+            )
+        if self.api is None:
+            raise TelegramError("Telegram non è collegato.")
+        path = self._latest_capture_path(session)
+        if path is None:
+            raise TelegramError(
+                "Nessuna foto recente da inviare.",
+                detail="Scatta prima una foto, poi chiedi di inviarla.",
+            )
+        self.api.send_photo(int(chat_id), path, caption="Foto scattata da Amy.")
+        return {"sent": True, "image": str(path)}
+
+    def _send_capture_photo(self, chat_id: int, result: Any) -> None:
+        """Se il turno ha scattato una foto, inviala come immagine Telegram."""
+        tools = getattr(result, "tools_used", []) or []
+        if "telegram.send_last_photo" in tools:
             return
+        if "vision.capture" not in tools or self.api is None:
+            return
+        session = str(getattr(result, "session_id", "") or "")
+        path = self._latest_capture_path(session)
+        if path is None:
+            return
+        try:
+            self.api.send_photo(chat_id, path, caption="Foto scattata da Amy.")
+        except TelegramError as exc:
+            _log.warning("Invio della foto Telegram non riuscito: %s", exc.message)
 
     def _send_voice_reply(self, chat_id: int, text: str) -> None:
         say = shutil.which("say")

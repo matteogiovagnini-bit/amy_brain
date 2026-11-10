@@ -10,7 +10,7 @@ from unittest import mock
 
 from amy.modules.telegram import TelegramAdapter
 from amy.security.risk import RiskLevel
-from amy.telegram.service import TelegramService
+from amy.telegram.service import TelegramError, TelegramService
 from tests.helpers import TempAmy
 
 
@@ -205,6 +205,33 @@ class TelegramServiceTests(unittest.TestCase):
             self.service._handle_update({"message": self._message("scatta una foto")})
         self.assertEqual(len(self.api.photos), 1)
         self.assertEqual(self.api.photos[0][1], str(photo))
+
+    def test_send_last_photo_uses_current_chat(self) -> None:
+        photo = self.temp.home / "Downloads" / "Amy" / "camera" / "photo.jpg"
+        photo.parent.mkdir(parents=True, exist_ok=True)
+        photo.write_bytes(b"\xff\xd8" + b"0" * 2000)
+
+        class FakeMemory:
+            def list_activities(self, limit=200):
+                return [{
+                    "session_id": "S-1",
+                    "tool": "vision.capture",
+                    "status": "ok",
+                    "result": {"data": {"image": str(photo)}},
+                }]
+
+        self.service.memory = FakeMemory()
+        self.service._turn_context.chat_id = 42
+        self.service._turn_context.session_id = "S-1"
+        with mock.patch("amy.telegram.service.Path.home", return_value=self.temp.home):
+            data = self.service.send_last_photo()
+        self.assertTrue(data["sent"])
+        self.assertEqual(self.api.photos[-1][0], 42)
+
+    def test_send_last_photo_requires_telegram_context(self) -> None:
+        self.service._turn_context.chat_id = None
+        with self.assertRaises(TelegramError):
+            self.service.send_last_photo()
 
     def test_status_command_reports_connection(self) -> None:
         self.service._handle_update({"message": self._message("/status")})

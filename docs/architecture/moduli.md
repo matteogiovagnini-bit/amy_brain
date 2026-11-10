@@ -3,7 +3,7 @@
 **Fase 1-2 — contratti e adapter implementati**
 Data: **7 novembre 2026**
 Stato: contratti e nove adapter collegati a Core, server e dashboard.
-`builtin.py` resta l'aggregatore di compatibilità con i 79 strumenti.
+`builtin.py` resta l'aggregatore di compatibilità con gli 80 strumenti.
 
 ---
 
@@ -124,11 +124,11 @@ esistente senza spostarlo:
 | Vision | `modules/vision/adapter.py` | `screen.capture/read`, `vision.capture` (3) | attivo; telecamera spenta |
 | Home | `modules/home/adapter.py` | `home.devices/state/set/scene` (4) | spento per default |
 | Robot | `modules/robot/adapter.py` | 7 strumenti robot | attivo |
-| Telegram | `modules/telegram/adapter.py` | nessuno strumento; servizio Bot API | spento per default |
+| Telegram | `modules/telegram/adapter.py` | `telegram.send_last_photo` (1) + servizio Bot API | spento per default |
 
 `build_module_registry()` in `amy/modules/registry.py` crea i registri; non li
 avvia. Il test `tests/test_module_adapters.py` verifica che l'unione degli
-strumenti dei moduli coincida esattamente con i 79 del registry esistente.
+strumenti dei moduli coincida esattamente con gli 80 del registry esistente.
 
 Note:
 

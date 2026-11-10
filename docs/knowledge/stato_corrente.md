@@ -17,7 +17,7 @@ ingresso rapido per agenti e collaboratori.
 
 ## Verificato
 
-- **481 test** superati; **79 strumenti** registrati.
+- **483 test** superati; **80 strumenti** registrati.
 - App macOS «Amy Core» compilata, installata in `~/Applications` e verificata con
   self-test end-to-end.
 - Voce locale completa (`sounddevice`, `faster-whisper`, `say`, wake word «Amy»)
@@ -32,8 +32,8 @@ ingresso rapido per agenti e collaboratori.
 - Dashboard: moduli, permessi, memoria, provider, attività/note, progetto e log
   locali redatti. `project.js` è il primo modulo locale estratto da `app.js`.
 - Telegram: modulo opzionale con chat, note vocali trascritte in locale, sessioni,
-  conferme a pulsanti e invio delle foto di `vision.capture`. Bot collegato come
-  `@AmyCoreAssistantBot`; invio reale di una foto di prova riuscito.
+  conferme a pulsanti, invio automatico delle foto e `telegram.send_last_photo`
+  su richiesta. Bot collegato come `@AmyCoreAssistantBot`.
 - Nucleo con neuroni fluttuanti su canvas (`neurons.js`) e HUD radiale con archi,
   tacche e dati reali. Neuroni a 12 fps in attesa e 24 fps durante l'interazione;
   archi CSS in pausa in attesa/offline e tutto fermo in finestra non attiva.

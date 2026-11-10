@@ -89,6 +89,7 @@ class ToolContext:
     session_id: str = ""
     robot_link: Any = None
     voice: Any = None
+    telegram: Any = None
     logger: Any = None
 
     def child(self, **overrides: Any) -> "ToolContext":

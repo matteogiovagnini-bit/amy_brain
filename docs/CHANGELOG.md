@@ -7,6 +7,12 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **`telegram.send_last_photo`.** Amy può inviare su richiesta l'ultima foto della
+  sessione alla chat Telegram corrente, anche in un turno successivo alla cattura.
+  Lo strumento è di livello B, funziona solo da Telegram e non accetta percorsi
+  arbitrari: legge l'ultima attività `vision.capture` riuscita della sessione.
+  2 test nuovi (16 Telegram, 483 totali); 80 strumenti.
+
 - **Errori fotocamera più precisi.** Quando la cattura fallisce, lo strumento
   riporta il motivo reale (permesso negato, nessun dispositivo, telecamera
   occupata, nessun fotogramma) con `camera_error`, invece di un generico errore

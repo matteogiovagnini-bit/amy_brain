@@ -286,7 +286,7 @@ verificata; test verdi.
 Modulo opzionale spento per default; Bot API in long polling, allowlist per ID,
 chat private, sessioni, conferme a pulsanti, note vocali trascritte in locale,
 risposte vocali opzionali. Le chiamate vocali restano fuori scope: la Bot API non
-le supporta. 14 test con API finta e invio foto.
+le supporta. 16 test con API finta, invio foto e richiesta esplicita.
 
 ---
 

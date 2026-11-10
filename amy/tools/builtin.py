@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from . import apps, calendar_tools, dev_tools, files, home_tools, mail_tools, memory_tools, notes_tools, opencode_tools, reminders_tools, robot_tools, screen_tools, shell, system, tasks_tools, voice_tools, web
+from . import apps, calendar_tools, dev_tools, files, home_tools, mail_tools, memory_tools, notes_tools, opencode_tools, reminders_tools, robot_tools, screen_tools, shell, system, tasks_tools, telegram_tools, voice_tools, web
 from .registry import ToolRegistry
 
 
@@ -19,6 +19,7 @@ def build_default_registry() -> ToolRegistry:
     screen_tools.register(registry)
     home_tools.register(registry)
     dev_tools.register(registry)
+    telegram_tools.register(registry)
     files.register(registry)
     shell.register(registry)
     web.register(registry)

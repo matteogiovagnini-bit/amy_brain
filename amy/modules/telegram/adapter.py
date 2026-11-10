@@ -5,11 +5,13 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from ...shared.module import ModuleManifest, ModuleState, ModuleStatus
-from ..base import BaseAdapter
+from ...tools import telegram_tools
+from ..base import BaseAdapter, collect_tools, tool_names
 
 
 class TelegramAdapter(BaseAdapter):
     def __init__(self, service: Optional[Any] = None) -> None:
+        tools = collect_tools(telegram_tools.register)
         super().__init__(
             ModuleManifest(
                 name="telegram",
@@ -19,10 +21,10 @@ class TelegramAdapter(BaseAdapter):
                 default_enabled=False,
                 capabilities=("telegram.chat", "telegram.voice"),
                 requires=("telegram_token",),
-                tools=(),
+                tools=tool_names(tools),
                 optional=True,
             ),
-            [],
+            tools,
         )
         self.service = service
 
