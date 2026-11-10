@@ -218,9 +218,15 @@ class MacSayTTS(TTS):
         return path
 
     def stop(self) -> None:
-        with self._lock:
+        # Non bloccare la UI se un'altra operazione tiene il lock: fermare
+        # l'ascolto è più importante che attendere all'infinito la sintesi.
+        acquired = self._lock.acquire(timeout=1.0)
+        try:
             process = self._process
             self._process = None
+        finally:
+            if acquired:
+                self._lock.release()
         if process and process.poll() is None:
             try:
                 process.terminate()
@@ -233,8 +239,12 @@ class MacSayTTS(TTS):
         self._mark_speech_end()
 
     def is_speaking(self) -> bool:
-        with self._lock:
+        acquired = self._lock.acquire(timeout=0.5)
+        try:
             alive = bool(self._process and self._process.poll() is None)
+        finally:
+            if acquired:
+                self._lock.release()
         if not alive:
             # Il processo è finito: chiudi l'intervallo di sintesi anche se il
             # thread di sorveglianza non ha ancora ruotato.

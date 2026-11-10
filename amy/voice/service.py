@@ -641,7 +641,11 @@ class VoiceService:
         self._wake_deadline = None
         self.cancel_confirmation()
         self.end_conversation("ciclo fermato")
-        self.stop_speaking()
+        # La sintesi può essere bloccata nel processo `say`: non deve
+        # impedire al pulsante «Ferma ascolto» di rispondere.
+        stopper = threading.Thread(target=self.stop_speaking, daemon=True)
+        stopper.start()
+        stopper.join(timeout=0.5)
 
     @property
     def wake_running(self) -> bool:

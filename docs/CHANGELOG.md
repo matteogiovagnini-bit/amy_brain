@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **«Ferma ascolto» non si blocca più.** `stop_wake_loop()` non attende la
+  sintesi vocale: avvia lo stop in un thread con attesa massima di mezzo secondo.
+  `MacSayTTS.stop()` e `is_speaking()` usano un timeout sul lock, così il pulsante
+  risponde anche se un processo `say` è rimasto appeso. 484 test superati.
+
 - **Stato dashboard con timeout e cache.** `/api/state` costruisce lo stato in un
   thread con limite di 4 secondi e restituisce l’ultima copia buona se una parte
   si blocca. Evita che il browser saturi le connessioni e che pulsanti come
