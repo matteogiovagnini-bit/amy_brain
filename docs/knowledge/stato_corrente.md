@@ -17,7 +17,7 @@ ingresso rapido per agenti e collaboratori.
 
 ## Verificato
 
-- **483 test** superati; **80 strumenti** registrati.
+- **484 test** superati; **80 strumenti** registrati.
 - App macOS «Amy Core» compilata, installata in `~/Applications` e verificata con
   self-test end-to-end.
 - Voce locale completa (`sounddevice`, `faster-whisper`, `say`, wake word «Amy»)

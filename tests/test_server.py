@@ -189,6 +189,20 @@ class ServerTests(unittest.TestCase):
         self.assertIn("available", data)
         self.assertIsInstance(data["lines"], list)
 
+    def test_state_snapshot_times_out_without_blocking_the_ui(self) -> None:
+        original = self.assistant.status
+
+        def slow_status():
+            time.sleep(0.5)
+            return {"ok": True}
+
+        self.assistant.status = slow_status
+        try:
+            data = self.server.state_snapshot(timeout=0.05)
+        finally:
+            self.assistant.status = original
+        self.assertEqual(data.get("error"), "state_timeout")
+
     def test_dev_status_endpoint_is_read_only(self) -> None:
         response, data = self.call("GET", "/api/dev/status")
         self.assertEqual(response.status, 200)

@@ -160,7 +160,7 @@ class AmyHandler(BaseHTTPRequestHandler):
                     return
                 self._send_json(modules[name])
             elif path == "/api/state":
-                self._send_json(self.assistant.status())
+                self._send_json(self.server.state_snapshot())
             elif path == "/api/health":
                 self._send_json({"ok": True, "version": __version__})
             elif path == "/api/tools":
@@ -300,7 +300,56 @@ class AmyHTTPServer(ThreadingHTTPServer):
     def __init__(self, address, assistant: Assistant) -> None:
         self.assistant = assistant
         self.chat_lock = threading.Lock()
+        self._state_lock = threading.Lock()
+        self._state_building = False
+        self._state_cache: Optional[Dict[str, Any]] = None
+        self._state_cache_at = 0.0
         super().__init__(address, AmyHandler)
+
+    def state_snapshot(self, timeout: float = 4.0) -> Dict[str, Any]:
+        """Stato per la UI con timeout e ultima copia buona.
+
+        ``Assistant.status()`` tocca memoria, voce, moduli e provider. Se una di
+        queste parti si blocca, il browser non deve saturare le connessioni e
+        impedire pulsanti come «Ferma ascolto».
+        """
+        now = time.monotonic()
+        with self._state_lock:
+            if self._state_cache is not None and now - self._state_cache_at < 2.0:
+                return self._state_cache
+            if self._state_building:
+                if self._state_cache is not None:
+                    return dict(self._state_cache, stale=True)
+                return {"error": "state_busy"}
+            self._state_building = True
+
+        done = threading.Event()
+        box: Dict[str, Any] = {}
+
+        def build() -> None:
+            try:
+                box["value"] = self.assistant.status()
+            except Exception as exc:  # noqa: BLE001 - la UI deve ricevere un errore
+                box["error"] = str(exc)[:300]
+            finally:
+                with self._state_lock:
+                    if "value" in box:
+                        self._state_cache = box["value"]
+                        self._state_cache_at = time.monotonic()
+                    self._state_building = False
+                done.set()
+
+        threading.Thread(target=build, name="amy-state-snapshot", daemon=True).start()
+        done.wait(timeout)
+        if "value" in box:
+            return box["value"]
+        if "error" in box:
+            return {"error": "state_error", "detail": box["error"]}
+        with self._state_lock:
+            cache = self._state_cache
+        if cache is not None:
+            return dict(cache, stale=True)
+        return {"error": "state_timeout"}
 
     def handle_voice_command(self, text: str) -> None:
         """Esegue un comando dettato e pronuncia la risposta.

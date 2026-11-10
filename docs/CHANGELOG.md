@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Stato dashboard con timeout e cache.** `/api/state` costruisce lo stato in un
+  thread con limite di 4 secondi e restituisce l’ultima copia buona se una parte
+  si blocca. Evita che il browser saturi le connessioni e che pulsanti come
+  «Ferma ascolto» smettano di rispondere. 1 test nuovo (484 totali).
+
 - **Recupero del ciclo wake word.** Dopo 12 registrazioni vuote consecutive
   (circa 80 secondi di silenzio) Amy ricrea il registratore, perché il HAL di
   CoreAudio può smettere di consegnare frame dopo un lungo silenzio. Un errore
