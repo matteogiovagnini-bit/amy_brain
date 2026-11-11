@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Microfono corretto e VAD più sensibile.** Il registratore usa il dispositivo
+  configurato e mostra il nome reale (`Microfono MacBook Pro`), non sempre il
+  default. La soglia VAD parte da 0,010 e usa un fattore 1,2: le frasi pronunciate
+  a volume basso non vengono più scartate come silenzio. 484 test superati.
+
 - **Note vocali Telegram in uscita.** Le risposte vocali usano `sendVoice` con
   M4A/AAC generato localmente da `say` e `afconvert`; se il client rifiuta il
   formato, ripiegano su `sendAudio`. `telegram.voice_replies` è attivo in questa

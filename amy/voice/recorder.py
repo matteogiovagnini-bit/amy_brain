@@ -124,7 +124,12 @@ class SoundDeviceRecorder:
         module = self.module()
         if module is not None:
             try:
-                info = module.query_devices(kind="input")
+                device_arg = self._device_arg()
+                info = (
+                    module.query_devices(device_arg)
+                    if device_arg is not None
+                    else module.query_devices(kind="input")
+                )
                 self._device_label = str(info.get("name", "") or "")
             except Exception:  # pragma: no cover - dipende dal HAL
                 self._device_label = ""
@@ -225,7 +230,7 @@ class SoundDeviceRecorder:
         silence_frames = max(1, int(silence_s * 1000 / frame_ms))
         pre = deque(maxlen=10)  # 300 ms di pre-roll
         frames = bytearray()
-        noise = 0.015
+        noise = 0.010
         speech_run = 0
         silence_run = 0
         speaking = False
@@ -244,7 +249,7 @@ class SoundDeviceRecorder:
                 if not data:
                     break
                 rms = audioop.rms(data, 2) / 32768.0
-                threshold = max(0.015, noise * 1.5)
+                threshold = max(0.010, noise * 1.2)
                 if not speaking:
                     pre.append(data)
                     if rms > threshold:
