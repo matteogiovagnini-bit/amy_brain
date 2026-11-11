@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Note vocali Telegram in uscita.** Le risposte vocali usano `sendVoice` con
+  M4A/AAC generato localmente da `say` e `afconvert`; se il client rifiuta il
+  formato, ripiegano su `sendAudio`. `telegram.voice_replies` è attivo in questa
+  installazione. Nota di prova inviata (message_id 96).
+
 - **Ferma ascolto / Ascolta Amy immediati.** Lo stop segnala subito l'evento e
   ferma la sintesi in background; la risposta HTTP non attende `say`. Se si
   riavvia l'ascolto mentre il vecchio ciclo sta chiudendo, il servizio attende al

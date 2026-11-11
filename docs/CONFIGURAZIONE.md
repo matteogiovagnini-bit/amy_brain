@@ -600,8 +600,9 @@ python3 -m amy secret set AMY_TELEGRAM_TOKEN
 - Quando chiedi una foto, `vision.capture` scatta nel processo Amy Core e Amy
   invia il JPEG come immagine Telegram. La foto lascia il Mac e passa dai server
   Telegram: vale solo per gli utenti in allowlist.
-- `telegram.voice_replies` (default `false`) invia anche una risposta audio M4A
-  generata con `say` e `afconvert`; non è una nota vocale OGG/Opus.
+- `telegram.voice_replies` (default `false`) invia anche una **nota vocale**
+  M4A/AAC generata con `say` e `afconvert`, usando `sendVoice`; se Telegram la
+  rifiuta, ripiega su un file audio.
 - `telegram.max_voice_seconds` e `max_voice_bytes` limitano i file accettati;
   `max_message_chars` limita il testo in ingresso.
 - **Le chiamate vocali non sono supportate** dalla Bot API: Amy non può chiamare

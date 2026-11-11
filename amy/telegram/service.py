@@ -225,6 +225,18 @@ class TelegramAPI:
             label="foto",
         )
 
+    def send_voice(self, chat_id: int, audio_path: Path, caption: str = "") -> Any:
+        """Invia una nota vocale vera (M4A/AAC o OGG/Opus)."""
+        return self._post_file(
+            "sendVoice",
+            chat_id,
+            "voice",
+            audio_path,
+            "audio/mp4",
+            caption=caption,
+            label="nota vocale",
+        )
+
 
 class TelegramService:
     """Servizio long polling con allowlist, sessioni e conferme."""
@@ -885,6 +897,10 @@ class TelegramService:
                     timeout=90,
                 )
                 if m4a.is_file() and m4a.stat().st_size > 1000:
-                    self.api.send_audio(chat_id, m4a, caption="Risposta vocale di Amy")
+                    try:
+                        self.api.send_voice(chat_id, m4a, caption="Risposta vocale di Amy")
+                    except TelegramError:
+                        # Alcuni client/versioni accettano M4A solo come audio.
+                        self.api.send_audio(chat_id, m4a, caption="Risposta vocale di Amy")
             except Exception:  # noqa: BLE001 - la risposta testuale è già stata inviata
                 _log.warning("Invio della risposta vocale Telegram non riuscito", exc_info=True)

@@ -126,8 +126,9 @@ Serve solo un **bot**: Amy non ha un account Telegram né un numero di telefono.
 
 5. Riavvia Amy e cerca il bot su Telegram. Amy risponde solo in chat privata
    agli ID autorizzati. Puoi scrivere, inviare **note vocali** (trascritte in
-   locale) e chiedere una **foto**: lo scatto di `vision.capture` arriva come
-   immagine Telegram. Le **chiamate vocali** Telegram non sono supportate dai bot.
+   locale), ricevere **note vocali** di risposta e chiedere una **foto**: lo scatto
+   di `vision.capture` arriva come immagine Telegram. Le **chiamate vocali**
+   Telegram non sono supportate dai bot.
    Dettagli: [docs/CONFIGURAZIONE.md](docs/CONFIGURAZIONE.md#telegram).
 
 ## Cosa sa fare oggi
