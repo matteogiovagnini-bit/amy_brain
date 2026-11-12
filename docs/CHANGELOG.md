@@ -7,6 +7,13 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Vosk per wake word e STT.** Nuovo `VoskSTT` offline con decodifica PyAV,
+  modello italiano in `~/.amy/models/vosk`, modalità grammar per la wake word e
+  STT pieno per i comandi. In questa installazione `voice.stt.engine = "vosk"` e
+  `voice.wake_word.engine = "vosk"`; Whisper resta installato ma non viene usato.
+  La grammar sveglia e chiede «Dimmi», poi il comando usa lo STT pieno. 1 test
+  nuovo (485 totali).
+
 - **Watchdog dello stato vocale.** Se la sintesi è terminata ma lo stato resta
   `speaking`, un controllo ogni 5 secondi riporta Amy in standby. Evita che la
   dashboard mostri «Risposta vocale» e che il wake word sembri inattivo. 484 test

@@ -12,9 +12,11 @@ funzionante e il comando ``amy doctor`` spiega cosa installare.
 from __future__ import annotations
 
 import importlib.util
+import json
 import shutil
 import subprocess
 import tempfile
+import wave
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -106,6 +108,108 @@ class FasterWhisperSTT(STT):
             "note": "Trascrizione locale su CPU; il modello viene scaricato la prima volta.",
         }
 
+
+class VoskSTT(STT):
+    """Riconoscimento offline con Vosk, incluso il modo grammar per la wake word."""
+
+    def __init__(self, model_path: str, language: str = "it") -> None:
+        self.model_path = str(Path(model_path).expanduser())
+        self.language = language
+        self._model = None
+
+    def installed(self) -> bool:
+        return importlib.util.find_spec("vosk") is not None
+
+    def model_present(self) -> bool:
+        return Path(self.model_path).is_dir()
+
+    def _load(self):
+        if self._model is None:
+            if not self.installed():
+                raise VoiceError(
+                    "Vosk non è installato.",
+                    detail="Installa con: python3 -m pip install --user vosk",
+                )
+            if not self.model_present():
+                raise VoiceError(
+                    "Modello Vosk non trovato.",
+                    detail=self.model_path,
+                )
+            import vosk  # type: ignore
+
+            self._model = vosk.Model(self.model_path)
+        return self._model
+
+    def warm(self) -> None:
+        if self.installed() and self.model_present():
+            self._load()
+
+    @staticmethod
+    def _pcm_16k(audio_path: Path) -> bytes:
+        """Decodifica qualunque formato supportato da PyAV in PCM 16 kHz mono."""
+        try:
+            import av  # type: ignore
+        except Exception:
+            av = None
+        if av is not None:
+            chunks = []
+            container = av.open(str(audio_path))
+            try:
+                stream = container.streams.audio[0]
+                resampler = av.AudioResampler(format="s16", layout="mono", rate=16000)
+                for frame in container.decode(stream):
+                    for out in resampler.resample(frame):
+                        chunks.append(out.to_ndarray().tobytes())
+                for out in resampler.resample(None):
+                    chunks.append(out.to_ndarray().tobytes())
+            finally:
+                container.close()
+            return b"".join(chunks)
+        with wave.open(str(audio_path), "rb") as wav:
+            if wav.getframerate() != 16000 or wav.getnchannels() != 1:
+                raise VoiceError("Il file audio per Vosk deve essere WAV 16 kHz mono.")
+            return wav.readframes(wav.getnframes())
+
+    def _recognize(self, audio_path: Path, grammar: Optional[str] = None) -> str:
+        if not self.installed():
+            raise VoiceError(
+                "Vosk non è installato.",
+                detail="Installa con: python3 -m pip install --user vosk",
+            )
+        import vosk  # type: ignore
+
+        model = self._load()
+        recognizer = (
+            vosk.KaldiRecognizer(model, 16000, grammar)
+            if grammar
+            else vosk.KaldiRecognizer(model, 16000)
+        )
+        pcm = self._pcm_16k(audio_path)
+        step = 8000  # 0,5 s
+        for index in range(0, len(pcm), step):
+            recognizer.AcceptWaveform(pcm[index:index + step])
+        try:
+            return str(json.loads(recognizer.FinalResult()).get("text", "")).strip()
+        except (ValueError, AttributeError):
+            return ""
+
+    def transcribe(self, audio_path: Path) -> str:
+        return self._recognize(audio_path)
+
+    def transcribe_grammar(self, audio_path: Path, grammar: list) -> str:
+        return self._recognize(audio_path, json.dumps(grammar, ensure_ascii=False))
+
+    def status(self) -> Dict[str, Any]:
+        installed = self.installed()
+        present = self.model_present()
+        return {
+            "available": bool(installed and present),
+            "engine": "vosk",
+            "model": self.model_path,
+            "model_present": present,
+            "installed": installed,
+            "note": "Riconoscimento offline Vosk; nessun modello cloud.",
+        }
 
 class WhisperCliSTT(STT):
     def __init__(self, command: str = "whisper", model: str = "base", language: str = "it") -> None:
@@ -220,6 +324,11 @@ def build_stt(config) -> STT:
             engine = "faster-whisper"  # ripiego locale, stesso vincolo di gratuità
     if engine == "auto":
         engine = "faster-whisper" if importlib.util.find_spec("faster_whisper") else "whisper-cli"
+    if engine == "vosk":
+        return VoskSTT(
+            str(config.get("voice.stt.vosk_model", "~/.amy/models/vosk/vosk-model-small-it-0.22")),
+            language,
+        )
     if engine == "faster-whisper":
         prompt = str(config.get("voice.stt.initial_prompt", DEFAULT_INITIAL_PROMPT) or "")
         return FasterWhisperSTT(

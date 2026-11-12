@@ -55,6 +55,14 @@ class VoiceService:
             str(config.get("voice.wake_word.phrase", "amy")),
             float(config.get("voice.wake_word.sensitivity", 0.5)),
         )
+        self._wake_engine = str(config.get("voice.wake_word.engine", "text") or "text").lower()
+        grammar = config.get("voice.wake_word.grammar", []) or []
+        self._wake_grammar = [str(item) for item in grammar if str(item).strip()] if isinstance(grammar, list) else []
+        if not self._wake_grammar:
+            self._wake_grammar = ["amy", "ehi amy", "ciao amy", "[unk]"]
+        if self._wake_engine == "vosk" and not hasattr(self.stt, "transcribe_grammar"):
+            _log.warning("Wake word Vosk richiesta ma lo STT non è Vosk: uso il testo.")
+            self._wake_engine = "text"
         self._stop_event = threading.Event()
         self._loop_thread: Optional[threading.Thread] = None
         self._watchdog_thread: Optional[threading.Thread] = None
@@ -131,7 +139,7 @@ class VoiceService:
         return dict(result, text=message)
 
     # ------------------------------------------------------------------ ascolto
-    def listen_once(self, seconds: Optional[float] = None) -> str:
+    def listen_once(self, seconds: Optional[float] = None, *, wake_word: bool = False) -> str:
         if not self.recorder.status().get("available"):
             raise VoiceError("Nessun registratore audio disponibile (serve ffmpeg o sox).")
         if not self.stt.available:
@@ -150,6 +158,8 @@ class VoiceService:
         else:
             audio = self.recorder.record(duration)
         try:
+            if wake_word and hasattr(self.stt, "transcribe_grammar"):
+                return self.stt.transcribe_grammar(audio, self._wake_grammar)
             return self.stt.transcribe(audio)
         finally:
             try:
@@ -463,7 +473,12 @@ class VoiceService:
             )
             started = time.monotonic()
             try:
-                text = self.listen_once(chunk_seconds)
+                use_grammar = (
+                    self._wake_engine == "vosk"
+                    and not self._conversation_active
+                    and self._confirmation_callback is None
+                )
+                text = self.listen_once(chunk_seconds, wake_word=use_grammar)
                 empty_runs = 0
             except VoiceError as exc:
                 _log.warning("Errore di ascolto: %s", exc.message)
@@ -489,6 +504,17 @@ class VoiceService:
             ended = time.monotonic()
             if self._echo_overlapped(started, ended):
                 _log.info("Frammento scartato: Amy stava parlando (protezione dall'eco).")
+                continue
+
+            # Con la grammatica Vosk il risultato serve solo a svegliare:
+            # il comando viene ascoltato nel turno successivo con lo STT pieno.
+            if use_grammar:
+                if self.wake.matches(text):
+                    self.state.set(VoiceState.WAKE_WORD_DETECTED, "wake word rilevata")
+                    self.tts.stop()
+                    self.begin_conversation("wake word con grammatica")
+                    self.state.set(VoiceState.LISTENING, "attesa del comando")
+                    self.speak("Dimmi.", block=False)
                 continue
 
             # Conferma vocale in attesa.
@@ -717,6 +743,8 @@ class VoiceService:
                     and not recorder_status.get("stuck")
                 ),
                 "max_minutes": float(self.config.get("voice.wake_word.max_minutes", 0) or 0),
+                "engine": self._wake_engine,
+                "grammar": list(self._wake_grammar),
                 "echo_guard": self._echo_guard_enabled(),
                 "echo_guard_cooldown_s": self._echo_cooldown(),
                 "stop_reason": self._wake_stop_reason,

@@ -138,6 +138,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         },
         "stt": {
             "engine": "auto",
+            "vosk_model": "~/.amy/models/vosk/vosk-model-small-it-0.22",
             "command": "whisper-cli",
             "model": "",
             "language": "it",
@@ -167,6 +168,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             # Resta disattivabile con `enabled = false` o `start_on_launch = false`.
             "enabled": True,
             "start_on_launch": True,
+            "engine": "text",
+            "grammar": ["amy", "ehi amy", "ciao amy", "[unk]"],
             "phrase": "amy",
             "sensitivity": 0.5,
             "max_minutes": 0,

@@ -22,7 +22,7 @@ PAID_HOSTS = (
     "api.mistral.ai",
 )
 
-OPTIONAL_DEPENDENCIES_ALLOWED = {"paho-mqtt"}
+OPTIONAL_DEPENDENCIES_ALLOWED = {"paho-mqtt", "vosk"}
 
 
 class FreeOnlyTests(unittest.TestCase):

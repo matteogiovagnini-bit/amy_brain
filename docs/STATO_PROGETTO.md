@@ -15,11 +15,11 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Python | 3.9.6 |
 | Provider IA | `groq` (GroqCloud piano Free, `openai/gpt-oss-120b`) con chiave valida e risposta reale verificata; fallback `offline` |
 | TTS | comando `say`, voce italiana `Alice` |
-| STT | `faster-whisper` 1.2.1 locale, modello `small`, CPU int8, prompt comandi italiano |
+| STT | `vosk` 0.3.44 locale, modello italiano `small`; `faster-whisper` resta installato ma spento |
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 484 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
+| Test | 485 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -39,6 +39,9 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   `dev.diff` (A), `dev.analyze` (A) e `dev.test` (B). Comandi Git in lista chiusa,
   nessuna shell arbitraria, percorso confinato al progetto; verificati sul
   repository reale (stato, diff, analisi di `amy/dev`, 462 test eseguiti).
+- Voce: Vosk offline per wake word grammar e comandi; modello italiano in
+  `~/.amy/models/vosk`. Verificato con audio generato; la prova con microfono
+  reale resta da confermare dall'utente.
 - Vision: permesso Fotocamera richiesto e concesso dall'utente; `vision.capture`
   cattura nel processo Amy Core con warm-up di 2 secondi per l'esposizione e
   salva un JPEG 1280×720. Verificato il 10 novembre 2026 con luminanza media
@@ -206,7 +209,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 484 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 485 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

@@ -5,5 +5,7 @@ paho-mqtt>=2.1.0
 #
 # Voce: riconoscimento vocale locale (da installare separatamente).
 # faster-whisper>=1.0.0
+# Vosk: wake word grammar e STT offline (modello da scaricare).
+vosk>=0.3.44
 #
 # Registrazione audio su macOS: richiede ffmpeg oppure sox installati nel sistema.

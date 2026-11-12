@@ -3,7 +3,7 @@
 Amy separa quattro funzioni che spesso vengono confuse: **sintesi vocale (TTS)**,
 **riconoscimento vocale (STT)**, **registrazione dal microfono** e **wake word**.
 Su questa macchina sono ora tutte operative e verificate, con una precisazione:
-la wake word lavora sul testo trascritto, non su un rilevatore acustico dedicato.
+la wake word può lavorare sul testo trascritto oppure in modalità **Vosk grammar**, opzionale.
 
 ## 1. Stato reale
 
@@ -11,7 +11,7 @@ la wake word lavora sul testo trascritto, non su un rilevatore acustico dedicato
 | --- | --- | --- |
 | TTS macOS | **Verificato** | Comando `say`, voce italiana `Alice`, sintesi su file riuscita |
 | Interruzione TTS | **Verificato** | `voice.stop` termina il processo `say`; usato anche come barge-in |
-| STT | **Verificato** | `faster-whisper` 1.2.1, modello `small` multilingua, CPU, int8, prompt comandi italiano |
+| STT | **Verificato** | `faster-whisper` 1.2.1 e, in opzione, Vosk italiano con modello locale |
 | Registratore | **Verificato** | `sounddevice` 0.5.6 su Core Audio, WAV 16 kHz mono |
 | Wake word | **Verificata** | «Amy, che ore sono?» → comando eseguito e risposta pronunciata |
 | Ciclo continuo | **Verificato** | Avviato dalla dashboard o all'avvio, fermato dal pulsante; limite configurabile (0 = nessuno) |
@@ -165,6 +165,7 @@ Amy supporta tre adattatori, scelti da `voice.stt.engine`:
 | `auto` (default) | il migliore disponibile | `faster-whisper` se importabile, altrimenti `whisper-cli` |
 | `faster-whisper` | Python locale su CPU | pacchetto `faster-whisper`, modello scaricato |
 | `whisper` | CLI OpenAI Whisper | comando `whisper` nel PATH |
+| `vosk` | Vosk offline, incluso grammar | `voice.stt.vosk_model` |
 | `whisper-cli` | whisper.cpp | comando `whisper-cli` e modello GGML locale |
 
 Installazione usata su questo Mac (nessun costo, licenza MIT):
@@ -310,7 +311,11 @@ Due modalità d'uso:
 - «Amy, che ore sono?» → estrae direttamente il comando;
 - «Amy» da sola → ascolta un secondo frammento e lo usa come comando.
 
-Limite dichiarato: **non è un rilevatore acustico dedicato**. Consuma STT su tutto
+Con `voice.wake_word.engine = "vosk"` la wake word usa il modo grammar di Vosk:
+nessuna trascrizione completa finché non viene pronunciata una frase della
+grammatica; poi il comando passa allo STT pieno. Il rilevamento testuale resta il
+default del repository. Limite del modo testuale: **non è un rilevatore acustico
+dedicato**. Consuma STT su tutto
 l'audio ascoltato e può attivarsi su frasi somiglianti all'inizio della frase. Per un
 rilevamento a basso consumo servirebbe un filtro acustico (per esempio openWakeWord)
 davanti allo STT, non ancora integrato.

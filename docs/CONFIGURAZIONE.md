@@ -489,8 +489,14 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   Il saluto usa solo la sintesi locale e non avvia alcuna registrazione.
   La variabile d'ambiente `AMY_STARTUP_GREETING=0` lo disattiva per una sessione.
 - `voice.stt.engine = "auto"` sceglie il motore migliore disponibile
-  (`faster-whisper`, poi `whisper-cli`); `voice.stt.model` vuoto rende lo STT non
-  disponibile con i motori che richiedono un modello esplicito.
+  (`faster-whisper`, poi `whisper-cli`); con `"vosk"` usa il modello indicato da
+  `voice.stt.vosk_model` (default `~/.amy/models/vosk/vosk-model-small-it-0.22`).
+  `voice.stt.model` vuoto rende lo STT non disponibile con i motori che richiedono
+  un modello esplicito.
+- `voice.wake_word.engine = "text"` mantiene il rilevamento sul testo; `"vosk"`
+  usa la modalità grammar con `voice.wake_word.grammar` (default
+  `["amy", "ehi amy", "ciao amy", "[unk]"]`). Il risultato grammar serve solo a
+  svegliare: il comando viene ascoltato nel turno successivo con lo STT pieno.
 - `voice.stt.download_root` è la cartella dei modelli locali (default
   `~/.amy/models/whisper`).
 - `voice.recorder.engine = "auto"` preferisce `sounddevice`, poi `ffmpeg`;
@@ -611,6 +617,38 @@ python3 -m amy secret set AMY_TELEGRAM_TOKEN
   compare mai in configurazione, log, prompt o dashboard.
 - Telegram è un servizio gratuito, ma le chat dei bot non sono end-to-end
   encrypted: non inviare password o dati sensibili.
+
+### Modello Vosk
+
+Per usare Vosk come STT o per la wake word grammar:
+
+```bash
+python3 -m pip install --user vosk
+mkdir -p ~/.amy/models/vosk
+cd ~/.amy/models/vosk
+curl -L -o model.zip https://alphacephei.com/vosk/models/vosk-model-small-it-0.22.zip
+unzip model.zip
+```
+
+Poi in `~/.amy/config.json`:
+
+```json
+{
+  "voice": {
+    "stt": {
+      "engine": "vosk",
+      "vosk_model": "~/.amy/models/vosk/vosk-model-small-it-0.22"
+    },
+    "wake_word": {
+      "engine": "vosk",
+      "grammar": ["amy", "ehi amy", "ciao amy", "[unk]"]
+    }
+  }
+}
+```
+
+Vosk è offline; il modello è locale. La wake word grammar restituisce solo la
+frase di risveglio, poi il comando viene trascritto con lo STT pieno.
 
 ### Visione e telecamera
 
