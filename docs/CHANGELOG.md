@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Watchdog dello stato vocale.** Se la sintesi è terminata ma lo stato resta
+  `speaking`, un controllo ogni 5 secondi riporta Amy in standby. Evita che la
+  dashboard mostri «Risposta vocale» e che il wake word sembri inattivo. 484 test
+  superati.
+
 - **Microfono corretto e VAD più sensibile.** Il registratore usa il dispositivo
   configurato e mostra il nome reale (`Microfono MacBook Pro`), non sempre il
   default. La soglia VAD parte da 0,010 e usa un fattore 1,2: le frasi pronunciate

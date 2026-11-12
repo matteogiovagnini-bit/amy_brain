@@ -57,6 +57,7 @@ class VoiceService:
         )
         self._stop_event = threading.Event()
         self._loop_thread: Optional[threading.Thread] = None
+        self._watchdog_thread: Optional[threading.Thread] = None
         self._wake_deadline: Optional[float] = None
         self._wake_stop_reason = ""
         # Conferma vocale: mentre è attiva, il frammento successivo viene
@@ -615,6 +616,14 @@ class VoiceService:
             daemon=True,
         )
         self._loop_thread.start()
+        if not (self._watchdog_thread and self._watchdog_thread.is_alive()):
+            self._watchdog_thread = threading.Thread(
+                target=self._watchdog_loop,
+                args=(self._stop_event,),
+                name="amy-voice-watchdog",
+                daemon=True,
+            )
+            self._watchdog_thread.start()
         return self._loop_thread
 
     def _wake_loop_entry(self, on_command: Callable[[str], None]) -> None:
@@ -640,6 +649,16 @@ class VoiceService:
             _log.info("Registratore ricreato dopo silenzio prolungato")
         except Exception:  # noqa: BLE001
             _log.exception("Riavvio del registratore non riuscito")
+
+    def _watchdog_loop(self, stop: threading.Event) -> None:
+        """Riporta lo stato a idle se la sintesi è finita ma lo stato è bloccato."""
+        while not stop.wait(5.0):
+            try:
+                if self.state.state == VoiceState.SPEAKING and not self.tts.is_speaking():
+                    _log.info("Watchdog voce: sintesi terminata, torno in standby")
+                    self.end_conversation("sintesi terminata")
+            except Exception:  # noqa: BLE001 - il watchdog non deve morire
+                _log.debug("Watchdog voce: controllo non riuscito", exc_info=True)
 
     def request_stop_wake_loop(self) -> None:
         """Segnala lo stop senza attendere sintesi o lock audio."""
