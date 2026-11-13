@@ -139,28 +139,52 @@ class VoiceService:
         return dict(result, text=message)
 
     # ------------------------------------------------------------------ ascolto
-    def listen_once(self, seconds: Optional[float] = None, *, wake_word: bool = False) -> str:
+    def _record_turn(self, seconds: Optional[float] = None) -> Path:
         if not self.recorder.status().get("available"):
             raise VoiceError("Nessun registratore audio disponibile (serve ffmpeg o sox).")
-        if not self.stt.available:
-            raise VoiceError("Nessun motore di riconoscimento vocale configurato.")
         duration = seconds if seconds is not None else float(self.config.get("voice.recorder.seconds", 5))
-        # Half-duplex: non registrare mentre Amy parla, altrimenti si cattura
-        # la sua voce invece di quella dell'utente.
         if self._echo_guard_enabled() and self.tts.is_speaking():
             self._wait_quiet(self._stop_event, force_cooldown=True)
         if self._vad_enabled() and hasattr(self.recorder, "record_until_silence"):
-            audio = self.recorder.record_until_silence(
+            return self.recorder.record_until_silence(
                 max_seconds=max(duration, self._vad_max_seconds()),
                 silence_s=self._vad_silence(),
                 start_timeout_s=self._vad_start_timeout(),
             )
-        else:
-            audio = self.recorder.record(duration)
+        return self.recorder.record(duration)
+
+    def listen_once(self, seconds: Optional[float] = None, *, wake_word: bool = False) -> str:
+        if not self.stt.available:
+            raise VoiceError("Nessun motore di riconoscimento vocale configurato.")
+        audio = self._record_turn(seconds)
         try:
             if wake_word and hasattr(self.stt, "transcribe_grammar"):
                 return self.stt.transcribe_grammar(audio, self._wake_grammar)
             return self.stt.transcribe(audio)
+        finally:
+            try:
+                audio.unlink(missing_ok=True)
+            except OSError:
+                pass
+
+    def listen_wake_detailed(self, seconds: Optional[float] = None) -> tuple:
+        """Ascolta con la grammatica e, se sveglia, trascrive anche il comando.
+
+        Restituisce ``(testo_grammar, testo_completo)``. Il secondo è vuoto se
+        la wake word non è stata rilevata, così il costo di Vosk pieno si paga
+        solo quando serve.
+        """
+        if not self.stt.available:
+            raise VoiceError("Nessun motore di riconoscimento vocale configurato.")
+        if not hasattr(self.stt, "transcribe_grammar"):
+            raise VoiceError("Il motore STT non supporta la grammatica wake word.")
+        audio = self._record_turn(seconds)
+        try:
+            grammar_text = self.stt.transcribe_grammar(audio, self._wake_grammar)
+            full_text = ""
+            if self.wake.matches(grammar_text):
+                full_text = self.stt.transcribe(audio)
+            return grammar_text, full_text
         finally:
             try:
                 audio.unlink(missing_ok=True)
@@ -478,7 +502,11 @@ class VoiceService:
                     and not self._conversation_active
                     and self._confirmation_callback is None
                 )
-                text = self.listen_once(chunk_seconds, wake_word=use_grammar)
+                if use_grammar:
+                    text, full_text = self.listen_wake_detailed(chunk_seconds)
+                else:
+                    text = self.listen_once(chunk_seconds)
+                    full_text = ""
                 empty_runs = 0
             except VoiceError as exc:
                 _log.warning("Errore di ascolto: %s", exc.message)
@@ -506,15 +534,24 @@ class VoiceService:
                 _log.info("Frammento scartato: Amy stava parlando (protezione dall'eco).")
                 continue
 
-            # Con la grammatica Vosk il risultato serve solo a svegliare:
-            # il comando viene ascoltato nel turno successivo con lo STT pieno.
+            # Con la grammatica Vosk il risultato grammar sveglia; se lo STT
+            # pieno ha già trascritto il comando nello stesso frammento, lo
+            # eseguiamo subito senza chiedere di ripeterlo.
             if use_grammar:
                 if self.wake.matches(text):
+                    command = self.wake.extract_command(full_text)
+                    if not command:
+                        candidate = self.wake.strip_leading_wake(full_text)
+                        if candidate and not self.wake.matches(candidate):
+                            command = candidate
                     self.state.set(VoiceState.WAKE_WORD_DETECTED, "wake word rilevata")
                     self.tts.stop()
                     self.begin_conversation("wake word con grammatica")
-                    self.state.set(VoiceState.LISTENING, "attesa del comando")
-                    self.speak("Dimmi.", block=False)
+                    if command:
+                        self._forward(command, on_command)
+                    else:
+                        self.state.set(VoiceState.LISTENING, "attesa del comando")
+                        self.speak("Dimmi.", block=False)
                 continue
 
             # Conferma vocale in attesa.

@@ -495,8 +495,8 @@ Configurazione vocale e robotica sono descritte in dettaglio in
   un modello esplicito.
 - `voice.wake_word.engine = "text"` mantiene il rilevamento sul testo; `"vosk"`
   usa la modalità grammar con `voice.wake_word.grammar` (default
-  `["amy", "ehi amy", "ciao amy", "[unk]"]`). Il risultato grammar serve solo a
-  svegliare: il comando viene ascoltato nel turno successivo con lo STT pieno.
+  `["amy", "ehi amy", "ciao amy", "[unk]"]`). Il risultato grammar serve a svegliare; nello stesso frammento Vosk pieno
+  prova a trascrivere anche il comando, altrimenti Amy chiede «Dimmi».
 - `voice.stt.download_root` è la cartella dei modelli locali (default
   `~/.amy/models/whisper`).
 - `voice.recorder.engine = "auto"` preferisce `sounddevice`, poi `ffmpeg`;

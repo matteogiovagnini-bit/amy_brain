@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Vosk one-shot.** Dopo la grammar, lo stesso frammento viene trascritto anche
+  con Vosk pieno: «Amy, che ore sono» viene eseguito subito, senza chiedere di
+  ripetere. Se il comando non è nel frammento, Amy dice «Dimmi» e ascolta il turno
+  successivo. 1 test nuovo (486 totali).
+
 - **Vosk per wake word e STT.** Nuovo `VoskSTT` offline con decodifica PyAV,
   modello italiano in `~/.amy/models/vosk`, modalità grammar per la wake word e
   STT pieno per i comandi. In questa installazione `voice.stt.engine = "vosk"` e

@@ -119,6 +119,22 @@ class WakeWordDetector:
         tokens = normalize(text).split()
         return self._match_index(tokens)[0] >= 0
 
+    def strip_leading_wake(self, text: str) -> str:
+        """Rimuove un primo token che sembra la wake word, anche se storpiato.
+
+        Serve al doppio passaggio Vosk grammar + STT pieno: la grammar conferma
+        che l'utente ha detto «Amy», mentre lo STT pieno può averla trascritta
+        come «temi», «remi» o «emi». Se il primo token non è una variante nota,
+        il testo intero è il comando.
+        """
+        tokens = normalize(text).split()
+        if not tokens:
+            return ""
+        known = {"temi", "remi", "remy", "emi", "emmy", "ami", "ammy"}
+        if self._token_matches(tokens[0]) or tokens[0] in known:
+            return " ".join(tokens[1:]).strip(" ,.;:!?-")
+        return " ".join(tokens).strip(" ,.;:!?-")
+
     def extract_command(self, text: str) -> Optional[str]:
         """Restituisce il testo dopo la wake word, oppure None se assente."""
         tokens = normalize(text).split()

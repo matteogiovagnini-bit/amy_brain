@@ -366,20 +366,20 @@ class EchoGuardTests(unittest.TestCase):
         thread.join(timeout=3)
         self.assertEqual(seen, ["che ore sono"])
 
-    def test_vosk_grammar_wakes_then_uses_full_stt(self) -> None:
-        """La grammatica serve solo a svegliare: il comando usa lo STT pieno."""
+    def test_vosk_grammar_executes_command_in_the_same_turn(self) -> None:
+        """La grammar sveglia e il Vosk pieno esegue subito il comando."""
         class GrammarSTT(SilentSTT):
             def __init__(self) -> None:
                 self.grammar_calls = 0
-                self.full_calls = 0
+                self.full_calls = 1
 
             def transcribe_grammar(self, audio_path: Path, grammar) -> str:
                 self.grammar_calls += 1
-                return "ehi amy ciao"
+                return "ehi amy"
 
             def transcribe(self, audio_path: Path) -> str:
                 self.full_calls += 1
-                return "che ore sono" if self.full_calls == 1 else ""
+                return "che ore sono"
 
         stt = GrammarSTT()
         self.service._wake_engine = "vosk"
@@ -393,8 +393,36 @@ class EchoGuardTests(unittest.TestCase):
             time.sleep(0.05)
         stop.set()
         thread.join(timeout=3)
-        self.assertEqual(seen, ["che ore sono"])
+        self.assertTrue(seen)
+        self.assertEqual(seen[0], "che ore sono")
         self.assertGreaterEqual(stt.grammar_calls, 1)
+        self.assertNotIn("Dimmi.", self.service.tts.spoken)
+
+    def test_vosk_grammar_asks_dimmi_when_no_command_was_heard(self) -> None:
+        class GrammarSTT(SilentSTT):
+            def __init__(self) -> None:
+                self.full_texts = ["", "che ore sono"]
+
+            def transcribe_grammar(self, audio_path: Path, grammar) -> str:
+                return "ehi amy"
+
+            def transcribe(self, audio_path: Path) -> str:
+                return self.full_texts.pop(0) if self.full_texts else ""
+
+        stt = GrammarSTT()
+        self.service._wake_engine = "vosk"
+        self.service.stt = stt
+        self.service.tts = FakeTTS()
+        seen = []
+        stop = threading.Event()
+        thread = self.service.start_wake_loop(seen.append, max_minutes=1)
+        deadline = time.monotonic() + 4
+        while not seen and time.monotonic() < deadline:
+            time.sleep(0.05)
+        stop.set()
+        thread.join(timeout=3)
+        self.assertTrue(seen)
+        self.assertEqual(seen[0], "che ore sono")
         self.assertIn("Dimmi.", self.service.tts.spoken)
 
     def test_status_exposes_the_echo_guard(self) -> None:

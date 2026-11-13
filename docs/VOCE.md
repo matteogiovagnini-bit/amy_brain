@@ -313,7 +313,8 @@ Due modalità d'uso:
 
 Con `voice.wake_word.engine = "vosk"` la wake word usa il modo grammar di Vosk:
 nessuna trascrizione completa finché non viene pronunciata una frase della
-grammatica; poi il comando passa allo STT pieno. Il rilevamento testuale resta il
+grammatica; quando si sveglia, lo stesso frammento viene passato anche allo STT
+pieno per eseguire subito il comando, se presente. Il rilevamento testuale resta il
 default del repository. Limite del modo testuale: **non è un rilevatore acustico
 dedicato**. Consuma STT su tutto
 l'audio ascoltato e può attivarsi su frasi somiglianti all'inizio della frase. Per un
