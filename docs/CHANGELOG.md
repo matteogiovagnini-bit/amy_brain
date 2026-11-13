@@ -7,6 +7,11 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **Wake word Vosk con modello inglese separato.** La grammar usa
+  `vosk-model-small-en-us-0.15` (più preciso su «Amy»), mentre i comandi usano il
+  modello italiano. `[unk]` viene rimosso dal risultato; il comando viene cercato
+  nello stesso frammento. 1 test nuovo (487 totali).
+
 - **Vosk one-shot.** Dopo la grammar, lo stesso frammento viene trascritto anche
   con Vosk pieno: «Amy, che ore sono» viene eseguito subito, senza chiedere di
   ripetere. Se il comando non è nel frammento, Amy dice «Dimmi» e ascolta il turno

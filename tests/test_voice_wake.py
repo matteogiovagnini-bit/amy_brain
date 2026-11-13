@@ -384,6 +384,7 @@ class EchoGuardTests(unittest.TestCase):
         stt = GrammarSTT()
         self.service._wake_engine = "vosk"
         self.service.stt = stt
+        self.service.wake_stt = stt
         self.service.tts = FakeTTS()
         seen = []
         stop = threading.Event()
@@ -412,6 +413,7 @@ class EchoGuardTests(unittest.TestCase):
         stt = GrammarSTT()
         self.service._wake_engine = "vosk"
         self.service.stt = stt
+        self.service.wake_stt = stt
         self.service.tts = FakeTTS()
         seen = []
         stop = threading.Event()

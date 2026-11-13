@@ -10,7 +10,7 @@ from typing import Any, Callable, Dict, Optional
 from ..core.errors import VoiceError
 from ..core.logging_setup import get_logger
 from .recorder import build_recorder
-from .stt import FasterWhisperSTT, STT, build_stt
+from .stt import FasterWhisperSTT, STT, VoskSTT, build_stt
 from .tts import MacSayTTS, NullTTS, TTS
 from .state import VoiceState, VoiceStateMachine
 from .wakeword import WakeWordDetector, normalize
@@ -50,6 +50,10 @@ class VoiceService:
         else:
             self.barge_stt = self.stt
         self.recorder = build_recorder(config)
+        wake_model = str(config.get("voice.wake_word.vosk_model", "") or "").strip()
+        self.wake_stt: STT = self.stt
+        if wake_model and isinstance(self.stt, VoskSTT) and wake_model != self.stt.model_path:
+            self.wake_stt = VoskSTT(wake_model, self.stt.language)
 
         self.wake = WakeWordDetector(
             str(config.get("voice.wake_word.phrase", "amy")),
@@ -60,7 +64,7 @@ class VoiceService:
         self._wake_grammar = [str(item) for item in grammar if str(item).strip()] if isinstance(grammar, list) else []
         if not self._wake_grammar:
             self._wake_grammar = ["amy", "ehi amy", "ciao amy", "[unk]"]
-        if self._wake_engine == "vosk" and not hasattr(self.stt, "transcribe_grammar"):
+        if self._wake_engine == "vosk" and not hasattr(self.wake_stt, "transcribe_grammar"):
             _log.warning("Wake word Vosk richiesta ma lo STT non è Vosk: uso il testo.")
             self._wake_engine = "text"
         self._stop_event = threading.Event()
@@ -91,14 +95,15 @@ class VoiceService:
         threading.Thread(target=self._warm_stt, daemon=True).start()
 
     def _warm_stt(self) -> None:
-        warm = getattr(self.stt, "warm", None)
-        if not callable(warm):
-            return
-        try:
-            warm()
-            _log.info("Modello STT locale pronto")
-        except Exception as exc:  # pragma: no cover - dipende dall'ambiente
-            _log.warning("Precaricamento STT non riuscito: %s", exc)
+        for label, engine in (("STT", self.stt), ("wake", self.wake_stt)):
+            warm = getattr(engine, "warm", None)
+            if not callable(warm):
+                continue
+            try:
+                warm()
+                _log.info("Modello %s locale pronto", label)
+            except Exception as exc:  # pragma: no cover - dipende dall'ambiente
+                _log.warning("Precaricamento %s non riuscito: %s", label, exc)
 
     # ------------------------------------------------------------------ sintesi
     def speak(self, text: str, *, block: bool = False) -> Dict[str, Any]:
@@ -158,8 +163,8 @@ class VoiceService:
             raise VoiceError("Nessun motore di riconoscimento vocale configurato.")
         audio = self._record_turn(seconds)
         try:
-            if wake_word and hasattr(self.stt, "transcribe_grammar"):
-                return self.stt.transcribe_grammar(audio, self._wake_grammar)
+            if wake_word and hasattr(self.wake_stt, "transcribe_grammar"):
+                return self.wake_stt.transcribe_grammar(audio, self._wake_grammar)
             return self.stt.transcribe(audio)
         finally:
             try:
@@ -176,11 +181,11 @@ class VoiceService:
         """
         if not self.stt.available:
             raise VoiceError("Nessun motore di riconoscimento vocale configurato.")
-        if not hasattr(self.stt, "transcribe_grammar"):
+        if not hasattr(self.wake_stt, "transcribe_grammar"):
             raise VoiceError("Il motore STT non supporta la grammatica wake word.")
         audio = self._record_turn(seconds)
         try:
-            grammar_text = self.stt.transcribe_grammar(audio, self._wake_grammar)
+            grammar_text = self.wake_stt.transcribe_grammar(audio, self._wake_grammar)
             full_text = ""
             if self.wake.matches(grammar_text):
                 full_text = self.stt.transcribe(audio)
@@ -782,6 +787,7 @@ class VoiceService:
                 "max_minutes": float(self.config.get("voice.wake_word.max_minutes", 0) or 0),
                 "engine": self._wake_engine,
                 "grammar": list(self._wake_grammar),
+                "model": getattr(self.wake_stt, "model_path", ""),
                 "echo_guard": self._echo_guard_enabled(),
                 "echo_guard_cooldown_s": self._echo_cooldown(),
                 "stop_reason": self._wake_stop_reason,

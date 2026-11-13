@@ -647,8 +647,28 @@ Poi in `~/.amy/config.json`:
 }
 ```
 
-Vosk è offline; il modello è locale. La wake word grammar restituisce solo la
-frase di risveglio, poi il comando viene trascritto con lo STT pieno.
+Vosk è offline; i modelli sono locali. Per la wake word si può usare un modello
+inglese separato, più preciso su «Amy», mentre i comandi usano il modello
+italiano:
+
+```json
+{
+  "voice": {
+    "stt": {
+      "engine": "vosk",
+      "vosk_model": "~/.amy/models/vosk/vosk-model-small-it-0.22"
+    },
+    "wake_word": {
+      "engine": "vosk",
+      "vosk_model": "~/.amy/models/vosk/vosk-model-small-en-us-0.15",
+      "grammar": ["amy", "hey amy", "hi amy", "[unk]"]
+    }
+  }
+}
+```
+
+La grammar restituisce solo la frase di risveglio; lo stesso audio viene poi
+trascritto con il modello italiano per eseguire subito il comando, se presente.
 
 ### Visione e telecamera
 

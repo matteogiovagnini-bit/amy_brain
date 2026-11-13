@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from amy.voice.stt import FasterWhisperSTT, build_stt
+from amy.voice.stt import FasterWhisperSTT, VoskSTT, build_stt
 from amy.voice.tts import MacSayTTS
 from amy.voice.wakeword import WakeWordDetector, normalize
 
@@ -42,6 +42,16 @@ class STTConfigurationTests(unittest.TestCase):
         self.assertIsInstance(stt, FasterWhisperSTT)
         self.assertIn("apri mail", stt.initial_prompt)
         self.assertIn("Amy", stt.initial_prompt)
+
+    def test_vosk_engine_is_selected_without_loading_the_model(self) -> None:
+        stt = build_stt({
+            "voice.stt.engine": "vosk",
+            "voice.stt.vosk_model": "/percorso/inesistente",
+        })
+        self.assertIsInstance(stt, VoskSTT)
+        status = stt.status()
+        self.assertEqual(status["engine"], "vosk")
+        self.assertFalse(status["available"])
 
     def test_empty_prompt_disables_the_bias(self) -> None:
         stt = build_stt({"voice.stt.engine": "faster-whisper", "voice.stt.initial_prompt": ""})

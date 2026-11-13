@@ -197,7 +197,9 @@ class VoskSTT(STT):
         return self._recognize(audio_path)
 
     def transcribe_grammar(self, audio_path: Path, grammar: list) -> str:
-        return self._recognize(audio_path, json.dumps(grammar, ensure_ascii=False))
+        text = self._recognize(audio_path, json.dumps(grammar, ensure_ascii=False))
+        # Vosk usa [unk] per l'audio fuori grammatica: non è testo utile.
+        return " ".join(text.replace("[unk]", " ").split())
 
     def status(self) -> Dict[str, Any]:
         installed = self.installed()

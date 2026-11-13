@@ -169,6 +169,7 @@ DEFAULT_CONFIG: Dict[str, Any] = {
             "enabled": True,
             "start_on_launch": True,
             "engine": "text",
+            "vosk_model": "",
             "grammar": ["amy", "ehi amy", "ciao amy", "[unk]"],
             "phrase": "amy",
             "sensitivity": 0.5,

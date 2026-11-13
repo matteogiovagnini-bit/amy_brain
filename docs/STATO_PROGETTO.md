@@ -19,7 +19,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 | Registratore | `sounddevice` 0.5.6 su Core Audio, 16 kHz mono |
 | Robot | simulatore locale; nessun hardware collegato |
 | MQTT | `paho-mqtt` disponibile, ma nessun broker verificato |
-| Test | 486 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
+| Test | 487 test, tutti superati, più il self-test dell'app nativa (verificato il 10 novembre 2026) |
 | Applicazione | «Amy Core.app» compilata in locale e installata in `~/Applications` |
 | Controllo versione | repository Git pubblico su GitHub, branch `main`, primo commit `404aacf` |
 
@@ -39,9 +39,9 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   `dev.diff` (A), `dev.analyze` (A) e `dev.test` (B). Comandi Git in lista chiusa,
   nessuna shell arbitraria, percorso confinato al progetto; verificati sul
   repository reale (stato, diff, analisi di `amy/dev`, 462 test eseguiti).
-- Voce: Vosk offline per wake word grammar e comandi; modello italiano in
-  `~/.amy/models/vosk`. Verificato con audio generato; la prova con microfono
-  reale resta da confermare dall'utente.
+- Voce: Vosk offline per wake word grammar e comandi; modello inglese per la
+  grammatica «Amy» e italiano per i comandi, in `~/.amy/models/vosk`. Verificato
+  con audio generato; la prova con microfono reale resta da confermare.
 - Vision: permesso Fotocamera richiesto e concesso dall'utente; `vision.capture`
   cattura nel processo Amy Core con warm-up di 2 secondi per l'esposizione e
   salva un JPEG 1280×720. Verificato il 10 novembre 2026 con luminanza media
@@ -139,8 +139,8 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
   SIGKILL: nessun processo orfano.
 - Informazioni di sistema reali via libreria standard (`macOS`, architettura, Python,
   CPU, carico, disco) esposte in `status()["system"]`.
-- Voce completa e locale: `sounddevice` per il microfono, `faster-whisper` per la
-  trascrizione, `say` per la sintesi, wake word «Amy» sul testo trascritto.
+- Voce completa e locale: `sounddevice` per il microfono, Vosk per wake word e
+  comandi (`faster-whisper` resta installato ma spento),   trascrizione, `say` per la sintesi, wake word «Amy» sul testo trascritto.
   Verificata anche end-to-end: «Amy, che ore sono?» → comando eseguito e risposta
   pronunciata. L'ascolto continuo si avvia automaticamente all'avvio se
   `voice.wake_word.start_on_launch` è attivo (default: sì) e si ferma da solo
@@ -209,7 +209,7 @@ Sintesi rapida per agenti: [knowledge/stato_corrente.md](knowledge/stato_corrent
 - Saluto di avvio «Amy è attiva e operativa.» pronunciato dalla dashboard all'avvio
   con la sola sintesi locale: nessuna registrazione, testo configurabile
   (`voice.startup_greeting_text`) e disattivabile.
-- Test suite: 486 test superati, inclusi sicurezza, protocollo, server, UI statica,
+- Test suite: 487 test superati, inclusi sicurezza, protocollo, server, UI statica,
   app nativa, watchdog del server, cache TTS, sistema locale, servizio vocale,
   voce, wake word, protezione dall'eco, batteria del Mac, registratore (incluso il
   blocco del HAL), saluto di avvio, provider gratuiti online, vincolo gratuito e

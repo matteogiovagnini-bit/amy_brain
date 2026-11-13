@@ -311,7 +311,9 @@ Due modalità d'uso:
 - «Amy, che ore sono?» → estrae direttamente il comando;
 - «Amy» da sola → ascolta un secondo frammento e lo usa come comando.
 
-Con `voice.wake_word.engine = "vosk"` la wake word usa il modo grammar di Vosk:
+Con `voice.wake_word.engine = "vosk"` la wake word usa il modo grammar di Vosk.
+È possibile indicare un modello inglese separato in `voice.wake_word.vosk_model`,
+più preciso su «Amy», lasciando il modello italiano per i comandi:
 nessuna trascrizione completa finché non viene pronunciata una frase della
 grammatica; quando si sveglia, lo stesso frammento viene passato anche allo STT
 pieno per eseguire subito il comando, se presente. Il rilevamento testuale resta il
