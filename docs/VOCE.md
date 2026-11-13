@@ -428,10 +428,10 @@ Configurazione (`voice.conversation`):
 | `barge_in` | `true` | ascolta il microfono anche durante la sintesi |
 | `barge_in_chunk_s` | `1.0` | durata dei frammenti di ascolto durante la sintesi |
 | `barge_in_model` | vuoto | modello STT per il barge-in; vuoto = stesso modello dei comandi |
-| `listen_seconds` | `8.0` | finestra fissa, usata solo se il VAD non è disponibile |
+| `listen_seconds` | `4.0` | finestra fissa, usata solo se il VAD non è disponibile |
 | `vad` | `true` | rileva la fine del parlato invece di tagliare a una durata fissa |
-| `vad_silence_s` | `1.0` | pausa che chiude il turno |
-| `vad_start_timeout_s` | `6.0` | attesa massima della voce prima di chiudere il frammento |
+| `vad_silence_s` | `0.7` | pausa che chiude il turno |
+| `vad_start_timeout_s` | `3.5` | attesa massima della voce prima di chiudere il frammento |
 | `vad_max_seconds` | `15.0` | durata massima di un turno dettato |
 
 Comportamento:

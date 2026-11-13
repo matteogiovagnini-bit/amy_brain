@@ -143,10 +143,10 @@ python3 -m amy config path   # percorso del file in uso
       "barge_in": true,
       "barge_in_chunk_s": 1.0,
       "barge_in_model": "",
-      "listen_seconds": 8.0,
+      "listen_seconds": 4.0,
       "vad": true,
-      "vad_silence_s": 1.0,
-      "vad_start_timeout_s": 6.0,
+      "vad_silence_s": 0.7,
+      "vad_start_timeout_s": 3.5,
       "vad_max_seconds": 15.0
     },
     "wake_word": {
@@ -504,7 +504,7 @@ Configurazione vocale e robotica sono descritte in dettaglio in
 - `voice.conversation.vad` (default `true`) chiude il turno dopo circa un secondo
   di silenzio: un indirizzo email o una frase lunga non vengono tagliati.
   `vad_max_seconds` (default 15) è il limite massimo di un turno.
-- `voice.conversation.listen_seconds` (default 8) è la finestra fissa, usata solo
+- `voice.conversation.listen_seconds` (default 4) è la finestra fissa, usata solo
   se il VAD non è disponibile.
 - `voice.conversation.timeout_s` (default 30) è il silenzio massimo prima di
   «Sei ancora lì?»; `barge_in` (default true) ascolta anche durante la sintesi per

@@ -7,6 +7,10 @@ iniziale: non tutte le voci sono state verificate su hardware.
 
 ### Aggiunto
 
+- **VAD più reattivo.** `vad_silence_s` 0,7 s, `vad_start_timeout_s` 3,5 s e
+  `listen_seconds` 4 s riducono l’attesa dopo la wake word e dopo il comando,
+  senza cambiare i modelli Vosk. 487 test superati.
+
 - **Wake word Vosk con modello inglese separato.** La grammar usa
   `vosk-model-small-en-us-0.15` (più preciso su «Amy»), mentre i comandi usano il
   modello italiano. `[unk]` viene rimosso dal risultato; il comando viene cercato
